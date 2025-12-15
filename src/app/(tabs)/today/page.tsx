@@ -9,9 +9,14 @@ type TimeSlot = "ANYTIME" | "MORNING" | "AFTERNOON" | "EVENING";
 
 type TaskRecord = {
   id?: string;
+  _row?: number;
+  episode_id?: string;
+  parent_task_id?: string;
   title?: string;
   raw_text?: string;
   status?: string;
+  notes?: string;
+  duration_minutes?: number;
   priority?: { moscow?: string; weight?: number };
   time?: {
     due_date?: string;
@@ -41,6 +46,8 @@ const PRIORITY_LABELS = {
   LOW: "Low",
 };
 
+const STATUS_OPTIONS = ["intake", "defined", "decomposed", "planned", "doing", "blocked", "done", "canceled"] as const;
+
 function formatISODate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -57,7 +64,7 @@ function computeRange(mode: ViewMode, baseDate: Date) {
     }
     case "WEEK": {
       const day = start.getDay();
-      const diff = (day + 6) % 7; // convert Sunday start to Monday start
+      const diff = (day + 6) % 7;
       start.setDate(start.getDate() - diff);
       end.setDate(start.getDate() + 6);
       break;
@@ -134,6 +141,14 @@ function composeIso(dateStr: string, timeStr: string | undefined) {
   return new Date(`${dateStr}T${timeStr}`).toISOString();
 }
 
+function timeToHHMM(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export default function TodayPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.email);
@@ -152,6 +167,34 @@ export default function TodayPage() {
   const [blockDate, setBlockDate] = useState(() => formatISODate(new Date()));
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
+
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const openTask = useMemo(() => tasks.find((t) => t.id === openTaskId) ?? null, [tasks, openTaskId]);
+  const childTasks = useMemo(() => {
+    if (!openTask?.id) return [];
+    return tasks.filter((t) => t.parent_task_id === openTask.id);
+  }, [tasks, openTask?.id]);
+
+  const [editTitle, setEditTitle] = useState("");
+  const [editStatus, setEditStatus] = useState<(typeof STATUS_OPTIONS)[number]>("intake");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editSlot, setEditSlot] = useState<TimeSlot>("ANYTIME");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [editDuration, setEditDuration] = useState<number>(15);
+  const [editNotes, setEditNotes] = useState("");
+
+  const [answers, setAnswers] = useState<{ done: string; constraints: string; deadline: string; duration: string }>({
+    done: "",
+    constraints: "",
+    deadline: "",
+    duration: "",
+  });
+  const [suggested, setSuggested] = useState<Array<{ title: string }>>([]);
+  const [selectedSubtaskIdx, setSelectedSubtaskIdx] = useState<Set<number>>(new Set());
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [breakdownBusy, setBreakdownBusy] = useState(false);
+  const [createSubsBusy, setCreateSubsBusy] = useState(false);
 
   useEffect(() => {
     setDateRange(computeRange(viewMode, selectedDate));
@@ -181,6 +224,22 @@ export default function TodayPage() {
     }
     void fetchTasks(dateRange);
   }, [signedIn, dateRange, fetchTasks]);
+
+  useEffect(() => {
+    if (!openTask) return;
+
+    setEditTitle(openTask.title ?? openTask.raw_text ?? "");
+    setEditStatus((openTask.status as any) ?? "intake");
+    setEditDueDate(openTask.time?.due_date?.slice(0, 10) ?? "");
+    setEditSlot((openTask.time?.time_of_day as TimeSlot) ?? "ANYTIME");
+    setEditStart(timeToHHMM(openTask.time?.start_at));
+    setEditEnd(timeToHHMM(openTask.time?.end_at));
+    setEditDuration(Number(openTask.duration_minutes ?? 15));
+    setEditNotes(String(openTask.notes ?? ""));
+    setSuggested([]);
+    setSelectedSubtaskIdx(new Set());
+    setAnswers({ done: "", constraints: "", deadline: "", duration: "" });
+  }, [openTaskId]);
 
   async function initAccount() {
     setInitBusy(true);
@@ -212,6 +271,100 @@ export default function TodayPage() {
       setStartTime("");
       setEndTime("");
       await fetchTasks(dateRange);
+    }
+  }
+
+  async function saveTaskEdits() {
+    if (!openTask?.id) return;
+
+    setSaveBusy(true);
+    try {
+      const patch = {
+        id: openTask.id,
+        _row: openTask._row,
+        title: editTitle,
+        status: editStatus,
+        due_date: editDueDate || undefined,
+        time_of_day: editSlot,
+        start_at: editStart ? composeIso(editDueDate || formatISODate(new Date()), editStart) : undefined,
+        end_at: editEnd ? composeIso(editDueDate || formatISODate(new Date()), editEnd) : undefined,
+        notes: editNotes,
+        duration_minutes: Number.isFinite(editDuration) ? editDuration : undefined,
+      };
+
+      const res = await fetch("/api/cogos/task/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+
+      if (res.ok) await fetchTasks(dateRange);
+    } finally {
+      setSaveBusy(false);
+    }
+  }
+
+  async function suggestBreakdown() {
+    if (!openTask?.id) return;
+
+    setBreakdownBusy(true);
+    try {
+      const res = await fetch("/api/cogos/task/decompose", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          text: openTask.title ?? openTask.raw_text ?? "",
+          answers,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const subs = (data.subtasks ?? []).slice(0, 12);
+      setSuggested(subs);
+      const all = new Set<number>();
+      subs.forEach((_, idx) => all.add(idx));
+      setSelectedSubtaskIdx(all);
+    } finally {
+      setBreakdownBusy(false);
+    }
+  }
+
+  async function createSelectedSubtasks() {
+    if (!openTask?.id) return;
+    if (suggested.length === 0 || selectedSubtaskIdx.size === 0) return;
+
+    setCreateSubsBusy(true);
+    try {
+      const toCreate = suggested
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ idx }) => selectedSubtaskIdx.has(idx))
+        .map(({ item }) => ({
+          raw_text: item.title,
+          title: item.title,
+          due_date: editDueDate || openTask.time?.due_date?.slice(0, 10),
+          time_of_day: "ANYTIME",
+        }));
+
+      if (toCreate.length > 0) {
+        await fetch("/api/cogos/task/createMany", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            parent_task_id: openTask.id,
+            subtasks: toCreate,
+          }),
+        });
+      }
+
+      await fetch("/api/cogos/task/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: openTask.id, _row: openTask._row, status: "decomposed" }),
+      });
+
+      await fetchTasks(dateRange);
+    } finally {
+      setCreateSubsBusy(false);
     }
   }
 
@@ -267,6 +420,226 @@ export default function TodayPage() {
   return (
     <div className="min-h-screen bg-[#05060c] text-white">
       <TopNav />
+
+      {openTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-[#0b0d16] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+              <div className="text-sm text-white/70">
+                Editing <span className="font-mono text-white/90">{openTask.id}</span>
+              </div>
+              <button
+                className="rounded-full border border-white/20 px-3 py-1 text-sm text-white/80 hover:border-white/50"
+                onClick={() => setOpenTaskId(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-5 px-5 py-5">
+              <div>
+                <label className="text-xs uppercase tracking-wide text-white/50">Title</label>
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s} className="bg-[#0b0d16]">
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">Duration (min)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editDuration}
+                    onChange={(e) => setEditDuration(Number(e.target.value))}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">Date</label>
+                  <input
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">Slot</label>
+                  <select
+                    value={editSlot}
+                    onChange={(e) => setEditSlot(e.target.value as TimeSlot)}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  >
+                    {Object.entries(SLOT_LABELS).map(([k, v]) => (
+                      <option key={k} value={k} className="bg-[#0b0d16]">
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">Start</label>
+                  <input
+                    type="time"
+                    value={editStart}
+                    onChange={(e) => setEditStart(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase tracking-wide text-white/50">End</label>
+                  <input
+                    type="time"
+                    value={editEnd}
+                    onChange={(e) => setEditEnd(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs uppercase tracking-wide text-white/50">Notes</label>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={3}
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">Subtasks</div>
+                  <button
+                    onClick={suggestBreakdown}
+                    disabled={breakdownBusy}
+                    className="rounded-full border border-white/20 px-3 py-1 text-sm text-white/80 hover:border-white/50 disabled:opacity-50"
+                  >
+                    {breakdownBusy ? "Suggesting…" : "Suggest breakdown"}
+                  </button>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <input
+                    placeholder="Done looks like…"
+                    value={answers.done}
+                    onChange={(e) => setAnswers((a) => ({ ...a, done: e.target.value }))}
+                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                  <input
+                    placeholder="Constraints…"
+                    value={answers.constraints}
+                    onChange={(e) => setAnswers((a) => ({ ...a, constraints: e.target.value }))}
+                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                  <input
+                    placeholder="Deadline…"
+                    value={answers.deadline}
+                    onChange={(e) => setAnswers((a) => ({ ...a, deadline: e.target.value }))}
+                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                  <input
+                    placeholder="Target duration per subtask…"
+                    value={answers.duration}
+                    onChange={(e) => setAnswers((a) => ({ ...a, duration: e.target.value }))}
+                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm text-white outline-none focus:border-white/60"
+                  />
+                </div>
+
+                {suggested.length > 0 && (
+                  <>
+                    <div className="mt-3 space-y-2">
+                      {suggested.map((s, idx) => {
+                        const checked = selectedSubtaskIdx.has(idx);
+                        return (
+                          <label key={idx} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setSelectedSubtaskIdx((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(idx)) next.delete(idx);
+                                  else next.add(idx);
+                                  return next;
+                                })
+                              }
+                            />
+                            <span className="text-white/90">{s.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={createSelectedSubtasks}
+                      disabled={createSubsBusy}
+                      className="mt-3 w-full rounded-full bg-white/90 px-3 py-2 text-center text-sm font-semibold text-black transition hover:bg-white disabled:opacity-50"
+                    >
+                      {createSubsBusy ? "Creating…" : "Create selected subtasks"}
+                    </button>
+                  </>
+                )}
+
+                {childTasks.length > 0 && (
+                  <div className="mt-4">
+                    <div className="text-xs uppercase tracking-wide text-white/50">Existing subtasks</div>
+                    <div className="mt-2 space-y-2">
+                      {childTasks.map((t) => (
+                        <div key={t.id} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
+                          <div className="font-semibold">{t.title ?? "Untitled"}</div>
+                          <div className="text-xs text-white/60">{t.status ?? "intake"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={saveTaskEdits}
+                  disabled={saveBusy}
+                  className="flex-1 rounded-full bg-white/90 px-3 py-2 text-center text-sm font-semibold text-black transition hover:bg-white disabled:opacity-50"
+                >
+                  {saveBusy ? "Saving…" : "Save"}
+                </button>
+                <button
+                  onClick={() => setOpenTaskId(null)}
+                  className="rounded-full border border-white/20 px-4 py-2 text-sm text-white/80 hover:border-white/50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         <section className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-lg shadow-black/40">
           <div className="flex flex-wrap items-center gap-4">
@@ -465,16 +838,18 @@ export default function TodayPage() {
                         <p className="text-xs text-white/50">No items</p>
                       ) : (
                         laneAssignments[lane].map((task) => (
-                          <div key={task.id} className="rounded-xl border border-white/10 bg-white/10 p-3">
-                            <div className="text-xs uppercase tracking-wide text-white/60">
-                              {timeRangeLabel(task)}
-                            </div>
+                          <button
+                            key={task.id}
+                            onClick={() => setOpenTaskId(task.id ?? null)}
+                            className="w-full text-left rounded-xl border border-white/10 bg-white/10 p-3 hover:border-white/30"
+                          >
+                            <div className="text-xs uppercase tracking-wide text-white/60">{timeRangeLabel(task)}</div>
                             <div className="text-sm font-semibold">{task.title ?? "Untitled block"}</div>
                             <div className="text-xs text-white/60">{task.raw_text ?? "—"}</div>
                             <div className="mt-2 text-[11px] uppercase tracking-wide text-white/40">
                               {task.status ?? "intake"}
                             </div>
-                          </div>
+                          </button>
                         ))
                       )}
                     </div>

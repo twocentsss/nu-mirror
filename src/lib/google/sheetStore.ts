@@ -41,12 +41,14 @@ export async function appendRow(params: {
   );
 }
 
-export async function readAllRows(params: {
+type ReadAllParams = {
   spreadsheetId: string;
   tab: string;
   accessToken?: string;
   refreshToken?: string;
-}) {
+};
+
+export async function readAllRows(params: ReadAllParams) {
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   const res = await withBackoff(() =>
     sheets.spreadsheets.values.get({
@@ -55,19 +57,24 @@ export async function readAllRows(params: {
     }),
   );
   const rows = res.data.values ?? [];
-  const header = rows[0] ?? [];
+  if (rows.length === 0) {
+    return { header: [], rows: [], startRow: 2 };
+  }
+  const headerRow = rows[0] ?? [];
   const data = rows.slice(1);
-  return { header, rows: data };
+  return { header: headerRow, rows: data, startRow: 2 };
 }
 
-export async function updateRowById(params: {
+type UpdateByIdParams = {
   spreadsheetId: string;
   tab: string;
   id: string;
   values: RowValue[];
   accessToken?: string;
   refreshToken?: string;
-}) {
+};
+
+export async function updateRowById(params: UpdateByIdParams) {
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   const res = await withBackoff(() =>
     sheets.spreadsheets.values.get({
@@ -82,10 +89,31 @@ export async function updateRowById(params: {
   if (idx === -1) throw new Error(`Row not found for id=${params.id}`);
 
   const rowNumber = idx + 2;
+  await updateRowByRowNumber({
+    spreadsheetId: params.spreadsheetId,
+    tab: params.tab,
+    rowNumber,
+    values: params.values,
+    accessToken: params.accessToken,
+    refreshToken: params.refreshToken,
+  });
+}
+
+type UpdateByRowParams = {
+  spreadsheetId: string;
+  tab: string;
+  rowNumber: number;
+  values: RowValue[];
+  accessToken?: string;
+  refreshToken?: string;
+};
+
+export async function updateRowByRowNumber(params: UpdateByRowParams) {
+  const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   await withBackoff(() =>
     sheets.spreadsheets.values.update({
       spreadsheetId: params.spreadsheetId,
-      range: `${params.tab}!A${rowNumber}`,
+      range: `${params.tab}!A${params.rowNumber}:I${params.rowNumber}`,
       valueInputOption: "RAW",
       requestBody: { values: [params.values] },
     }),

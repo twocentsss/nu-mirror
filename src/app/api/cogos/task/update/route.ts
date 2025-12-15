@@ -5,7 +5,20 @@ import {
   AccountSpreadsheetNotFoundError,
   getAccountSpreadsheetId,
 } from "@/lib/google/accountSpreadsheet";
-import { readAllRows, updateRowById } from "@/lib/google/sheetStore";
+import { readAllRows, updateRowById, updateRowByRowNumber } from "@/lib/google/sheetStore";
+
+type PatchBody = {
+  id: string;
+  _row?: number;
+  title?: string;
+  status?: string;
+  due_date?: string;
+  time_of_day?: string;
+  start_at?: string;
+  end_at?: string;
+  notes?: string;
+  duration_minutes?: number;
+};
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -39,31 +52,59 @@ export async function POST(req: Request) {
     throw error;
   }
 
-  const body = await req.json();
+  const body = (await req.json()) as PatchBody;
   const taskId: string = body.id;
   if (!taskId) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
 
-  const { rows } = await readAllRows({
-    spreadsheetId,
-    tab: "Tasks",
-    accessToken,
-    refreshToken,
-  });
-  const row = rows.find((r) => String(r?.[0] ?? "") === taskId);
-  if (!row) {
-    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  let targetRow: number | null = Number.isFinite(body._row) ? Number(body._row) : null;
+  let rowData: any[] | undefined;
+
+  if (targetRow) {
+    const { rows, startRow } = await readAllRows({
+      spreadsheetId,
+      tab: "Tasks",
+      accessToken,
+      refreshToken,
+    });
+    const base = startRow ?? 2;
+    const idx = targetRow - base;
+    if (idx < 0 || idx >= rows.length) {
+      targetRow = null;
+    } else {
+      rowData = rows[idx];
+    }
   }
 
-  const jsonStr = String(row[8] ?? "{}");
+  if (!rowData) {
+    const { rows } = await readAllRows({
+      spreadsheetId,
+      tab: "Tasks",
+      accessToken,
+      refreshToken,
+    });
+    rowData = rows.find((r) => String(r?.[0] ?? "") === taskId);
+    if (!rowData) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+  }
+
+  const jsonStr = String(rowData[8] ?? "{}");
   const task = JSON.parse(jsonStr);
 
-  if (body.status) task.status = body.status;
-  if (body.title) task.title = body.title;
-  if (body.due_date) {
-    task.time = { ...(task.time ?? {}), due_date: body.due_date };
-  }
+  if (typeof body.status === "string") task.status = body.status;
+  if (typeof body.title === "string") task.title = body.title;
+
+  task.time = { ...(task.time ?? {}) };
+  if (typeof body.due_date === "string") task.time.due_date = body.due_date;
+  if (typeof body.time_of_day === "string") task.time.time_of_day = body.time_of_day;
+  if (typeof body.start_at === "string") task.time.start_at = body.start_at;
+  if (typeof body.end_at === "string") task.time.end_at = body.end_at;
+
+  if (typeof body.notes === "string") task.notes = body.notes;
+  if (typeof body.duration_minutes === "number") task.duration_minutes = body.duration_minutes;
+
   task.updated_at = new Date().toISOString();
 
   const updatedRow = [
@@ -78,14 +119,25 @@ export async function POST(req: Request) {
     JSON.stringify(task),
   ];
 
-  await updateRowById({
-    spreadsheetId,
-    tab: "Tasks",
-    id: taskId,
-    accessToken,
-    refreshToken,
-    values: updatedRow,
-  });
+  if (targetRow) {
+    await updateRowByRowNumber({
+      spreadsheetId,
+      tab: "Tasks",
+      rowNumber: targetRow,
+      values: updatedRow,
+      accessToken,
+      refreshToken,
+    });
+  } else {
+    await updateRowById({
+      spreadsheetId,
+      tab: "Tasks",
+      id: taskId,
+      accessToken,
+      refreshToken,
+      values: updatedRow,
+    });
+  }
 
   return NextResponse.json({ ok: true, task });
 }

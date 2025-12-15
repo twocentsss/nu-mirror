@@ -16,8 +16,14 @@ function inRange(dateStr: string, start?: string, end?: string) {
 
 type StoredTask = {
   id?: string;
+  _row?: number;
   title?: string;
+  raw_text?: string;
   status?: string;
+  parent_task_id?: string;
+  episode_id?: string;
+  notes?: string;
+  duration_minutes?: number;
   priority?: { moscow?: string; weight?: number };
   time?: {
     due_date?: string;
@@ -64,7 +70,7 @@ export async function GET(req: Request) {
   const start = searchParams.get("start") ?? undefined;
   const end = searchParams.get("end") ?? undefined;
 
-  const { rows } = await readAllRows({
+  const { rows, startRow } = await readAllRows({
     spreadsheetId,
     tab: "Tasks",
     accessToken,
@@ -72,10 +78,12 @@ export async function GET(req: Request) {
   });
 
   const tasks = rows
-    .map((row) => {
+    .map((row, idx) => {
       const jsonStr = String(row?.[8] ?? "{}");
       try {
-        return JSON.parse(jsonStr) as StoredTask;
+        const parsed = JSON.parse(jsonStr) as StoredTask;
+        parsed._row = (startRow ?? 2) + idx;
+        return parsed;
       } catch {
         return null;
       }
