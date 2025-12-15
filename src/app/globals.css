@@ -8,16 +8,17 @@
   --bg-bottom: 248 248 250;
 }
 
-html, body {
+html,
+body {
   height: 100%;
 }
 
 body {
   background:
-    radial-gradient(1200px 700px at 20% -10%, rgba(0,0,0,0.03), transparent 55%),
-    radial-gradient(900px 600px at 80% 20%, rgba(0,0,0,0.025), transparent 55%),
+    radial-gradient(1200px 700px at 20% -10%, rgba(0, 0, 0, 0.03), transparent 55%),
+    radial-gradient(900px 600px at 80% 20%, rgba(0, 0, 0, 0.025), transparent 55%),
     linear-gradient(180deg, rgb(var(--bg-top)) 0%, rgb(var(--bg-bottom)) 100%);
-  color: rgba(0,0,0,0.88);
+  color: rgba(0, 0, 0, 0.88);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -46,3 +47,7 @@ body {
   display: none;
 }
 
+/* Hide bottom nav when modal/sheet is open */
+body:has([data-state="open"]) .bottom-nav {
+  display: none;
+}
