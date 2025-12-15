@@ -14,11 +14,10 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 700px at 20% -10%, rgba(0, 0, 0, 0.03), transparent 55%),
-    radial-gradient(900px 600px at 80% 20%, rgba(0, 0, 0, 0.025), transparent 55%),
-    linear-gradient(180deg, rgb(var(--bg-top)) 0%, rgb(var(--bg-bottom)) 100%);
-  color: rgba(0, 0, 0, 0.88);
+  color: var(--text-primary);
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  transition: background 0.5s ease, color 0.5s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -37,14 +36,41 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Hide scrollbars for circular scrollers */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .glass-panel {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-card {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    transition: transform 0.2s;
+  }
+
+  .glass-card:hover {
+    transform: scale(1.01);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400;
+  }
 }
 
 /* Hide bottom nav when modal/sheet is open */

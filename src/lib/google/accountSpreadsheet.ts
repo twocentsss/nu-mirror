@@ -4,7 +4,7 @@ import { makeGoogleClient } from "./googleClient";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const spreadsheetCache = new Map<string, { spreadsheetId: string; ts: number }>();
 
-const TABS = ["Meta", "Episodes", "Tasks", "Worklogs", "DecisionLogs", "CaseBriefs", "LLM_KEYS"] as const;
+const TABS = ["Meta", "Episodes", "Tasks", "Worklogs", "DecisionLogs", "CaseBriefs", "LLM_KEYS", "AI_PROMPTS"] as const;
 
 const HEADERS: Record<(typeof TABS)[number], string[]> = {
   Meta: ["key", "value", "updated_at"],
@@ -41,6 +41,18 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "created_at",
     "updated_at",
     "disabled",
+  ],
+  AI_PROMPTS: [
+    "id",
+    "title",
+    "template",
+    "provider",
+    "model",
+    "schedule",
+    "context_source",
+    "created_at",
+    "updated_at",
+    "json",
   ],
 };
 

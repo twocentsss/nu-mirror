@@ -153,12 +153,12 @@ export function CircularDatePicker({ selectedDate, onDateChange }: CircularDateP
                             opacity: selected ? 1 : 0.4
                         }}
                     >
-                        <div className={`text-xs font-bold uppercase tracking-wider ${selected ? 'text-black' : 'text-gray-400'}`}>
+                        <div className={`text-xs font-bold uppercase tracking-wider ${selected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                             {dayName}
                         </div>
-                        <div className={`text-2xl font-bold mt-1 ${selected ? 'text-black' : 'text-gray-300'} ${today ? 'relative' : ''}`}>
+                        <div className={`text-2xl font-bold mt-1 ${selected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'} ${today ? 'relative' : ''}`}>
                             {day}
-                            {today && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-500" />}
+                            {today && <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] shadow-sm" />}
                         </div>
                     </div>
                 );

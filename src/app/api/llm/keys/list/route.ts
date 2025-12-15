@@ -47,6 +47,8 @@ export async function GET() {
             label: String(r?.[3] ?? ""),
             created_at: String(r?.[5] ?? ""),
             disabled: String(r?.[7] ?? "0") === "1",
+            daily_limit: Number(r?.[8] ?? 0) || 0,
+            preferred: String(r?.[9] ?? "0") === "1",
         }))
         .filter((k) => k.user_email === session!.user!.email && k.id);
 

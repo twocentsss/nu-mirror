@@ -2,10 +2,12 @@ export async function geminiResponses({
     apiKey,
     model,
     input,
+    jsonMode,
 }: {
     apiKey: string;
     model: string;
     input: string;
+    jsonMode?: boolean;
 }) {
     // Map common model names if needed, or use as is
     const modelName = model.includes("gemini") ? model : "gemini-1.5-flash"; // Default fallback
@@ -18,7 +20,7 @@ export async function geminiResponses({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             contents: [{ parts: [{ text: input }] }],
-            generationConfig: { responseMimeType: "application/json" }
+            generationConfig: jsonMode ? { responseMimeType: "application/json" } : undefined
         }),
     });
 
@@ -28,11 +30,11 @@ export async function geminiResponses({
     }
 
     try {
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || (jsonMode ? "{}" : "");
         const meta = data.usageMetadata || {};
 
         return {
-            content: JSON.parse(text),
+            content: jsonMode ? JSON.parse(text) : text,
             usage: {
                 prompt_tokens: meta.promptTokenCount || 0,
                 completion_tokens: meta.candidatesTokenCount || 0,
@@ -40,6 +42,6 @@ export async function geminiResponses({
             }
         };
     } catch {
-        return { content: {}, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
+        return { content: jsonMode ? {} : "", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
     }
 }

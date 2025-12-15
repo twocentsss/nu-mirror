@@ -51,16 +51,22 @@ export async function leaseKey(
     const keys = await listKeysForUser(userEmail, provider, spreadsheetId, tokens);
     if (keys.length === 0) return null;
 
-    const candidates: Array<{ id: string; encrypted: string; inflight: number }> = [];
+    const candidates: Array<{ id: string; encrypted: string; inflight: number; preferred: boolean }> = [];
     for (const k of keys) {
         const cd = await getCooldown(k.id);
         if (cd > nowMs()) continue;
         const inf = await getInflight(k.id);
-        candidates.push({ id: k.id, encrypted: k.encrypted_key_b64, inflight: inf });
+        candidates.push({ id: k.id, encrypted: k.encrypted_key_b64, inflight: inf, preferred: k.preferred ?? false });
     }
 
     if (candidates.length === 0) return null;
-    candidates.sort((a, b) => a.inflight - b.inflight);
+    candidates.sort((a, b) => {
+        // 1. Prefer preferred keys
+        if (a.preferred && !b.preferred) return -1;
+        if (!a.preferred && b.preferred) return 1;
+        // 2. Prefer lower inflight
+        return a.inflight - b.inflight;
+    });
 
     const chosen = candidates[0];
     await inflightInc(chosen.id);
@@ -68,6 +74,7 @@ export async function leaseKey(
     return {
         keyId: chosen.id,
         apiKey: decryptSecret(chosen.encrypted),
+        preferred: chosen.preferred,
     };
 }
 

@@ -57,20 +57,34 @@ export async function POST(req: Request) {
         if (!lease) {
             // If OpenAI failed, try OpenRouter or Gemini fallback depending on context
             if (provider === "openai") {
-                // Try OpenRouter
-                let orLease = await leaseKey(session.user.email, "openrouter", spreadsheetId, { accessToken, refreshToken });
-                if (orLease) {
+                // Check BOTH OpenRouter and Gemini for availability and preference
+                const [orLease, gemLease] = await Promise.all([
+                    leaseKey(session.user.email, "openrouter", spreadsheetId, { accessToken, refreshToken }),
+                    leaseKey(session.user.email, "gemini", spreadsheetId, { accessToken, refreshToken })
+                ]);
+
+                // Decision Matrix:
+                // 1. If Gemini is preferred -> Use Gemini
+                // 2. If OpenRouter is preferred -> Use OpenRouter
+                // 3. If OpenRouter exists -> Use OpenRouter (default fallback)
+                // 4. If Gemini exists -> Use Gemini (last resort)
+
+                if (gemLease && gemLease.preferred) {
+                    lease = gemLease;
+                    provider = "gemini";
+                    model = "gemini-1.5-flash";
+                } else if (orLease && orLease.preferred) {
                     lease = orLease;
                     provider = "openrouter";
                     model = model.includes("/") ? model : `openai/${model}`;
-                } else {
-                    // Try Gemini as last resort
-                    let gemLease = await leaseKey(session.user.email, "gemini", spreadsheetId, { accessToken, refreshToken });
-                    if (gemLease) {
-                        lease = gemLease;
-                        provider = "gemini";
-                        model = "gemini-1.5-flash"; // Switch to equivalent efficient model
-                    }
+                } else if (orLease) {
+                    lease = orLease;
+                    provider = "openrouter";
+                    model = model.includes("/") ? model : `openai/${model}`;
+                } else if (gemLease) {
+                    lease = gemLease;
+                    provider = "gemini";
+                    model = "gemini-1.5-flash";
                 }
             }
         }

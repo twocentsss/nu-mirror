@@ -13,8 +13,8 @@ export function MirrorCard({
   tilt?: boolean;
 }) {
   const core =
-    "rounded-[18px] bg-white/70 backdrop-blur-[18px] " +
-    "border border-black/5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]";
+    "rounded-[18px] bg-[var(--glass-bg)] backdrop-blur-[18px] " +
+    "border border-[var(--glass-border)] shadow-[0_10px_30px_rgba(0,0,0,0.06)]";
 
   if (!tilt) {
     return <div className={`${core} ${className}`}>{children}</div>;

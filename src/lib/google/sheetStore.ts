@@ -109,7 +109,7 @@ export async function updateRowById(params: UpdateByIdParams) {
 }
 
 async function getSheetId(sheets: any, spreadsheetId: string, tabName: string): Promise<number> {
-  const res = await withBackoff(() => sheets.spreadsheets.get({ spreadsheetId }));
+  const res = await withBackoff(() => sheets.spreadsheets.get({ spreadsheetId })) as any;
   const sheet = res.data.sheets?.find((s: any) => s.properties?.title === tabName);
   if (sheet?.properties?.sheetId === undefined) throw new Error(`Sheet not found: ${tabName}`);
   return sheet.properties.sheetId;
@@ -181,7 +181,7 @@ export async function updateRowByRowNumber(params: UpdateByRowParams) {
   await withBackoff(() =>
     sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${params.tab}!A${params.rowNumber}:I${params.rowNumber}`,
+      range: `${params.tab}!A${params.rowNumber}:Z${params.rowNumber}`,
       valueInputOption: "RAW",
       requestBody: { values: [params.values] },
     }),

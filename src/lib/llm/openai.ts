@@ -7,6 +7,7 @@ export async function openAiResponses({
     baseURL,
     siteUrl,
     siteName,
+    jsonMode,
 }: {
     apiKey: string;
     model: string;
@@ -14,6 +15,7 @@ export async function openAiResponses({
     baseURL?: string;
     siteUrl?: string;
     siteName?: string;
+    jsonMode?: boolean;
 }) {
     const client = new OpenAI({
         apiKey,
@@ -29,15 +31,15 @@ export async function openAiResponses({
     const completion = await client.chat.completions.create({
         model,
         messages: [{ role: "user", content: input }],
-        response_format: { type: "json_object" },
+        response_format: jsonMode ? { type: "json_object" } : undefined,
         max_tokens: 1000,
     });
 
-    const text = completion.choices[0].message.content || "{}";
+    const text = completion.choices[0].message.content || (jsonMode ? "{}" : "");
     const usage = completion.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
     return {
-        content: JSON.parse(text),
+        content: jsonMode ? JSON.parse(text) : text,
         usage: {
             prompt_tokens: usage.prompt_tokens,
             completion_tokens: usage.completion_tokens,

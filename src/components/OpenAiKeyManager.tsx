@@ -96,6 +96,23 @@ export default function OpenAiKeyManager() {
         }
     }
 
+    async function setPreferred(keyId: string) {
+        try {
+            const res = await fetch("/api/llm/keys/prefer", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ keyId }),
+            });
+            if (res.ok) {
+                await fetchKeys();
+            } else {
+                alert("Failed to set preference");
+            }
+        } catch (e) {
+            alert("Failed to set preference");
+        }
+    }
+
     return (
         <MirrorCard className="overflow-hidden p-0">
             <div className="bg-black/5 px-4 py-3 text-[13px] font-semibold text-black/60 flex justify-between items-center">
@@ -165,7 +182,13 @@ export default function OpenAiKeyManager() {
                             <div key={k.id} className="flex items-center justify-between p-2 rounded hover:bg-black/5 transition group">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        {k.preferred && <span className="text-yellow-500">⭐</span>}
+                                        <button
+                                            onClick={() => !k.preferred && setPreferred(k.id)}
+                                            className={`text-sm ${k.preferred ? "text-yellow-500 cursor-default" : "text-gray-300 hover:text-yellow-400"}`}
+                                            title={k.preferred ? "Primary key" : "Set as primary"}
+                                        >
+                                            ⭐
+                                        </button>
                                         <div className="text-sm font-medium text-black/80 truncate">
                                             {k.label || "(No label)"}
                                         </div>
