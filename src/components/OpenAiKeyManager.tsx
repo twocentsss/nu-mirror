@@ -10,6 +10,8 @@ type KeyRow = {
     provider: string;
     created_at: string;
     disabled: boolean;
+    daily_limit?: number;
+    preferred?: boolean;
 };
 
 export default function OpenAiKeyManager() {
@@ -19,6 +21,11 @@ export default function OpenAiKeyManager() {
 
     const [newLabel, setNewLabel] = useState("");
     const [newKey, setNewKey] = useState("");
+    const [newDailyLimit, setNewDailyLimit] = useState("");
+
+    const [usage, setUsage] = useState<Record<string, { total: number }>>({});
+    const [usageByKey, setUsageByKey] = useState<Record<string, number>>({});
+    const [totalTokens, setTotalTokens] = useState(0);
 
     async function fetchKeys() {
         setLoading(true);
@@ -27,6 +34,14 @@ export default function OpenAiKeyManager() {
             if (res.ok) {
                 const data = await res.json();
                 setKeys(data.keys ?? []);
+            }
+            // Also fetch usage
+            const res2 = await fetch("/api/llm/usage");
+            if (res2.ok) {
+                const u = await res2.json();
+                setUsage(u.byProvider || {});
+                setUsageByKey(u.byKey || {});
+                setTotalTokens(u.grandTotal || 0);
             }
         } finally {
             setLoading(false);
@@ -47,12 +62,14 @@ export default function OpenAiKeyManager() {
                 body: JSON.stringify({
                     label: newLabel,
                     apiKey: newKey.trim(),
-                    provider: newKey.startsWith("sk-or-") ? "openrouter" : (newKey.startsWith("AIza") ? "gemini" : "openai")
+                    provider: newKey.startsWith("sk-or-") ? "openrouter" : (newKey.startsWith("AIza") ? "gemini" : "openai"),
+                    daily_limit: newDailyLimit ? Number(newDailyLimit) : 0
                 }),
             });
             if (res.ok) {
                 setNewLabel("");
                 setNewKey("");
+                setNewDailyLimit("");
                 await fetchKeys();
             } else {
                 const j = await res.json();
@@ -82,7 +99,10 @@ export default function OpenAiKeyManager() {
     return (
         <MirrorCard className="overflow-hidden p-0">
             <div className="bg-black/5 px-4 py-3 text-[13px] font-semibold text-black/60 flex justify-between items-center">
-                <span>LLM Keys</span>
+                <div className="flex flex-col">
+                    <span>LLM Keys</span>
+                    {totalTokens > 0 && <span className="text-[10px] text-black/40 font-normal">Used {totalTokens} tokens today</span>}
+                </div>
                 <button
                     onClick={fetchKeys}
                     disabled={loading}
@@ -101,6 +121,13 @@ export default function OpenAiKeyManager() {
                         placeholder="Label (e.g. OpenRouter Team)"
                         value={newLabel}
                         onChange={(e) => setNewLabel(e.target.value)}
+                    />
+                    <input
+                        className="w-full text-sm rounded bg-white border border-black/10 px-2 py-1 outline-none focus:border-blue-500"
+                        placeholder="Daily Token Limit (0 = unlimited)"
+                        type="number"
+                        value={newDailyLimit}
+                        onChange={(e) => setNewDailyLimit(e.target.value)}
                     />
                     <div className="flex gap-2">
                         <input
@@ -128,34 +155,47 @@ export default function OpenAiKeyManager() {
                     {loading && keys.length === 0 && <div className="text-xs text-black/40 p-2">Loading keys...</div>}
                     {!loading && keys.length === 0 && <div className="text-xs text-black/40 p-2">No keys found. Add one above.</div>}
 
-                    {keys.map((k) => (
-                        <div key={k.id} className="flex items-center justify-between p-2 rounded hover:bg-black/5 transition group">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <div className="text-sm font-medium text-black/80 truncate">
-                                        {k.label || "(No label)"}
+                    {keys.map((k) => {
+                        const used = usageByKey[k.id] || 0;
+                        const limit = k.daily_limit || 0;
+                        const limitText = limit > 0 ? `${used}/${limit}` : `${used}`;
+                        const isOverLimit = limit > 0 && used >= limit;
+
+                        return (
+                            <div key={k.id} className="flex items-center justify-between p-2 rounded hover:bg-black/5 transition group">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        {k.preferred && <span className="text-yellow-500">⭐</span>}
+                                        <div className="text-sm font-medium text-black/80 truncate">
+                                            {k.label || "(No label)"}
+                                        </div>
+                                        <span className={`text-[10px] px-1 rounded uppercase font-bold ${k.provider === 'openrouter' ? 'bg-purple-100 text-purple-600' : (k.provider === 'gemini' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}`}>
+                                            {k.provider}
+                                        </span>
+                                        {/* Usage Badge */}
+                                        <span className={`text-[10px] px-1 rounded border ${isOverLimit ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                            {limitText} toks
+                                        </span>
+                                        {k.disabled && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded">DISABLED</span>}
                                     </div>
-                                    <span className={`text-[10px] px-1 rounded uppercase font-bold ${k.provider === 'openrouter' ? 'bg-purple-100 text-purple-600' : (k.provider === 'gemini' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}`}>
-                                        {k.provider}
-                                    </span>
-                                    {k.disabled && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded">DISABLED</span>}
+                                    <div className="text-[11px] text-black/40 font-mono truncate">
+                                        Created: {new Date(k.created_at).toLocaleDateString()}
+                                    </div>
                                 </div>
-                                <div className="text-[11px] text-black/40 font-mono truncate">
-                                    Created: {new Date(k.created_at).toLocaleDateString()}
-                                </div>
+                                {!k.disabled && (
+                                    <button
+                                        onClick={() => disableKey(k.id)}
+                                        className="text-xs p-1 text-red-500 opacity-0 group-hover:opacity-100 transition hover:bg-red-50 rounded"
+                                    >
+                                        Disable
+                                    </button>
+                                )}
                             </div>
-                            {!k.disabled && (
-                                <button
-                                    onClick={() => disableKey(k.id)}
-                                    className="text-xs p-1 text-red-500 opacity-0 group-hover:opacity-100 transition hover:bg-red-50 rounded"
-                                >
-                                    Disable
-                                </button>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
-        </MirrorCard>
+        </MirrorCard >
     );
 }
+

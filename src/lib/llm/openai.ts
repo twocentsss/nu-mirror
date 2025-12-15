@@ -33,6 +33,15 @@ export async function openAiResponses({
         max_tokens: 1000,
     });
 
-    const content = completion.choices[0].message.content || "{}";
-    return JSON.parse(content);
+    const text = completion.choices[0].message.content || "{}";
+    const usage = completion.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+
+    return {
+        content: JSON.parse(text),
+        usage: {
+            prompt_tokens: usage.prompt_tokens,
+            completion_tokens: usage.completion_tokens,
+            total_tokens: usage.total_tokens
+        }
+    };
 }

@@ -10,6 +10,8 @@ export type StoredKeyRow = {
     label: string;
     encrypted_key_b64: string;
     disabled: boolean;
+    daily_limit?: number; // Max tokens per day (0 = unlimited)
+    preferred?: boolean; // Prefer this key when routing
 };
 
 export async function listKeysForUser(
@@ -33,6 +35,8 @@ export async function listKeysForUser(
             label: String(r?.[3] ?? ""),
             encrypted_key_b64: String(r?.[4] ?? ""),
             disabled: String(r?.[7] ?? "0") === "1",
+            daily_limit: Number(r?.[8] ?? 0) || 0,
+            preferred: String(r?.[9] ?? "0") === "1",
         }))
         .filter((k) => k.id && k.user_email.toLowerCase() === userEmail.toLowerCase() && (provider === "openai" ? true : k.provider === provider) && !k.disabled);
 }
@@ -45,6 +49,8 @@ export async function addKeyForUser(params: {
     spreadsheetId: string;
     accessToken?: string;
     refreshToken?: string;
+    daily_limit?: number;
+    preferred?: boolean;
 }) {
     const id = newUlid();
     const now = new Date().toISOString();
@@ -55,7 +61,18 @@ export async function addKeyForUser(params: {
         tab: "LLM_KEYS",
         accessToken: params.accessToken,
         refreshToken: params.refreshToken,
-        values: [id, params.userEmail, params.provider, params.label ?? "", encrypted, now, now, "0"],
+        values: [
+            id,
+            params.userEmail,
+            params.provider,
+            params.label ?? "",
+            encrypted,
+            now,
+            now,
+            "0", // disabled
+            String(params.daily_limit ?? 0), // daily_limit
+            params.preferred ? "1" : "0" // preferred
+        ],
     });
 
     return { id };

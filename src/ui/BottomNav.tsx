@@ -76,10 +76,10 @@ export default function BottomNav({
           >
             <div className="grid grid-cols-5 items-center">
               <div className="flex justify-center">
-                <Item tab="todo" label="To-do" href="/todo" icon={<IconList active={active === "todo"} />} />
+                <Item tab="todo" label="To-do" href="/todo" icon={<IconCheckSquare active={active === "todo"} />} />
               </div>
               <div className="flex justify-center">
-                <Item tab="today" label="Today" href="/today" icon={<IconSun active={active === "today"} />} />
+                <Item tab="today" label="Today" href="/today" icon={<IconCalendar active={active === "today"} />} />
               </div>
 
               <div className="flex justify-center">
@@ -87,10 +87,10 @@ export default function BottomNav({
               </div>
 
               <div className="flex justify-center">
-                <Item tab="focus" label="Focus" href="/focus" icon={<IconTimer active={active === "focus"} />} />
+                <Item tab="focus" label="Focus" href="/focus" icon={<IconFocus active={active === "focus"} />} />
               </div>
               <div className="flex justify-center">
-                <Item tab="me" label="Me" href="/me" icon={<IconUser active={active === "me"} />} />
+                <Item tab="me" label="Me" href="/me" icon={<IconFace active={active === "me"} />} />
               </div>
             </div>
 
@@ -120,45 +120,42 @@ export default function BottomNav({
 }
 
 /* icons */
-function IconList({ active }: { active: boolean }) {
-  const c = active ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.45)";
+/* icons */
+function IconCheckSquare({ active }: { active: boolean }) {
+  const c = active ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.45)";
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M8 6h13M8 12h13M8 18h13" stroke={c} strokeWidth="2" strokeLinecap="round" />
-      <path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke={c} strokeWidth="3" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="18" height="18" rx="5" stroke={c} strokeWidth="2.0" />
+      <path d="M8 12l2.5 2.5L16 9" stroke={c} strokeWidth="2.0" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-function IconSun({ active }: { active: boolean }) {
-  const c = active ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.45)";
+function IconCalendar({ active }: { active: boolean }) {
+  const c = active ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.45)";
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke={c} strokeWidth="2" />
-      <path
-        d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M5 19l1.4-1.4"
-        stroke={c}
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="4" width="18" height="18" rx="4" stroke={c} strokeWidth="2" />
+      <path d="M8 2v4M16 2v4M3 10h18" stroke={c} strokeWidth="2" />
+      <path d="M10 14h2v4h-2M10 14l-1 1" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
-function IconTimer({ active }: { active: boolean }) {
-  const c = active ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.45)";
+function IconFocus({ active }: { active: boolean }) {
+  const c = active ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.45)";
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M10 2h4" stroke={c} strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 14l2-2" stroke={c} strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 22a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke={c} strokeWidth="2" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke={c} strokeWidth="2" strokeOpacity="0.3" />
+      <path d="M12 3a9 9 0 0 1 6.36 15.36L12 12" stroke={c} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
-function IconUser({ active }: { active: boolean }) {
-  const c = active ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.45)";
+function IconFace({ active }: { active: boolean }) {
+  const c = active ? "rgba(0,0,0,0.9)" : "rgba(0,0,0,0.45)";
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke={c} strokeWidth="2" />
-      <path d="M20 22a8 8 0 0 0-16 0" stroke={c} strokeWidth="2" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke={c} strokeWidth="2" />
+      <path d="M9 10h.01M15 10h.01" stroke={c} strokeWidth="3" strokeLinecap="round" />
+      <path d="M9.5 15a3.5 3.5 0 0 0 5 0" stroke={c} strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }

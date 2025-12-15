@@ -29,8 +29,17 @@ export async function geminiResponses({
 
     try {
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        return JSON.parse(text);
+        const meta = data.usageMetadata || {};
+
+        return {
+            content: JSON.parse(text),
+            usage: {
+                prompt_tokens: meta.promptTokenCount || 0,
+                completion_tokens: meta.candidatesTokenCount || 0,
+                total_tokens: meta.totalTokenCount || 0
+            }
+        };
     } catch {
-        return {};
+        return { content: {}, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
     }
 }

@@ -56,13 +56,7 @@ export const authOptions: NextAuthOptions = {
         params: {
           access_type: "offline",
           prompt: "consent select_account",
-          scope: [
-            "openid",
-            "email",
-            "profile",
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive",
-          ].join(" "),
+          scope: "openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
         },
       },
     }),

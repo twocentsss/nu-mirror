@@ -70,17 +70,18 @@ export async function POST(req: Request) {
   const data = await res.json();
   if (!data.ok) return NextResponse.json({ error: data.error ?? "LLM failed" }, { status: 502 });
 
-  // data.out is text (Responses API raw) OR object (if parsed by wrapper).
+  // data.out is the parsed JSON object from api/llm/complete
   let parsed: any = null;
-  const raw = data.out;
-  if (typeof raw === "object" && raw !== null) {
-    parsed = raw;
+  const content = data.out;
+
+  if (typeof content === "object" && content !== null) {
+    parsed = content;
   } else {
-    const text = String(raw ?? "");
+    // Should behave as object if openAiResponses parses it, but just in case
+    const text = String(content ?? "");
     try {
       parsed = JSON.parse(text);
     } catch {
-      // some responses contain surrounding text; salvage JSON object range
       const start = text.indexOf("{");
       const end = text.lastIndexOf("}");
       if (start >= 0 && end > start) parsed = JSON.parse(text.slice(start, end + 1));

@@ -4,6 +4,8 @@ import { authOptions } from "@/app/api/auth/authOptions";
 import { leaseKey, releaseOpenAiKey, cooldownOpenAiKey } from "@/lib/llm/router";
 import { openAiResponses } from "@/lib/llm/openai";
 import { geminiResponses } from "@/lib/llm/gemini";
+import { logLlmUsage } from "@/lib/llm/logging";
+
 
 import {
     AccountSpreadsheetNotFoundError,
@@ -101,7 +103,26 @@ export async function POST(req: Request) {
             }
 
             await releaseOpenAiKey(lease.keyId);
-            return NextResponse.json({ ok: true, keyId: lease.keyId, out });
+
+            // Log usage
+            if (out.usage) {
+                logLlmUsage({
+                    provider: effectiveProvider,
+                    model,
+                    prompt_tokens: out.usage.prompt_tokens,
+                    completion_tokens: out.usage.completion_tokens,
+                    total_tokens: out.usage.total_tokens,
+                    context: "api_complete",
+                    keyId: lease.keyId
+                });
+            }
+
+            return NextResponse.json({
+                ok: true,
+                keyId: lease.keyId,
+                out: out.content, // Extract content for backward compatibility
+                usage: out.usage
+            });
         } catch (e: any) {
             lastErr = e;
             await releaseOpenAiKey(lease.keyId);

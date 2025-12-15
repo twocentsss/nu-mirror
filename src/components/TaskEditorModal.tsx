@@ -57,30 +57,54 @@ export default function TaskEditorModal(props: {
     return props.allTasks.filter((t) => t.parent_task_id === task.id);
   }, [props.allTasks, task?.id]);
 
-  if (!props.open || !task?.id) return null;
+  if (!props.open || !task) return null;
 
   async function save() {
     if (!task) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/cogos/task/update", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          title,
-          status,
-          due_date: dueDate,
-          time_of_day: timeOfDay,
-          notes,
-          duration_min: durationMin,
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        alert(j.error ?? "Failed to save");
-        return;
+      if (task.id) {
+        // UPDATE existing
+        const res = await fetch("/api/cogos/task/update", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            id: task.id,
+            title,
+            status,
+            due_date: dueDate,
+            time_of_day: timeOfDay,
+            notes,
+            duration_min: durationMin,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          alert(j.error ?? "Failed to save");
+          return;
+        }
+      } else {
+        // CREATE new
+        const res = await fetch("/api/cogos/task/create", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            title: title || "New Task",
+            raw_text: title,
+            status,
+            due_date: dueDate,
+            time_of_day: timeOfDay,
+            notes,
+            duration_min: durationMin,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          alert(j.error ?? "Failed to create");
+          return;
+        }
       }
+
       await props.onChanged();
       props.onClose();
     } finally {
@@ -161,7 +185,7 @@ export default function TaskEditorModal(props: {
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <div className="text-lg font-semibold">Edit task</div>
+          <div className="text-lg font-semibold">{task.id ? "Edit task" : "Create task"}</div>
           <button className="rounded-full border border-white/20 px-3 py-1 text-sm" onClick={props.onClose}>
             Close
           </button>
