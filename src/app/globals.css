@@ -1,26 +1,37 @@
 @import "tailwindcss";
 
+@import "tailwindcss";
+
+/* --- Global canvas feel: airy, near-white, barely-there gradient --- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-top: 255 255 255;
+  --bg-bottom: 248 248 250;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html, body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1200px 700px at 20% -10%, rgba(0,0,0,0.03), transparent 55%),
+    radial-gradient(900px 600px at 80% 20%, rgba(0,0,0,0.025), transparent 55%),
+    linear-gradient(180deg, rgb(var(--bg-top)) 0%, rgb(var(--bg-bottom)) 100%);
+  color: rgba(0,0,0,0.88);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* iOS safe area helpers */
+.safe-bottom {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
+
+/* Subtle tap feedback */
+.tap {
+  -webkit-tap-highlight-color: transparent;
 }
