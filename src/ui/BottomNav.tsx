@@ -1,35 +1,40 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState } from "react";
+import DockPad, { DockActionId } from "@/ui/DockPad";
 
-type Tab = "todo" | "today" | "focus" | "me" | "action";
+type Active = "todo" | "today" | "focus" | "me";
 
 export default function BottomNav({
   active,
   onNavigate,
 }: {
-  active: "todo" | "today" | "focus" | "me";
-  onNavigate: (tab: Tab) => void;
+  active: Active;
+  onNavigate: (to: string | "chat") => void;
 }) {
+  const [padOpen, setPadOpen] = useState(false);
+
   const Item = ({
     tab,
     label,
     icon,
+    href,
   }: {
-    tab: Exclude<Tab, "action">;
+    tab: Active;
     label: string;
-    icon: ReactNode;
+    icon: React.ReactNode;
+    href: string;
   }) => {
     const isActive = active === tab;
     return (
       <button
         className="tap flex flex-col items-center justify-center gap-1 px-2 py-2"
-        onClick={() => onNavigate(tab)}
+        onClick={() => onNavigate(href)}
       >
         <div
           className={[
-            "h-9 w-9 rounded-full flex items-center justify-center",
-            isActive ? "bg-black/5" : "bg-transparent",
+            "h-10 w-10 rounded-full flex items-center justify-center",
+            isActive ? "bg-black/6 shadow-[0_12px_32px_rgba(0,0,0,0.10)]" : "bg-transparent",
           ].join(" ")}
         >
           {icon}
@@ -41,64 +46,80 @@ export default function BottomNav({
     );
   };
 
+  function handlePick(id: DockActionId) {
+    if (id === "chat") onNavigate("chat");
+    else if (id === "solve") onNavigate("/solve");
+    else alert(`${id} (wire later)`);
+  }
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 safe-bottom">
-      <div className="mx-auto w-full max-w-[520px] px-4 pb-3">
-        <div className="relative rounded-[24px] bg-white/70 backdrop-blur-[18px] border border-black/5 shadow-[0_20px_60px_rgba(0,0,0,0.10)] px-4 py-2">
-          <div className="grid grid-cols-5 items-center">
-            <div className="flex justify-center">
-              <Item
-                tab="todo"
-                label="To-do"
-                icon={<IconList active={active === "todo"} />}
-              />
-            </div>
-            <div className="flex justify-center">
-              <Item
-                tab="today"
-                label="Today"
-                icon={<IconSun active={active === "today"} />}
-              />
-            </div>
+    <>
+      <DockPad
+        open={padOpen}
+        onClose={() => setPadOpen(false)}
+        onPick={(id) => {
+          handlePick(id);
+          setPadOpen(false);
+        }}
+      />
 
-            {/* Center Action placeholder space (FAB sits above) */}
-            <div className="flex justify-center">
-              <div className="h-12 w-12" />
-            </div>
-
-            <div className="flex justify-center">
-              <Item
-                tab="focus"
-                label="Focus"
-                icon={<IconTimer active={active === "focus"} />}
-              />
-            </div>
-            <div className="flex justify-center">
-              <Item
-                tab="me"
-                label="Me"
-                icon={<IconUser active={active === "me"} />}
-              />
-            </div>
-          </div>
-
-          {/* Center circle button */}
-          <button
-            className="tap absolute left-1/2 -top-6 -translate-x-1/2 h-14 w-14 rounded-full bg-white/85 backdrop-blur-[18px] border border-black/5 shadow-[0_20px_60px_rgba(0,0,0,0.12)] flex items-center justify-center"
-            onClick={() => onNavigate("action")}
-            aria-label="Open chat"
+      <div className="fixed inset-x-0 bottom-0 z-30 safe-bottom">
+        <div className="mx-auto w-full max-w-[520px] px-4 pb-3">
+          <div
+            className={[
+              "relative rounded-[26px]",
+              "bg-white/72 backdrop-blur-[22px]",
+              "border border-black/5",
+              "shadow-[0_24px_70px_rgba(0,0,0,0.12)]",
+              "px-4 py-2",
+            ].join(" ")}
           >
-            <div className="h-12 w-12 rounded-full bg-black/5 flex items-center justify-center">
-              <IconSpark />
+            <div className="grid grid-cols-5 items-center">
+              <div className="flex justify-center">
+                <Item tab="todo" label="To-do" href="/todo" icon={<IconList active={active === "todo"} />} />
+              </div>
+              <div className="flex justify-center">
+                <Item tab="today" label="Today" href="/today" icon={<IconSun active={active === "today"} />} />
+              </div>
+
+              <div className="flex justify-center">
+                <div className="h-12 w-12" />
+              </div>
+
+              <div className="flex justify-center">
+                <Item tab="focus" label="Focus" href="/focus" icon={<IconTimer active={active === "focus"} />} />
+              </div>
+              <div className="flex justify-center">
+                <Item tab="me" label="Me" href="/me" icon={<IconUser active={active === "me"} />} />
+              </div>
             </div>
-          </button>
+
+            {/* Center launcher button */}
+            <button
+              className={[
+                "tap absolute left-1/2 -top-7 -translate-x-1/2",
+                "h-16 w-16 rounded-full",
+                "bg-white/80 backdrop-blur-[22px]",
+                "border border-black/5",
+                "shadow-[0_26px_80px_rgba(0,0,0,0.16)]",
+                "flex items-center justify-center",
+                "transition-transform active:scale-[0.98]",
+              ].join(" ")}
+              onClick={() => setPadOpen(true)}
+              aria-label="Open launcher"
+            >
+              <div className="h-12 w-12 rounded-full bg-black/5 border border-black/5 flex items-center justify-center">
+                <IconGrid9 />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-/* --- Minimal icons (no deps) --- */
+/* icons */
 function IconList({ active }: { active: boolean }) {
   const c = active ? "rgba(0,0,0,0.75)" : "rgba(0,0,0,0.45)";
   return (
@@ -113,8 +134,11 @@ function IconSun({ active }: { active: boolean }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
       <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke={c} strokeWidth="2" />
-      <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M5 19l1.4-1.4"
-        stroke={c} strokeWidth="2" strokeLinecap="round"
+      <path
+        d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M5 19l1.4-1.4"
+        stroke={c}
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   );
@@ -138,11 +162,20 @@ function IconUser({ active }: { active: boolean }) {
     </svg>
   );
 }
-function IconSpark() {
+function IconGrid9() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M12 2l1.2 4.2L17 7.4l-3.8 1.2L12 13l-1.2-4.4L7 7.4l3.8-1.2L12 2Z" stroke="rgba(0,0,0,0.7)" strokeWidth="1.8" strokeLinejoin="round"/>
-      <path d="M19 12l.8 2.8 2.2.7-2.2.7L19 19l-.8-2.8-2.2-.7 2.2-.7L19 12Z" stroke="rgba(0,0,0,0.5)" strokeWidth="1.6" strokeLinejoin="round"/>
+      <g fill="rgba(0,0,0,0.65)">
+        <circle cx="7" cy="7" r="1.4" />
+        <circle cx="12" cy="7" r="1.4" />
+        <circle cx="17" cy="7" r="1.4" />
+        <circle cx="7" cy="12" r="1.4" />
+        <circle cx="12" cy="12" r="1.4" />
+        <circle cx="17" cy="12" r="1.4" />
+        <circle cx="7" cy="17" r="1.4" />
+        <circle cx="12" cy="17" r="1.4" />
+        <circle cx="17" cy="17" r="1.4" />
+      </g>
     </svg>
   );
 }
