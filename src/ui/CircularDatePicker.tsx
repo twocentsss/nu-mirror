@@ -90,6 +90,11 @@ export function CircularDatePicker({ selectedDate, onDateChange }: CircularDateP
         }, 300);
     };
 
+    const handleDateClick = (date: Date) => {
+        if (date.toDateString() === selectedDate.toDateString()) return;
+        onDateChange(date);
+    };
+
     const handleScroll = () => {
         if (!scrollRef.current || isDragging) return;
         const dayWidth = scrollRef.current.scrollWidth / infiniteDates.length;
@@ -139,7 +144,8 @@ export function CircularDatePicker({ selectedDate, onDateChange }: CircularDateP
                 return (
                     <div
                         key={`${date.toISOString()}-${i}`}
-                        className="flex-shrink-0 flex flex-col items-center justify-center transition-all duration-300"
+                        onClick={() => handleDateClick(date)}
+                        className="flex-shrink-0 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer"
                         style={{
                             scrollSnapAlign: "center",
                             width: "14.28vw",
