@@ -72,7 +72,7 @@ export async function POST(req: Request) {
                 if (gemLease && gemLease.preferred) {
                     lease = gemLease;
                     provider = "gemini";
-                    model = "gemini-1.5-flash";
+                    model = "gemini-flash-latest";
                 } else if (orLease && orLease.preferred) {
                     lease = orLease;
                     provider = "openrouter";
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
                 } else if (gemLease) {
                     lease = gemLease;
                     provider = "gemini";
-                    model = "gemini-1.5-flash";
+                    model = "gemini-flash-latest";
                 }
             }
         }
@@ -93,8 +93,12 @@ export async function POST(req: Request) {
 
         try {
             const isOpenRouterKey = lease.apiKey.startsWith("sk-or-");
-            // Safety: if it's an OpenRouter key, force provider to OpenRouter
-            const effectiveProvider = isOpenRouterKey ? "openrouter" : provider;
+            const isGeminiKey = lease.apiKey.startsWith("AIza");
+
+            // Safety: Force provider based on key format
+            let effectiveProvider = provider;
+            if (isOpenRouterKey) effectiveProvider = "openrouter";
+            if (isGeminiKey) effectiveProvider = "gemini";
 
             let out;
             if (effectiveProvider === "gemini") {

@@ -151,9 +151,46 @@ export default function TodayPage() {
 
           {/* Top Row: Date & Actions */}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">{dayName}</h1>
-              <p className="text-[var(--text-secondary)] text-xs font-medium uppercase tracking-wider">{fullDate}</p>
+            <div className="flex items-center gap-2">
+              {/* Date Navigator */}
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newDate.getMonth() - 1);
+                      setSelectedDate(newDate);
+                    }}
+                    className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)]"
+                  >
+                    ←
+                  </button>
+                  <label className="text-2xl font-bold tracking-tight text-[var(--text-primary)] cursor-pointer flex items-center gap-1 hover:opacity-80 transition">
+                    {dayName}, {selectedDate.getDate()}
+                    <input
+                      type="date"
+                      className="opacity-0 absolute w-0 h-0"
+                      value={selectedDate.toISOString().slice(0, 10)}
+                      onChange={(e) => {
+                        if (e.target.valueAsDate) setSelectedDate(e.target.valueAsDate);
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newDate.getMonth() + 1);
+                      setSelectedDate(newDate);
+                    }}
+                    className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)]"
+                  >
+                    →
+                  </button>
+                </div>
+                <p className="text-[var(--text-secondary)] text-xs font-medium uppercase tracking-wider ml-8">
+                  {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -186,8 +223,8 @@ export default function TodayPage() {
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${viewMode === mode
-                      ? "bg-[var(--text-primary)] text-[var(--bg-gradient)] shadow-lg"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "bg-[var(--text-primary)] text-[var(--bg-gradient)] shadow-lg"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                   style={viewMode === mode ? { filter: 'invert(1) grayscale(1)' } : {}}
                 >
@@ -201,8 +238,8 @@ export default function TodayPage() {
               <button
                 onClick={() => setLfFilter(lfFilter === null ? 1 : null)}
                 className={`h-8 px-3 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1 ${lfFilter !== null
-                    ? "bg-[var(--accent-color)]/20 border-[var(--accent-color)]/50 text-[var(--accent-color)]"
-                    : "bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg)]/80"
+                  ? "bg-[var(--accent-color)]/20 border-[var(--accent-color)]/50 text-[var(--accent-color)]"
+                  : "bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg)]/80"
                   }`}
               >
                 <SlidersHorizontal size={12} />
@@ -228,8 +265,8 @@ export default function TodayPage() {
                 key={lf}
                 onClick={() => setLfFilter(lf)}
                 className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${lfFilter === lf
-                    ? "bg-[var(--accent-color)] text-white shadow-lg"
-                    : "bg-[var(--glass-bg)] text-[var(--text-secondary)]"
+                  ? "bg-[var(--accent-color)] text-white shadow-lg"
+                  : "bg-[var(--glass-bg)] text-[var(--text-secondary)]"
                   }`}
               >
                 LF {lf}
@@ -261,8 +298,8 @@ export default function TodayPage() {
                 {/* Timeline Dot */}
                 <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-8 flex justify-center`}>
                   <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone
-                      ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
-                      : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"
+                    ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
+                    : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"
                     }`} />
                 </div>
 

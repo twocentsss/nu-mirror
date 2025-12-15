@@ -10,23 +10,45 @@ export async function geminiResponses({
     jsonMode?: boolean;
 }) {
     // Map common model names if needed, or use as is
-    const modelName = model.includes("gemini") ? model : "gemini-1.5-flash"; // Default fallback
+    // Strip "models/" prefix if present to avoid duplication in URL
+    let modelName = model.replace(/^models\//, "");
 
-    // Google API uses specific URL pattern
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    // aggressively fix the -001 suffix which seems to be causing issues
+    if (modelName === "gemini-1.5-flash-001") {
+        modelName = "gemini-1.5-flash";
+    }
 
-    const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: input }] }],
-            generationConfig: jsonMode ? { responseMimeType: "application/json" } : undefined
-        }),
-    });
+    // Fallback if empty or generic
+    if (!modelName || !modelName.includes("gemini")) {
+        modelName = "gemini-flash-latest";
+    }
+
+    // Initial attempt URL
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+    const makeRequest = async (requestUrl: string) => {
+        return fetch(requestUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: input }] }],
+                generationConfig: jsonMode ? { responseMimeType: "application/json" } : undefined
+            }),
+        });
+    };
+
+    let res = await makeRequest(url);
+
+    // Fallback Logic: If 404, try explicit stable version "gemini-1.5-flash"
+    if (res.status === 404 && modelName !== "gemini-1.5-flash") {
+        console.warn(`Gemini model ${modelName} not found. Falling back to gemini-1.5-flash.`);
+        url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        res = await makeRequest(url);
+    }
 
     const data = await res.json();
     if (!res.ok) {
-        throw new Error(data.error?.message || "Gemini API failed");
+        throw new Error(data.error?.message || `Gemini API failed with status ${res.status}`);
     }
 
     try {

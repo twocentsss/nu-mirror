@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MirrorCard } from "@/ui/MirrorCard";
 import TaskRow from "@/ui/TaskRow";
+import { Star } from "lucide-react";
 
 type KeyRow = {
     id: string;
@@ -97,33 +98,45 @@ export default function OpenAiKeyManager() {
     }
 
     async function setPreferred(keyId: string) {
+        // Optimistic update: immediately update local state for snappy feel
+        const oldKeys = [...keys];
+        setKeys(prev => prev.map(k => ({
+            ...k,
+            preferred: k.id === keyId
+        })));
+
         try {
             const res = await fetch("/api/llm/keys/prefer", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify({ keyId }),
             });
+
             if (res.ok) {
-                await fetchKeys();
+                // Background refresh to ensure sync, but user already sees result
+                fetchKeys();
             } else {
-                alert("Failed to set preference");
+                // Revert on failure
+                setKeys(oldKeys);
+                alert("Failed to save preference");
             }
         } catch (e) {
-            alert("Failed to set preference");
+            setKeys(oldKeys);
+            alert("Network error setting preference");
         }
     }
 
     return (
         <MirrorCard className="overflow-hidden p-0">
-            <div className="bg-black/5 px-4 py-3 text-[13px] font-semibold text-black/60 flex justify-between items-center">
+            <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
                 <div className="flex flex-col">
-                    <span>LLM Keys</span>
-                    {totalTokens > 0 && <span className="text-[10px] text-black/40 font-normal">Used {totalTokens} tokens today</span>}
+                    <span className="text-[var(--text-primary)]">LLM Keys</span>
+                    {totalTokens > 0 && <span className="text-[10px] text-[var(--text-secondary)] font-normal">Used {totalTokens} tokens today</span>}
                 </div>
                 <button
                     onClick={fetchKeys}
                     disabled={loading}
-                    className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                    className="text-xs text-[var(--accent-color)] hover:opacity-80 disabled:opacity-50"
                 >
                     Refresh
                 </button>
@@ -131,16 +144,16 @@ export default function OpenAiKeyManager() {
 
             <div className="p-4 space-y-4">
                 {/* Add Key Form */}
-                <div className="bg-black/5 rounded-lg p-3 space-y-2">
-                    <div className="text-xs font-medium text-black/50 uppercase">Add New Key</div>
+                <div className="bg-[var(--glass-bg)] rounded-lg p-3 space-y-2 border border-[var(--glass-border)]">
+                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase">Add New Key</div>
                     <input
-                        className="w-full text-sm rounded bg-white border border-black/10 px-2 py-1 outline-none focus:border-blue-500"
+                        className="w-full text-sm rounded bg-transparent border border-[var(--glass-border)] px-2 py-1 outline-none focus:border-[var(--accent-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50"
                         placeholder="Label (e.g. OpenRouter Team)"
                         value={newLabel}
                         onChange={(e) => setNewLabel(e.target.value)}
                     />
                     <input
-                        className="w-full text-sm rounded bg-white border border-black/10 px-2 py-1 outline-none focus:border-blue-500"
+                        className="w-full text-sm rounded bg-transparent border border-[var(--glass-border)] px-2 py-1 outline-none focus:border-[var(--accent-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50"
                         placeholder="Daily Token Limit (0 = unlimited)"
                         type="number"
                         value={newDailyLimit}
@@ -149,7 +162,7 @@ export default function OpenAiKeyManager() {
                     <div className="flex gap-2">
                         <input
                             type="password"
-                            className="flex-1 text-sm rounded bg-white border border-black/10 px-2 py-1 outline-none focus:border-blue-500"
+                            className="flex-1 text-sm rounded bg-transparent border border-[var(--glass-border)] px-2 py-1 outline-none focus:border-[var(--accent-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50"
                             placeholder="sk-..."
                             value={newKey}
                             onChange={(e) => setNewKey(e.target.value)}
@@ -157,20 +170,20 @@ export default function OpenAiKeyManager() {
                         <button
                             disabled={adding || !newKey}
                             onClick={addKey}
-                            className="bg-black text-white text-xs font-semibold px-3 py-1 rounded shadow-sm hover:opacity-80 disabled:opacity-50"
+                            className="bg-[var(--accent-color)] text-white text-xs font-semibold px-3 py-1 rounded shadow-sm hover:opacity-80 disabled:opacity-50"
                         >
                             {adding ? "Adding..." : "Add"}
                         </button>
                     </div>
-                    <div className="text-[10px] text-black/40">
+                    <div className="text-[10px] text-[var(--text-secondary)]">
                         * Provider detected automatically (sk-or- = OpenRouter, AIza = Gemini, else OpenAI)
                     </div>
                 </div>
 
                 {/* Key List */}
-                <div className="space-y-1">
-                    {loading && keys.length === 0 && <div className="text-xs text-black/40 p-2">Loading keys...</div>}
-                    {!loading && keys.length === 0 && <div className="text-xs text-black/40 p-2">No keys found. Add one above.</div>}
+                <div className="space-y-2">
+                    {loading && keys.length === 0 && <div className="text-xs text-[var(--text-secondary)] p-2">Loading keys...</div>}
+                    {!loading && keys.length === 0 && <div className="text-xs text-[var(--text-secondary)] p-2">No keys found. Add one above.</div>}
 
                     {keys.map((k) => {
                         const used = usageByKey[k.id] || 0;
@@ -179,40 +192,75 @@ export default function OpenAiKeyManager() {
                         const isOverLimit = limit > 0 && used >= limit;
 
                         return (
-                            <div key={k.id} className="flex items-center justify-between p-2 rounded hover:bg-black/5 transition group">
-                                <div className="flex-1 min-w-0">
+                            <div
+                                key={k.id}
+                                className={`
+                                    flex items-center justify-between p-3 rounded-xl transition-all duration-200 border
+                                    ${k.preferred
+                                        ? "bg-[var(--accent-color)]/10 border-[var(--accent-color)] shadow-sm"
+                                        : "bg-transparent border-transparent hover:bg-[var(--glass-bg)] hover:border-[var(--glass-border)]"
+                                    }
+                                `}
+                            >
+                                {/* Left Info Group */}
+                                <div className="flex-1 min-w-0 flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => !k.preferred && setPreferred(k.id)}
-                                            className={`text-sm ${k.preferred ? "text-yellow-500 cursor-default" : "text-gray-300 hover:text-yellow-400"}`}
-                                            title={k.preferred ? "Primary key" : "Set as primary"}
-                                        >
-                                            ⭐
-                                        </button>
-                                        <div className="text-sm font-medium text-black/80 truncate">
+                                        <div className={`text-sm font-bold truncate ${k.preferred ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
                                             {k.label || "(No label)"}
                                         </div>
-                                        <span className={`text-[10px] px-1 rounded uppercase font-bold ${k.provider === 'openrouter' ? 'bg-purple-100 text-purple-600' : (k.provider === 'gemini' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}`}>
-                                            {k.provider}
-                                        </span>
-                                        {/* Usage Badge */}
-                                        <span className={`text-[10px] px-1 rounded border ${isOverLimit ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                                            {limitText} toks
-                                        </span>
-                                        {k.disabled && <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded">DISABLED</span>}
+                                        {/* Badges */}
+                                        <div className="flex items-center gap-1">
+                                            <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${k.provider === 'openrouter' ? 'bg-purple-500/20 text-purple-400' :
+                                                    (k.provider === 'gemini' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400')
+                                                }`}>
+                                                {k.provider}
+                                            </span>
+                                            {k.preferred && (
+                                                <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md bg-[var(--accent-color)] text-white">
+                                                    Active
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="text-[11px] text-black/40 font-mono truncate">
-                                        Created: {new Date(k.created_at).toLocaleDateString()}
+
+                                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
+                                        <span className={isOverLimit ? "text-red-400 font-bold" : ""}>
+                                            {limitText} tokens used
+                                        </span>
+                                        <span className="opacity-50">•</span>
+                                        <span className="font-mono opacity-70">
+                                            {new Date(k.created_at).toLocaleDateString()}
+                                        </span>
+                                        {!k.disabled && (
+                                            <button
+                                                onClick={() => disableKey(k.id)}
+                                                className="text-red-400 hover:text-red-300 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                Disable
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                {!k.disabled && (
+
+                                {/* Right Action Button */}
+                                <div className="ml-4 flex-shrink-0">
                                     <button
-                                        onClick={() => disableKey(k.id)}
-                                        className="text-xs p-1 text-red-500 opacity-0 group-hover:opacity-100 transition hover:bg-red-50 rounded"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            if (!k.preferred) setPreferred(k.id);
+                                        }}
+                                        disabled={k.preferred}
+                                        className={`
+                                            h-9 px-5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center min-w-[80px]
+                                            ${k.preferred
+                                                ? "bg-[var(--accent-color)] text-white cursor-default shadow-md"
+                                                : "bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-gradient)]"
+                                            }
+                                        `}
                                     >
-                                        Disable
+                                        {k.preferred ? "Selected" : "Select"}
                                     </button>
-                                )}
+                                </div>
                             </div>
                         );
                     })}

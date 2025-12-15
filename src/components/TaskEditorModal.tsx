@@ -207,14 +207,14 @@ export default function TaskEditorModal(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 p-4 flex items-center justify-center" onMouseDown={props.onClose}>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={props.onClose}>
       <div
-        className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-[#0b0d17] text-white shadow-xl max-h-[90vh] flex flex-col"
+        className="mx-auto w-full max-w-xl rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)] shadow-2xl max-h-[90vh] flex flex-col backdrop-blur-xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="text-lg font-semibold">{task.id ? "Edit task" : "Create task"}</div>
-          <button className="rounded-full border border-white/20 px-3 py-1 text-sm" onClick={props.onClose}>
+        <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
+          <div className="text-lg font-semibold text-[var(--text-primary)]">{task.id ? "Edit task" : "Create task"}</div>
+          <button className="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm hover:bg-[var(--glass-border)] transition text-[var(--text-secondary)]" onClick={props.onClose}>
             Close
           </button>
         </div>
@@ -222,7 +222,7 @@ export default function TaskEditorModal(props: {
         <div className="overflow-y-auto p-4 flex-1">
           <div className="space-y-3">
             <input
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title"
@@ -230,18 +230,18 @@ export default function TaskEditorModal(props: {
 
             <div className="grid grid-cols-2 gap-2">
               <select
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)]"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
                 {["intake", "defined", "decomposed", "planned", "doing", "blocked", "done", "canceled"].map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s} className="bg-white text-black dark:bg-black dark:text-white">{s}</option>
                 ))}
               </select>
 
               <input
                 type="date"
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)] h-[38px]"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
@@ -249,18 +249,18 @@ export default function TaskEditorModal(props: {
 
             <div className="grid grid-cols-3 gap-2">
               <select
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)]"
                 value={timeOfDay}
                 onChange={(e) => setTimeOfDay(e.target.value)}
               >
                 {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t} value={t} className="bg-white text-black dark:bg-black dark:text-white">{t}</option>
                 ))}
               </select>
 
               <input
                 type="number"
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
                 value={durationMin}
                 onChange={(e) => setDurationMin(Number(e.target.value || 0))}
                 min={1}
@@ -269,7 +269,7 @@ export default function TaskEditorModal(props: {
 
               <input
                 type="number"
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
                 value={lf}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -286,35 +286,35 @@ export default function TaskEditorModal(props: {
             </div>
 
             <textarea
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notes"
             />
 
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="text-sm font-semibold">Subtasks ({subtasks.length})</div>
+            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 p-3">
+              <div className="text-sm font-semibold text-[var(--text-primary)]">Subtasks ({subtasks.length})</div>
               {subtasks.length === 0 ? (
-                <div className="mt-2 text-xs text-white/50">No subtasks yet.</div>
+                <div className="mt-2 text-xs text-[var(--text-secondary)] opacity-70">No subtasks yet.</div>
               ) : (
                 <ul className="mt-2 space-y-1 text-sm">
                   {subtasks.map((t) => (
-                    <li key={t.id} className="text-white/80">• {t.title}</li>
+                    <li key={t.id} className="text-[var(--text-secondary)]">• {t.title}</li>
                   ))}
                 </ul>
               )}
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 p-3">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">AI breakdown</div>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">AI breakdown</div>
                 <button
-                  className="rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-black disabled:opacity-50"
+                  className="rounded-full bg-[var(--accent-color)] px-3 py-1 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition"
                   disabled={decomposing}
                   onClick={suggestBreakdown}
                 >
-                  {decomposing ? "Thinking…" : "Suggest breakdown"}
+                  {decomposing ? "Thinking..." : "Suggest breakdown"}
                 </button>
               </div>
 

@@ -137,7 +137,9 @@ export default function BottomNav({
           return (
             <motion.div
               key={`${item.id}-${i}`}
-              onClick={() => handleItemClick(item)}
+              onTap={() => {
+                if (!isDragging) handleItemClick(item);
+              }}
               className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
               style={{
                 width: "80px",
@@ -147,10 +149,10 @@ export default function BottomNav({
             >
               <motion.div
                 className={`p-3 rounded-2xl ${isActive
-                    ? 'bg-[var(--accent-color)] text-white shadow-lg'
-                    : item.available
-                      ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
-                      : 'text-[var(--text-secondary)]'
+                  ? 'bg-[var(--accent-color)] text-white shadow-lg'
+                  : item.available
+                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
+                    : 'text-[var(--text-secondary)]'
                   }`}
                 whileTap={item.available ? { scale: 0.95 } : {}}
               >
