@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MirrorCard } from "@/ui/MirrorCard";
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function SolvePage() {
   const [text, setText] = useState(
@@ -9,43 +13,52 @@ export default function SolvePage() {
   );
   const [last, setLast] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const range = useMemo(() => {
+    const day = todayISO();
+    return { start: day, end: day };
+  }, []);
 
   useEffect(() => {
     void refresh();
-  }, []);
+  }, [range]);
 
   async function refresh() {
     try {
-      const res = await fetch("/api/cogos/list");
+      const qs = new URLSearchParams(range);
+      const res = await fetch(`/api/cogos/task/list?${qs.toString()}`);
       if (res.ok) {
         setStore(await res.json());
       }
     } catch (error) {
-      console.error("Failed to refresh store", error);
+      console.error("Failed to refresh tasks", error);
     }
   }
 
-  async function ingest() {
+  async function createFromText() {
+    setLoading(true);
     try {
-      const res = await fetch("/api/cogos/ingest", {
+      const res = await fetch("/api/cogos/task/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ raw_text: text, title: text.slice(0, 80) }),
       });
       const json = await res.json();
       setLast(json);
       await refresh();
     } catch (error) {
-      console.error("Ingest failed", error);
+      console.error("Create failed", error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function bootstrap() {
+  async function initAccount() {
     try {
-      await fetch("/api/sheets/bootstrap", { method: "POST" });
+      await fetch("/api/google/account/init", { method: "POST" });
       await refresh();
     } catch (error) {
-      console.error("Bootstrap failed", error);
+      console.error("Init failed", error);
     }
   }
 
@@ -68,16 +81,17 @@ export default function SolvePage() {
         />
         <div className="mt-3 flex flex-wrap gap-2">
           <button
-            onClick={() => void ingest()}
-            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white"
+            disabled={loading}
+            onClick={() => void createFromText()}
+            className="rounded-full bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            Ingest (Episode → Task Tree)
+            {loading ? "Creating…" : "Create task"}
           </button>
           <button
-            onClick={() => void bootstrap()}
+            onClick={() => void initAccount()}
             className="rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-medium"
           >
-            Bootstrap Tabs
+            Init Account
           </button>
           <button
             onClick={() => void refresh()}

@@ -1,5 +1,50 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { verifyPassword, verifyTwoPart } from "@/lib/auth/userStore";
+
+type JwtToken = {
+  user?: any;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  error?: string;
+};
+
+async function refreshGoogleAccessToken(token: JwtToken): Promise<JwtToken> {
+  try {
+    if (!token.refreshToken) {
+      return { ...token, error: "NO_REFRESH_TOKEN" };
+    }
+
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(JSON.stringify(data));
+    }
+
+    return {
+      ...token,
+      accessToken: data.access_token,
+      refreshToken: token.refreshToken,
+      expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+      error: undefined,
+    };
+  } catch (error) {
+    console.warn("refreshGoogleAccessToken error", error);
+    return { ...token, error: "REFRESH_ACCESS_TOKEN_ERROR" };
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -9,35 +54,78 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: ["openid", "email", "profile"].join(" "),
-          prompt: "consent",
+          access_type: "offline",
+          prompt: "consent select_account",
+          scope: [
+            "openid",
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+          ].join(" "),
         },
+      },
+    }),
+    CredentialsProvider({
+      name: "Streamforge Login",
+      credentials: {
+        mode: { label: "Mode", type: "text" },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+        keyId: { label: "Key ID", type: "text" },
+        pin: { label: "PIN", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials) return null;
+        const mode = credentials.mode ?? "password";
+
+        if (mode === "password") {
+          const user = verifyPassword(credentials.email ?? "", credentials.password ?? "");
+          return user ? { id: user.id, email: user.email, name: user.username } : null;
+        }
+
+        if (mode === "twopart") {
+          const user = verifyTwoPart(credentials.keyId ?? "", credentials.pin ?? "");
+          return user ? { id: user.id, email: user.email, name: user.username } : null;
+        }
+
+        return null;
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (profile?.email) token.email = profile.email;
-      if (profile?.name) token.name = profile.name;
-      if (account?.provider === "google") {
-        token.googleAccessToken = account.access_token;
-        token.googleRefreshToken = account.refresh_token;
+    async jwt({ token, user, account }) {
+      const nextToken = token as JwtToken;
+
+      if (user) {
+        nextToken.user = user;
       }
-      return token;
+
+      if (account?.provider === "google") {
+        nextToken.accessToken = account.access_token;
+        nextToken.refreshToken = account.refresh_token;
+        nextToken.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000;
+        return nextToken;
+      }
+
+      const isExpired =
+        typeof nextToken.expiresAt === "number" && Date.now() > nextToken.expiresAt - 60_000;
+      if (nextToken.refreshToken && (isExpired || !nextToken.accessToken)) {
+        return refreshGoogleAccessToken(nextToken);
+      }
+
+      return nextToken;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.email = (token.email as string) ?? session.user.email;
-        session.user.name = (token.name as string) ?? session.user.name;
+      const t = token as JwtToken;
+      if (t.user && typeof t.user === "object") {
+        session.user = t.user;
       }
-      (session as any).googleAccessToken = token.googleAccessToken as
-        | string
-        | undefined;
-      (session as any).googleRefreshToken = token.googleRefreshToken as
-        | string
-        | undefined;
+      (session as any).accessToken = t.accessToken;
+      (session as any).refreshToken = t.refreshToken;
+      (session as any).authError = t.error;
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET!,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET!,
 };
