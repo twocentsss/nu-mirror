@@ -35,3 +35,14 @@ body {
 .tap {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Hide scrollbars for circular scrollers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+

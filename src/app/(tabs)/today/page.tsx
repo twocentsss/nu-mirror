@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import TaskEditorModal from "@/components/TaskEditorModal";
 import { MoreHorizontal, Plus, ChevronDown, ChevronUp, Check, PartyPopper } from "lucide-react";
+import { CircularDatePicker } from "@/ui/CircularDatePicker";
 
 type ViewMode = "DAY" | "3DAY" | "WEEK" | "MONTH";
 type TimeSlot = "ANYTIME" | "MORNING" | "AFTERNOON" | "EVENING";
@@ -203,24 +204,11 @@ export default function TodayPage() {
           <p className="text-gray-500 text-sm mt-1">{fullDate}</p>
         </div>
 
-        {/* Calendar Scroll */}
-        <div className="flex justify-between items-center mt-6 px-1">
-          {weekDays.map((d, i) => {
-            const isSelected = formatISODate(d) === formatISODate(selectedDate);
-            const dayNum = d.getDate();
-            const dayShort = new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(d);
-            return (
-              <button
-                key={i}
-                onClick={() => setSelectedDate(d)}
-                className={`flex flex-col items-center justify-center w-10 h-14 rounded-full transition ${isSelected ? 'bg-black text-white shadow-md scale-110' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
-              >
-                <span className={`text-xs font-medium ${isSelected ? 'text-white' : ''}`}>{dayNum}</span>
-                <span className="text-[10px] uppercase font-bold mt-1 opacity-80">{dayShort}</span>
-              </button>
-            )
-          })}
-        </div>
+        {/* Circular Date Picker */}
+        <CircularDatePicker
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+        />
       </div>
 
       <TaskEditorModal
