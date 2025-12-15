@@ -6,7 +6,7 @@ import TaskEditorModal from "@/components/TaskEditorModal";
 import { MoreHorizontal, Plus, ChevronDown, ChevronUp, Check, PartyPopper } from "lucide-react";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
 
-type ViewMode = "DAY" | "3DAY" | "WEEK" | "MONTH";
+type ViewMode = "DAY" | "WEEK" | "SPRINT" | "MONTH" | "QUARTER";
 type TimeSlot = "ANYTIME" | "MORNING" | "AFTERNOON" | "EVENING";
 
 type TaskRecord = {
@@ -43,6 +43,14 @@ const SLOT_LABELS: Record<TimeSlot, string> = {
   EVENING: "Evening",
 };
 
+const VIEW_MODE_LABELS: Record<ViewMode, string> = {
+  DAY: "Day",
+  WEEK: "Week",
+  SPRINT: "Sprint",
+  MONTH: "Month",
+  QUARTER: "Quarter",
+};
+
 function formatISODate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -51,8 +59,43 @@ function computeRange(mode: ViewMode, baseDate: Date) {
   const start = new Date(baseDate);
   const end = new Date(baseDate);
 
-  // Always Day view for this UI primarily
-  // But keeping logic if we expand
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+
+  switch (mode) {
+    case "DAY":
+      // Single day
+      break;
+    case "WEEK":
+      // Start of week (Sunday) to end of week (Saturday)
+      const dayOfWeek = start.getDay();
+      start.setDate(start.getDate() - dayOfWeek);
+      end.setDate(start.getDate() + 6);
+      break;
+    case "SPRINT":
+      // 2-week sprint starting from Monday
+      const currentDay = start.getDay();
+      const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      start.setDate(start.getDate() + daysToMonday);
+      end.setDate(start.getDate() + 13); // 14 days total
+      break;
+    case "MONTH":
+      // First to last day of month
+      start.setDate(1);
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0); // Last day of current month
+      break;
+    case "QUARTER":
+      // Quarter: Q1 (Jan-Mar), Q2 (Apr-Jun), Q3 (Jul-Sep), Q4 (Oct-Dec)
+      const month = start.getMonth();
+      const quarterStart = Math.floor(month / 3) * 3;
+      start.setMonth(quarterStart);
+      start.setDate(1);
+      end.setMonth(quarterStart + 3);
+      end.setDate(0); // Last day of quarter
+      break;
+  }
+
   return { start: formatISODate(start), end: formatISODate(end) };
 }
 
@@ -110,6 +153,7 @@ export default function TodayPage() {
   const [loadingTasks, setLoadingTasks] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>("DAY");
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
@@ -117,7 +161,7 @@ export default function TodayPage() {
   // Section collapse state
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const dateRange = useMemo(() => computeRange("DAY", selectedDate), [selectedDate]);
+  const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
 
   const fetchTasks = useCallback(async (range: { start: string; end: string }) => {
     if (!signedIn) return;
@@ -209,6 +253,22 @@ export default function TodayPage() {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
         />
+
+        {/* View Mode Selector */}
+        <div className="flex justify-center gap-2 mt-4 px-4">
+          {(["DAY", "WEEK", "SPRINT", "MONTH", "QUARTER"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${viewMode === mode
+                ? "bg-black text-white shadow-md"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+            >
+              {VIEW_MODE_LABELS[mode]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <TaskEditorModal

@@ -3,7 +3,6 @@
 import { ReactNode, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import BottomNav from "@/ui/BottomNav";
-import { CircularTabNav } from "@/ui/CircularTabNav";
 
 export default function TabsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -20,8 +19,7 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-white">
-      <CircularTabNav />
-      <div className="pt-16 pb-20">
+      <div className="pb-20">
         {children}
       </div>
       <BottomNav

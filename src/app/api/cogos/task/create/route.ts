@@ -35,6 +35,7 @@ export async function POST(req: Request) {
   const timeOfDay: string = (body.time_of_day ?? "ANYTIME").toUpperCase();
   const startAt: string | undefined = body.start_at;
   const endAt: string | undefined = body.end_at;
+  const lf: number | undefined = body.lf;
 
   let spreadsheetId: string;
   try {

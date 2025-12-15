@@ -179,145 +179,149 @@ export default function TaskEditorModal(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 p-4" onMouseDown={props.onClose}>
+    <div className="fixed inset-0 z-50 bg-black/60 p-4 flex items-center justify-center" onMouseDown={props.onClose}>
       <div
-        className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-[#0b0d17] p-4 text-white shadow-xl"
+        className="mx-auto w-full max-w-xl rounded-2xl border border-white/10 bg-[#0b0d17] text-white shadow-xl max-h-[90vh] flex flex-col"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="text-lg font-semibold">{task.id ? "Edit task" : "Create task"}</div>
           <button className="rounded-full border border-white/20 px-3 py-1 text-sm" onClick={props.onClose}>
             Close
           </button>
         </div>
 
-        <div className="mt-3 space-y-3">
-          <input
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title"
-          />
-
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {["intake", "defined", "decomposed", "planned", "doing", "blocked", "done", "canceled"].map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-
+        <div className="overflow-y-auto p-4 flex-1">
+          <div className="space-y-3">
             <input
-              type="date"
               className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title"
             />
-          </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-              value={timeOfDay}
-              onChange={(e) => setTimeOfDay(e.target.value)}
-            >
-              {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-              value={durationMin}
-              onChange={(e) => setDurationMin(Number(e.target.value || 0))}
-              min={1}
-            />
-          </div>
-
-          <textarea
-            className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notes"
-          />
-
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <div className="text-sm font-semibold">Subtasks ({subtasks.length})</div>
-            {subtasks.length === 0 ? (
-              <div className="mt-2 text-xs text-white/50">No subtasks yet.</div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {subtasks.map((t) => (
-                  <li key={t.id} className="text-white/80">• {t.title}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">AI breakdown</div>
-              <button
-                className="rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-black disabled:opacity-50"
-                disabled={decomposing}
-                onClick={suggestBreakdown}
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
               >
-                {decomposing ? "Thinking…" : "Suggest breakdown"}
-              </button>
+                {["intake", "defined", "decomposed", "planned", "doing", "blocked", "done", "canceled"].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+
+              <input
+                type="date"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
             </div>
 
-            <div className="mt-2 grid gap-2">
-              <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                value={q1} onChange={(e) => setQ1(e.target.value)} placeholder="Goal/outcome (optional)" />
-              <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                value={q2} onChange={(e) => setQ2(e.target.value)} placeholder="Constraints (optional)" />
-              <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                value={q3} onChange={(e) => setQ3(e.target.value)} placeholder="Context/stakeholders (optional)" />
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                value={timeOfDay}
+                onChange={(e) => setTimeOfDay(e.target.value)}
+              >
+                {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                value={durationMin}
+                onChange={(e) => setDurationMin(Number(e.target.value || 0))}
+                min={1}
+              />
             </div>
 
-            {suggested.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {suggested.map((s, i) => {
-                  const checked = selectedIdx.has(i);
-                  return (
-                    <label key={i} className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-2">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          const next = new Set(selectedIdx);
-                          if (next.has(i)) next.delete(i);
-                          else next.add(i);
-                          setSelectedIdx(next);
-                        }}
-                        className="mt-1"
-                      />
-                      <div>
-                        <div className="text-sm font-semibold">{s.title}</div>
-                        <div className="text-xs text-white/60">
-                          {s.duration_min ? `${s.duration_min} min` : ""} {s.rationale ? `— ${s.rationale}` : ""}
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
+            <textarea
+              className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Notes"
+            />
 
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-sm font-semibold">Subtasks ({subtasks.length})</div>
+              {subtasks.length === 0 ? (
+                <div className="mt-2 text-xs text-white/50">No subtasks yet.</div>
+              ) : (
+                <ul className="mt-2 space-y-1 text-sm">
+                  {subtasks.map((t) => (
+                    <li key={t.id} className="text-white/80">• {t.title}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold">AI breakdown</div>
                 <button
-                  className="w-full rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                  onClick={createSelectedSubtasks}
-                  disabled={selectedIdx.size === 0}
+                  className="rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-black disabled:opacity-50"
+                  disabled={decomposing}
+                  onClick={suggestBreakdown}
                 >
-                  Create selected subtasks
+                  {decomposing ? "Thinking…" : "Suggest breakdown"}
                 </button>
               </div>
-            )}
-          </div>
 
+              <div className="mt-2 grid gap-2">
+                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
+                  value={q1} onChange={(e) => setQ1(e.target.value)} placeholder="Goal/outcome (optional)" />
+                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
+                  value={q2} onChange={(e) => setQ2(e.target.value)} placeholder="Constraints (optional)" />
+                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
+                  value={q3} onChange={(e) => setQ3(e.target.value)} placeholder="Context/stakeholders (optional)" />
+              </div>
+
+              {suggested.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {suggested.map((s, i) => {
+                    const checked = selectedIdx.has(i);
+                    return (
+                      <label key={i} className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const next = new Set(selectedIdx);
+                            if (next.has(i)) next.delete(i);
+                            else next.add(i);
+                            setSelectedIdx(next);
+                          }}
+                          className="mt-1"
+                        />
+                        <div>
+                          <div className="text-sm font-semibold">{s.title}</div>
+                          <div className="text-xs text-white/60">
+                            {s.duration_min ? `${s.duration_min} min` : ""} {s.rationale ? `— ${s.rationale}` : ""}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+
+                  <button
+                    className="w-full rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                    onClick={createSelectedSubtasks}
+                    disabled={selectedIdx.size === 0}
+                  >
+                    Create selected subtasks
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-white/10">
           <button
             className="w-full rounded-full bg-white px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
             disabled={saving}
