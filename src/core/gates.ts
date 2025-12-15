@@ -12,9 +12,13 @@ export function gatesForStage(stage: StageId, art: Artifacts | null, brief: Prob
   if (stage === "define") {
     if (!brief?.statement?.trim()) missing.push("Problem statement");
     if (!brief?.dod?.trim()) missing.push("Definition of Done");
-    if (!brief?.timeBoundary?.trim()) missing.push("Time boundary (or explicitly blank with next action)");
-    if (!brief?.dri?.trim()) missing.push("DRI");
-    if (!brief?.decider?.trim()) missing.push("Decider");
+    if (!brief?.timeBoundary?.trim() && art?.complexity === "HIGH") {
+      missing.push("Time boundary");
+    }
+    if (art?.complexity === "HIGH") {
+      if (!brief?.dri?.trim()) missing.push("DRI");
+      if (!brief?.decider?.trim()) missing.push("Decider");
+    }
     return { missing };
   }
 

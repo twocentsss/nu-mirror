@@ -10,6 +10,7 @@ import TaskTreeView from "@/ui/TaskTreeView";
 import { buildArtifacts } from "@/core/breaker";
 import { gatesForStage } from "@/core/gates";
 import type { Artifacts, ProblemBrief } from "@/core/models";
+import type { NerMode } from "@/core/ner";
 
 export default function SolvePage() {
   const [stage, setStage] = useState<StageId>("intake");
@@ -21,6 +22,7 @@ export default function SolvePage() {
   const [art, setArt] = useState<Artifacts | null>(null);
 
   const [brief, setBrief] = useState<ProblemBrief | null>(null);
+  const [nerMode, setNerMode] = useState<NerMode>("fast");
 
   const stageStatus = useMemo(() => {
     const ok = (s: StageId) => gatesForStage(s, art, brief).missing.length === 0;
@@ -38,11 +40,15 @@ export default function SolvePage() {
 
   const gate = useMemo(() => gatesForStage(stage, art, brief), [stage, art, brief]);
 
-  function onSolve() {
-    const out = buildArtifacts({ rawText: raw, lane, complexity });
+  async function runSolve() {
+    const out = await buildArtifacts({ rawText: raw, lane, complexity, nerMode });
     setArt(out);
     setBrief(out.problemBrief);
     setStage("define");
+  }
+
+  function onSolve() {
+    void runSolve();
   }
 
   function advance() {
@@ -70,6 +76,27 @@ export default function SolvePage() {
         onComplexityChange={setComplexity}
         onSolve={onSolve}
       />
+
+      <MirrorCard className="p-4">
+        <div className="text-[12px] text-black/55">NER mode</div>
+        <div className="mt-2 flex gap-2">
+          {(["fast", "ml"] as NerMode[]).map((mode) => (
+            <button
+              key={mode}
+              className={[
+                "tap rounded-full px-4 py-2 text-[13px] font-semibold border",
+                nerMode === mode ? "border-black/15 bg-black/5" : "border-black/10 bg-white/70",
+              ].join(" ")}
+              onClick={() => setNerMode(mode)}
+            >
+              {mode === "fast" ? "Fast" : "Real ML"}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 text-[12px] text-black/45">
+          ML downloads a model on first use (expected).
+        </div>
+      </MirrorCard>
 
       <StageRail
         value={stage}
@@ -276,4 +303,3 @@ function Block({ label, text }: { label: string; text: string }) {
     </div>
   );
 }
-

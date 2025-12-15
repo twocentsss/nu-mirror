@@ -1,105 +1,129 @@
-import type { Artifacts, CasePack, Complexity, IssueNode, Lane, ProblemBrief, TaskNode } from "@/core/models";
+import type {
+  Artifacts,
+  CasePack,
+  Complexity,
+  IssueNode,
+  Lane,
+  ProblemBrief,
+  TaskNode,
+} from "@/core/models";
+import { analyzeNlp, type NerMode } from "@/core/ner";
+import { splitIntoUnits } from "@/core/splitter";
 
 function uid(prefix = "id") {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
 }
 
-function guessDomain(raw: string) {
-  const t = raw.toLowerCase();
-  if (/(p95|latency|timeout|error|crash|bug|incident)/.test(t)) return "ENGINEERING";
-  if (/(tomorrow|today|schedule|meeting|call|invite|calendar)/.test(t)) return "SCHEDULING";
-  if (/(pay|bill|charge|renew|invoice|subscription)/.test(t)) return "FINANCE";
-  if (/(comic|story|write|draw|panel|plot)/.test(t)) return "CREATIVE";
+function guessDomainFromSignals(raw: string, verbs: string[], nouns: string[]) {
+  const mixed = `${raw.toLowerCase()} ${verbs.join(" ")} ${nouns.join(" ")}`.toLowerCase();
+  if (/(latency|p95|timeout|crash|error|deploy|prod|api|auth|integration)/.test(mixed)) {
+    return "ENGINEERING";
+  }
+  if (/(schedule|meeting|invite|calendar|call)/.test(mixed)) {
+    return "SCHEDULING";
+  }
+  if (/(pay|bill|charge|invoice|subscription|renew)/.test(mixed)) {
+    return "FINANCE";
+  }
+  if (/(comic|story|write|draw|panel|plot)/.test(mixed)) {
+    return "CREATIVE";
+  }
   return "GENERAL";
 }
 
-function extractTimeBoundary(raw: string) {
-  const t = raw.toLowerCase();
-  if (/\bby friday\b/.test(t)) return "By Friday";
-  if (/\btomorrow\b/.test(t)) return "Tomorrow";
-  if (/\btoday\b/.test(t)) return "Today";
-  return "";
+function bestTimeBoundary(primaryDateText?: string) {
+  return primaryDateText ? `By/On ${primaryDateText}` : "";
 }
 
-function extractVerbObject(raw: string) {
-  const words = raw.trim().split(/\s+/);
-  const verb = words[0] ?? "Do";
-  const obj = words.slice(1).join(" ") || "the thing";
-  return { verb, obj };
-}
-
-function buildProblemBrief(rawText: string, lane: Lane, domain: string, complexity: Complexity): ProblemBrief {
-  const { verb, obj } = extractVerbObject(rawText);
-  const timeBoundary = extractTimeBoundary(rawText);
+function buildProblemBriefFromNlp(
+  unitText: string,
+  lane: Lane,
+  domain: string,
+  signals: { primaryDateText?: string; entitiesText: string[]; verbs: string[] },
+): ProblemBrief {
+  const timeBoundary = bestTimeBoundary(signals.primaryDateText);
+  const mainVerb = signals.verbs?.[0] ?? "Do";
+  const entityHint = signals.entitiesText[0]
+    ? `Key entity: ${signals.entitiesText[0]}`
+    : "Key entity: (none detected)";
 
   const statement =
     lane === "TASK"
-      ? `We need to ${verb.toLowerCase()} ${obj}.`
+      ? `We need to ${mainVerb.toLowerCase()} — ${unitText}`
       : lane === "EVENT"
-      ? `We need to schedule: ${rawText}.`
+      ? `We need to schedule: ${unitText}`
       : lane === "NOTE"
-      ? `We observed: ${rawText}.`
-      : `We want to store: ${rawText}.`;
+      ? `We observed: ${unitText}`
+      : `We want to store: ${unitText}`;
 
   const impact =
     domain === "ENGINEERING"
-      ? "This impacts performance/reliability and user experience."
-      : domain === "FINANCE"
-      ? "This impacts costs, risk, and compliance."
+      ? "This impacts reliability/performance and blocks integration if unresolved."
       : domain === "SCHEDULING"
-      ? "This impacts time allocation and coordination."
+      ? "This impacts coordination and time allocation."
+      : domain === "FINANCE"
+      ? "This impacts cost/risk/compliance."
       : domain === "CREATIVE"
-      ? "This impacts creative output and narrative continuity."
+      ? "This impacts creative output continuity."
       : "This impacts time, quality, and momentum.";
 
   const outcome =
     domain === "ENGINEERING"
-      ? "System meets target performance and remains stable."
-      : domain === "FINANCE"
-      ? "Payment/state updated successfully with proof stored."
+      ? "System meets target metrics and dependencies are unblocked."
       : domain === "SCHEDULING"
-      ? "Event is scheduled with confirmations."
+      ? "Event scheduled + confirmed."
+      : domain === "FINANCE"
+      ? "Payment/state updated + proof stored."
       : domain === "CREATIVE"
-      ? "A draft artifact is produced and saved."
-      : "Work is complete and verified.";
+      ? "Draft produced + stored."
+      : "Work completed + verified.";
 
   const dod =
     domain === "ENGINEERING"
-      ? "Metric meets target (e.g., p95 below threshold) for 24h."
+      ? "Target metric satisfied (e.g., p95 below threshold) for 24h and no regressions."
+      : domain === "SCHEDULING"
+      ? "Invite sent and accepted/confirmed."
       : domain === "FINANCE"
       ? "Transaction verified + receipt stored."
-      : domain === "SCHEDULING"
-      ? "Invite sent + accepted/confirmed."
       : domain === "CREATIVE"
-      ? "Draft produced + exported/stored."
-      : "Done condition is measurable/binary.";
-
-  const defaultDRI = complexity === "HIGH" ? "DRI (required)" : "";
-  const defaultDecider = complexity === "HIGH" ? "Decider (required)" : "";
+      ? "Draft exported + saved."
+      : "Binary or measurable done condition defined.";
 
   return {
     statement,
-    impact,
+    impact: `${impact} (${entityHint})`,
     outcome,
     dod,
     constraints: [],
     timeBoundary,
-    dri: defaultDRI,
-    decider: defaultDecider,
+    dri: "",
+    decider: "",
   };
 }
 
-function buildIssueTree(domain: string, rawText: string, complexity: Complexity): IssueNode {
-  const root: IssueNode = { id: uid("issue"), kind: "requirement", text: "Issue Tree", children: [] };
+function buildIssueTree(domain: string, unitText: string, complexity: Complexity): IssueNode {
+  const root: IssueNode = {
+    id: uid("issue"),
+    kind: "requirement",
+    text: "Issue Tree",
+    children: [],
+  };
 
   const causes: IssueNode = {
     id: uid("cause"),
     kind: "cause",
     text: "Causes",
-    children: [
-      { id: uid("c"), kind: "cause", text: domain === "ENGINEERING" ? "Resource bottleneck (CPU/DB)" : "Root cause candidate A" },
-      { id: uid("c"), kind: "cause", text: domain === "ENGINEERING" ? "Payload size / serialization" : "Root cause candidate B" },
-    ],
+    children:
+      domain === "ENGINEERING"
+        ? [
+            { id: uid("c"), kind: "cause", text: "DB / storage contention" },
+            { id: uid("c"), kind: "cause", text: "Payload size / serialization" },
+            { id: uid("c"), kind: "cause", text: "Network / upstream backpressure" },
+          ]
+        : [
+            { id: uid("c"), kind: "cause", text: "Root cause candidate A" },
+            { id: uid("c"), kind: "cause", text: "Root cause candidate B" },
+          ],
   };
 
   const reqs: IssueNode = {
@@ -107,8 +131,9 @@ function buildIssueTree(domain: string, rawText: string, complexity: Complexity)
     kind: "requirement",
     text: "Requirements",
     children: [
+      { id: uid("r"), kind: "requirement", text: `Must satisfy: "${unitText.slice(0, 90)}"` },
       { id: uid("r"), kind: "requirement", text: "No regressions / preserve correctness" },
-      { id: uid("r"), kind: "requirement", text: "Time boundary respected" },
+      { id: uid("r"), kind: "requirement", text: "Verification evidence is captured" },
     ],
   };
 
@@ -116,10 +141,16 @@ function buildIssueTree(domain: string, rawText: string, complexity: Complexity)
     id: uid("opt"),
     kind: "option",
     text: "Options",
-    children: [
-      { id: uid("o"), kind: "option", text: "Option A (lowest risk)" },
-      { id: uid("o"), kind: "option", text: "Option B (fastest)" },
-    ],
+    children:
+      domain === "ENGINEERING"
+        ? [
+            { id: uid("o"), kind: "option", text: "Option A: quick fix (lowest change)" },
+            { id: uid("o"), kind: "option", text: "Option B: structural fix (medium effort)" },
+          ]
+        : [
+            { id: uid("o"), kind: "option", text: "Option A (lowest risk)" },
+            { id: uid("o"), kind: "option", text: "Option B (fastest)" },
+          ],
   };
 
   const risks: IssueNode = {
@@ -128,35 +159,32 @@ function buildIssueTree(domain: string, rawText: string, complexity: Complexity)
     text: "Risks",
     children: [
       { id: uid("rk"), kind: "risk", text: "Dependency delays / unknowns" },
-      { id: uid("rk"), kind: "risk", text: "Verification gap" },
+      { id: uid("rk"), kind: "risk", text: "Verification gap / false done" },
     ],
   };
 
   if (complexity === "HIGH") {
-    causes.children?.push({ id: uid("c"), kind: "cause", text: "Third cause candidate (validate with evidence)" });
-    options.children?.push({ id: uid("o"), kind: "option", text: "Option C (long-term)" });
-    risks.children?.push({ id: uid("rk"), kind: "risk", text: "Rollback / blast radius" });
-    reqs.children?.push({ id: uid("r"), kind: "requirement", text: "Evidence required for DoD" });
+    options.children?.push({ id: uid("o"), kind: "option", text: "Option C: long-term hardening" });
+    risks.children?.push({ id: uid("rk"), kind: "risk", text: "Rollback/blast radius" });
   }
 
-  reqs.children?.unshift({ id: uid("r"), kind: "requirement", text: `Success must satisfy: "${rawText.slice(0, 80)}"` });
   root.children = [causes, reqs, options, risks];
   return root;
 }
 
-function buildTaskTree(domain: string, rawText: string): TaskNode {
-  const root: TaskNode = { id: uid("task"), title: `Solve: ${rawText}`, children: [] };
+function buildTaskTree(domain: string, unitText: string): TaskNode {
+  const root: TaskNode = { id: uid("task"), title: `Solve: ${unitText}`, children: [] };
 
-  const spine: { title: string; dod: string }[] =
+  const spine =
     domain === "ENGINEERING"
       ? [
           { title: "Discover: capture baseline metrics", dod: "Baseline metrics recorded (p50/p95/error)." },
-          { title: "Decide: choose approach", dod: "Decision recorded (option + why)." },
-          { title: "Design: outline steps + risks", dod: "Plan written + rollback defined." },
-          { title: "Execute: implement change", dod: "Change merged/deployed to target env." },
-          { title: "Verify: confirm DoD", dod: "Metrics meet target for window." },
-          { title: "Store: evidence + links", dod: "Dashboard links / screenshots saved." },
-          { title: "Notify: stakeholders", dod: "BLUF message sent." },
+          { title: "Decide: choose approach", dod: "Decision logged (option + rationale)." },
+          { title: "Design: steps + rollback", dod: "Plan + rollback defined." },
+          { title: "Execute: implement change", dod: "Change shipped to target env." },
+          { title: "Verify: confirm DoD", dod: "Metrics meet target for required window." },
+          { title: "Store: evidence links", dod: "Dashboards/screenshots/PR links stored." },
+          { title: "Notify: stakeholders", dod: "BLUF sent + next steps shared." },
         ]
       : [
           { title: "Discover: gather facts", dod: "Inputs collected." },
@@ -168,62 +196,74 @@ function buildTaskTree(domain: string, rawText: string): TaskNode {
           { title: "Notify: share/update", dod: "Stakeholders informed." },
         ];
 
-  root.children = spine.map((s) => ({ id: uid("t"), title: s.title, dod: s.dod }));
+  root.children = spine.map((step) => ({ id: uid("t"), title: step.title, dod: step.dod }));
   return root;
 }
 
-function buildCasePack(rawText: string, brief: ProblemBrief): CasePack {
+function buildCasePack(unitText: string, brief: ProblemBrief): CasePack {
   const bluf =
-    `Bottom line: We should proceed with the plan to achieve: ${brief.outcome}\n` +
-    `Why: (1) ${brief.impact}\n` +
-    `     (2) DoD: ${brief.dod}\n` +
-    `Risk: Primary risk is verification / dependencies.\n` +
-    `Ask: Approve / decide / unblock ownership + timeline.\n`;
+    `Bottom line: We should execute the staged plan to achieve: ${brief.outcome}\n` +
+    `Why:\n- ${brief.impact}\n- DoD: ${brief.dod}\n` +
+    `Risk: verification + dependencies\n` +
+    `Ask: approve / decide / assign DRI\n`;
 
   const slide =
     `Title: Decision — ${brief.outcome}\n` +
-    `Evidence: ${brief.dod}\n` +
+    `Evidence: DoD = ${brief.dod}\n` +
     `Risks: dependencies, rollback, verification\n` +
-    `Next steps: execute plan → verify → store → notify\nOwner: ${brief.dri || "TBD"}\n`;
+    `Next: execute → verify → store → notify\n`;
 
   const script =
-    `Answer: We should do X to achieve ${brief.outcome}.\n` +
-    `Reason 1: ${brief.impact}\n` +
-    `Reason 2: We have a measurable DoD.\n` +
-    `Reason 3: The plan is staged and auditable.\n` +
-    `Tradeoff: Speed vs risk.\n` +
-    `Ask: Confirm decider + approve next action.\n`;
+    `Answer: We should do this to achieve ${brief.outcome}.\n` +
+    `Reasons: impact, measurable DoD, staged execution.\n` +
+    `Tradeoff: speed vs risk.\n` +
+    `Ask: confirm decider + approve next action.\n`;
 
   const caseBrief =
     `S: ${brief.statement}\n` +
     `C: ${brief.impact}\n` +
     `Q: What decision is needed now?\n` +
-    `A: Recommend executing the staged plan with DoD.\n\n` +
+    `A: Recommend executing the staged plan with measurable DoD.\n\n` +
     `Evidence:\n- DoD: ${brief.dod}\n- Time: ${brief.timeBoundary || "TBD"}\n\n` +
     `Ask:\n- Approve plan / unblock dependencies / assign DRI & Decider\n`;
 
   return { bluf, slide, script, caseBrief };
 }
 
-export function buildArtifacts({
+export async function buildArtifacts({
   rawText,
   lane,
   complexity,
+  nerMode,
 }: {
   rawText: string;
   lane: Lane;
   complexity: Complexity;
-}): Artifacts {
-  const domain = guessDomain(rawText);
-  const problemBrief = buildProblemBrief(rawText, lane, domain, complexity);
-  const issueTree = buildIssueTree(domain, rawText, complexity);
-  const taskTree = buildTaskTree(domain, rawText);
-  const casePack = buildCasePack(rawText, problemBrief);
+  nerMode: NerMode;
+}): Promise<Artifacts> {
+  const nlpRes = await analyzeNlp(rawText, nerMode);
+  const units = splitIntoUnits(nlpRes.sentences, rawText);
+  const primary = units[0]?.text ?? rawText;
+
+  const entitiesText = nlpRes.entities
+    .filter((entity) => ["PERSON", "ORG", "GPE"].includes(entity.type))
+    .map((entity) => entity.text);
+
+  const domain = guessDomainFromSignals(primary, nlpRes.verbs, nlpRes.nouns);
+  const problemBrief = buildProblemBriefFromNlp(primary, lane, domain, {
+    primaryDateText: nlpRes.primaryDateText,
+    entitiesText,
+    verbs: nlpRes.verbs,
+  });
+
+  const issueTree = buildIssueTree(domain, primary, complexity);
+  const taskTree = buildTaskTree(domain, primary);
+  const casePack = buildCasePack(primary, problemBrief);
 
   return {
     lane,
     complexity,
-    rawText,
+    rawText: primary,
     problemBrief,
     issueTree,
     taskTree,
