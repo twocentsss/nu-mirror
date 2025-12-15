@@ -100,6 +100,7 @@ export async function POST(req: Request) {
       role: "owner",
     },
     status: "intake",
+    lf,
     time: {
       due_date: dueDate ?? (startAt ? startAt.slice(0, 10) : undefined),
       time_of_day: timeOfDay,

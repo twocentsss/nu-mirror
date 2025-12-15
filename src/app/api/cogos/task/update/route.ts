@@ -19,6 +19,7 @@ type PatchBody = {
   end_at?: string;
   notes?: string;
   duration_min?: number;
+  lf?: number;
 };
 
 export async function POST(req: Request) {
@@ -106,6 +107,7 @@ export async function POST(req: Request) {
 
   if (typeof body.notes === "string") task.notes = body.notes;
   if (typeof body.duration_min === "number") task.duration_min = body.duration_min;
+  if (typeof body.lf === "number") task.lf = body.lf;
 
   task.updated_at = new Date().toISOString();
 

@@ -108,6 +108,62 @@ export async function updateRowById(params: UpdateByIdParams) {
   });
 }
 
+async function getSheetId(sheets: any, spreadsheetId: string, tabName: string): Promise<number> {
+  const res = await withBackoff(() => sheets.spreadsheets.get({ spreadsheetId }));
+  const sheet = res.data.sheets?.find((s: any) => s.properties?.title === tabName);
+  if (sheet?.properties?.sheetId === undefined) throw new Error(`Sheet not found: ${tabName}`);
+  return sheet.properties.sheetId;
+}
+
+export async function deleteRowById(params: {
+  spreadsheetId?: string;
+  tab: string;
+  id: string;
+  accessToken?: string;
+  refreshToken?: string;
+}) {
+  const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
+  if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
+
+  const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
+
+  // 1. Find the row index
+  const res = await withBackoff(() =>
+    sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${params.tab}!A:A`, // Only need ID column
+    }),
+  );
+
+  const rows = res.data.values ?? [];
+  const idx = rows.findIndex((row: any) => String(row?.[0] ?? "") === params.id);
+  if (idx === -1) throw new Error(`Row not found for id=${params.id}`);
+
+  // 2. Get sheetId
+  const sheetId = await getSheetId(sheets, spreadsheetId, params.tab);
+
+  // 3. Delete row
+  await withBackoff(() =>
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: idx,
+                endIndex: idx + 1,
+              },
+            },
+          },
+        ],
+      },
+    }),
+  );
+}
+
 type UpdateByRowParams = {
   spreadsheetId?: string;
   tab: string;

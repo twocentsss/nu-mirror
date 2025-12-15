@@ -19,6 +19,7 @@ type TaskRecord = {
   status?: string;
   notes?: string;
   duration_min?: number;
+  lf?: number;
   priority?: { moscow?: string; weight?: number };
   time?: {
     due_date?: string;
@@ -154,6 +155,7 @@ export default function TodayPage() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("DAY");
+  const [lfFilter, setLfFilter] = useState<number | null>(null);
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
@@ -190,6 +192,11 @@ export default function TodayPage() {
     setEditorOpen(true);
   }
 
+  const filteredTasks = useMemo(() => {
+    if (lfFilter === null) return tasks;
+    return tasks.filter((t) => t.lf === lfFilter);
+  }, [tasks, lfFilter]);
+
   const laneAssignments = useMemo(() => {
     const lanes: Record<TimeSlot, TaskRecord[]> = {
       ANYTIME: [],
@@ -197,12 +204,12 @@ export default function TodayPage() {
       AFTERNOON: [],
       EVENING: [],
     };
-    for (const t of tasks) {
+    for (const t of filteredTasks) {
       const l = laneFromTask(t);
       lanes[l].push(t);
     }
     return lanes;
-  }, [tasks]);
+  }, [filteredTasks]);
 
   const toggleSection = (lane: string) => {
     setCollapsed(prev => ({ ...prev, [lane]: !prev[lane] }));
@@ -269,6 +276,29 @@ export default function TodayPage() {
             </button>
           ))}
         </div>
+
+        {/* LF Filter */}
+        <div className="flex justify-center gap-1 mt-2 px-4 overflow-x-auto pb-2 no-scrollbar">
+          <button
+            onClick={() => setLfFilter(null)}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+              lfFilter === null ? "bg-black text-white" : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            ALL
+          </button>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((lf) => (
+            <button
+              key={lf}
+              onClick={() => setLfFilter(lf === lfFilter ? null : lf)}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                lfFilter === lf ? "bg-black text-white" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              LF{lf}
+            </button>
+          ))}
+        </div>
       </div>
 
       <TaskEditorModal
@@ -329,7 +359,12 @@ export default function TodayPage() {
                         {task.status === 'done' && <Check size={12} className="text-white bg-transparent" />}
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <span className={`text-[15px] font-medium leading-tight ${task.status === 'done' ? 'line-through text-gray-300' : 'text-gray-900'}`}>{task.title || "Untitled Task"}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[15px] font-medium leading-tight ${task.status === 'done' ? 'line-through text-gray-300' : 'text-gray-900'}`}>{task.title || "Untitled Task"}</span>
+                          {task.lf && (
+                            <span className="text-[10px] font-bold bg-black/5 text-black/60 px-1.5 py-0.5 rounded-md">LF{task.lf}</span>
+                          )}
+                        </div>
                         {task.notes && <span className="text-xs text-gray-400 line-clamp-1">{task.notes}</span>}
                         {task.time?.start_at && <span className="text-xs font-medium text-gray-400 mt-0.5">{timeRangeLabel(task)}</span>}
                       </div>

@@ -29,7 +29,14 @@ function Node({ n, depth }: { n: TaskNode; depth: number }) {
         className="rounded-[14px] border border-black/10 bg-white/70 px-4 py-3"
         style={{ marginLeft: depth * 10 }}
       >
-        <div className="text-[13px] font-semibold">{n.title}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-[13px] font-semibold">{n.title}</div>
+          {n.lf && (
+            <div className="text-[10px] font-bold bg-black/5 text-black/60 px-1.5 py-0.5 rounded-md">
+              LF{n.lf}
+            </div>
+          )}
+        </div>
         {n.dod && <div className="mt-1 text-[12px] text-black/55">DoD: {n.dod}</div>}
       </div>
       {n.children?.map((c) => (

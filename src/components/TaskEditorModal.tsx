@@ -11,6 +11,7 @@ type TaskRecord = {
   time?: { due_date?: string; time_of_day?: string; start_at?: string; end_at?: string };
   notes?: string;
   duration_min?: number;
+  lf?: number;
 };
 
 export default function TaskEditorModal(props: {
@@ -22,6 +23,7 @@ export default function TaskEditorModal(props: {
 }) {
   const task = props.task;
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState("intake");
@@ -29,6 +31,7 @@ export default function TaskEditorModal(props: {
   const [timeOfDay, setTimeOfDay] = useState("ANYTIME");
   const [notes, setNotes] = useState("");
   const [durationMin, setDurationMin] = useState<number>(15);
+  const [lf, setLf] = useState<number | "">("");
 
   const [q1, setQ1] = useState("");
   const [q2, setQ2] = useState("");
@@ -46,6 +49,7 @@ export default function TaskEditorModal(props: {
     setTimeOfDay(task.time?.time_of_day ?? "ANYTIME");
     setNotes((task as any).notes ?? "");
     setDurationMin(Number((task as any).duration_min ?? 15) || 15);
+    setLf(task.lf ?? "");
 
     setSuggested([]);
     setSelectedIdx(new Set());
@@ -76,6 +80,7 @@ export default function TaskEditorModal(props: {
             time_of_day: timeOfDay,
             notes,
             duration_min: durationMin,
+            lf: lf === "" ? undefined : Number(lf),
           }),
         });
         if (!res.ok) {
@@ -96,6 +101,7 @@ export default function TaskEditorModal(props: {
             time_of_day: timeOfDay,
             notes,
             duration_min: durationMin,
+            lf: lf === "" ? undefined : Number(lf),
           }),
         });
         if (!res.ok) {
@@ -178,6 +184,28 @@ export default function TaskEditorModal(props: {
     setSelectedIdx(new Set());
   }
 
+  async function deleteTask() {
+    if (!task?.id) return;
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/cogos/task/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: task.id }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        alert(j.error ?? "Failed to delete");
+        return;
+      }
+      await props.onChanged();
+      props.onClose();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 p-4 flex items-center justify-center" onMouseDown={props.onClose}>
       <div
@@ -219,7 +247,7 @@ export default function TaskEditorModal(props: {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <select
                 className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
                 value={timeOfDay}
@@ -236,6 +264,24 @@ export default function TaskEditorModal(props: {
                 value={durationMin}
                 onChange={(e) => setDurationMin(Number(e.target.value || 0))}
                 min={1}
+                placeholder="Min"
+              />
+
+              <input
+                type="number"
+                className="w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none"
+                value={lf}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") setLf("");
+                  else {
+                    const n = parseInt(v);
+                    if (!isNaN(n) && n >= 1 && n <= 9) setLf(n);
+                  }
+                }}
+                placeholder="LF (1-9)"
+                min={1}
+                max={9}
               />
             </div>
 
@@ -318,17 +364,27 @@ export default function TaskEditorModal(props: {
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        <div className="p-4 border-t border-white/10">
-          <button
-            className="w-full rounded-full bg-white px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
-            disabled={saving}
-            onClick={save}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+            <div className="mt-8 pt-4 border-t border-white/10 space-y-3">
+              <button
+                className="w-full rounded-full bg-white px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                disabled={saving || deleting}
+                onClick={save}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+
+              {task.id && (
+                <button
+                  className="w-full rounded-full border border-red-500/50 text-red-400 px-3 py-2 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-50"
+                  disabled={saving || deleting}
+                  onClick={deleteTask}
+                >
+                  {deleting ? "Deleting…" : "Delete task"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
