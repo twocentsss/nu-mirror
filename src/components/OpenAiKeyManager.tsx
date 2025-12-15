@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { MirrorCard } from "@/ui/MirrorCard";
-import TaskRow from "@/ui/TaskRow";
 import { Star } from "lucide-react";
-
+import { LlmProvider } from "@/lib/llm/keyStore";
 type KeyRow = {
     id: string;
     label: string;
@@ -12,13 +11,40 @@ type KeyRow = {
     created_at: string;
     disabled: boolean;
     daily_limit?: number;
-    preferred?: boolean;
+    preferred?: boolean | string | number;
 };
+
+const PROVIDER_ORDER: LlmProvider[] = ["openai", "openrouter", "gemini"];
+
+const PROVIDER_META: Record<LlmProvider, { label: string; border: string; text: string; bg: string }> = {
+    openai: {
+        label: "OpenAI",
+        border: "border-emerald-400/70",
+        text: "text-emerald-400",
+        bg: "bg-emerald-500/10",
+    },
+    openrouter: {
+        label: "OpenRouter",
+        border: "border-slate-400/70",
+        text: "text-slate-400",
+        bg: "bg-slate-500/10",
+    },
+    gemini: {
+        label: "Gemini",
+        border: "border-sky-400/70",
+        text: "text-sky-400",
+        bg: "bg-sky-500/10",
+    },
+};
+
+const prefers = (target?: KeyRow["preferred"]) =>
+    target === true || target === 1 || target === "1";
 
 export default function OpenAiKeyManager() {
     const [keys, setKeys] = useState<KeyRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [preferringKeyId, setPreferringKeyId] = useState<string | null>(null);
 
     const [newLabel, setNewLabel] = useState("");
     const [newKey, setNewKey] = useState("");
@@ -98,12 +124,18 @@ export default function OpenAiKeyManager() {
     }
 
     async function setPreferred(keyId: string) {
-        // Optimistic update: immediately update local state for snappy feel
+        if (preferringKeyId) return;
+        setPreferringKeyId(keyId);
+
         const oldKeys = [...keys];
-        setKeys(prev => prev.map(k => ({
-            ...k,
-            preferred: k.id === keyId
-        })));
+        const selectedKey = keys.find((k) => k.id === keyId);
+        const selectedLabel = selectedKey ? (selectedKey.label || selectedKey.provider) : "selected AI";
+        setKeys((prev) =>
+            prev.map((k) => ({
+                ...k,
+                preferred: k.id === keyId,
+            })),
+        );
 
         try {
             const res = await fetch("/api/llm/keys/prefer", {
@@ -112,26 +144,53 @@ export default function OpenAiKeyManager() {
                 body: JSON.stringify({ keyId }),
             });
 
-            if (res.ok) {
-                // Background refresh to ensure sync, but user already sees result
-                fetchKeys();
-            } else {
-                // Revert on failure
+            if (!res.ok) {
                 setKeys(oldKeys);
-                alert("Failed to save preference");
+                const errorBody = await res.json().catch(() => null);
+                alert(errorBody?.error ?? "Failed to save preference");
+                return;
             }
+
+            await fetchKeys();
+            alert(`Default AI changed to ${selectedLabel}`);
         } catch (e) {
             setKeys(oldKeys);
             alert("Network error setting preference");
+        } finally {
+            setPreferringKeyId(null);
         }
     }
 
+    const activeKey = keys.find((k) => prefers(k.preferred));
+
     return (
-        <MirrorCard className="overflow-hidden p-0">
+        <MirrorCard className="overflow-hidden p-0" tilt={false}>
             <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-1">
                     <span className="text-[var(--text-primary)]">LLM Keys</span>
-                    {totalTokens > 0 && <span className="text-[10px] text-[var(--text-secondary)] font-normal">Used {totalTokens} tokens today</span>}
+                    <span className="text-[10px] text-[var(--text-secondary)] font-normal">
+                        {activeKey
+                            ? `Active: ${activeKey.label || activeKey.provider}`
+                            : "No primary model selected, pick a key below"}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-secondary)] font-normal">
+                        {totalTokens > 0 ? `Used ${totalTokens} tokens today` : "No tokens used yet"}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                        {PROVIDER_ORDER.map((provider) => {
+                            const stat = usage[provider]?.total ?? 0;
+                            const meta = PROVIDER_META[provider];
+                            return (
+                                <span
+                                    key={provider}
+                                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${meta.border} ${meta.text} ${meta.bg}`}
+                                >
+                                    {meta.label}
+                                    <span className="font-normal text-[var(--text-secondary)]">{stat} tokens</span>
+                                </span>
+                            );
+                        })}
+                    </div>
                 </div>
                 <button
                     onClick={fetchKeys}
@@ -175,9 +234,6 @@ export default function OpenAiKeyManager() {
                             {adding ? "Adding..." : "Add"}
                         </button>
                     </div>
-                    <div className="text-[10px] text-[var(--text-secondary)]">
-                        * Provider detected automatically (sk-or- = OpenRouter, AIza = Gemini, else OpenAI)
-                    </div>
                 </div>
 
                 {/* Key List */}
@@ -190,34 +246,61 @@ export default function OpenAiKeyManager() {
                         const limit = k.daily_limit || 0;
                         const limitText = limit > 0 ? `${used}/${limit}` : `${used}`;
                         const isOverLimit = limit > 0 && used >= limit;
+                        const isPreferredRow = prefers(k.preferred);
+
+                        const handleCardSelect = () => {
+                            if (isPreferredRow || preferringKeyId || k.disabled) return;
+                            setPreferred(k.id);
+                        };
+
+                        const prefProvider = (k.provider as LlmProvider) ?? "openai";
+                        const providerMeta = PROVIDER_META[prefProvider];
+                        const baseCardClasses =
+                            "group flex items-center justify-between p-3 rounded-xl transition-all duration-200 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--glass-bg)]";
+                        const preferredClasses = `${providerMeta.bg} ${providerMeta.border} shadow-sm hover:shadow-lg`;
+                        const defaultClasses =
+                            "bg-transparent border-transparent hover:bg-[var(--glass-bg)] hover:border-[var(--glass-border)] hover:shadow-md";
+                        const busyClasses = preferringKeyId === k.id ? "opacity-80 cursor-wait" : "";
+                        const buttonDisabled = Boolean(preferringKeyId) || k.disabled;
+                        const isButtonBusy = preferringKeyId === k.id;
+                        const titleTextClass = isPreferredRow ? providerMeta.text : "text-[var(--text-secondary)]";
 
                         return (
                             <div
                                 key={k.id}
-                                className={`
-                                    flex items-center justify-between p-3 rounded-xl transition-all duration-200 border
-                                    ${k.preferred
-                                        ? "bg-[var(--accent-color)]/10 border-[var(--accent-color)] shadow-sm"
-                                        : "bg-transparent border-transparent hover:bg-[var(--glass-bg)] hover:border-[var(--glass-border)]"
+                                role="button"
+                                tabIndex={0}
+                                aria-pressed={isPreferredRow}
+                                onClick={handleCardSelect}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        handleCardSelect();
                                     }
-                                `}
+                                }}
+                                className={`${baseCardClasses} ${isPreferredRow ? `${preferredClasses} ${providerMeta.text}` : defaultClasses} ${busyClasses}`}
                             >
                                 {/* Left Info Group */}
                                 <div className="flex-1 min-w-0 flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
-                                        <div className={`text-sm font-bold truncate ${k.preferred ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+                                        <div className={`text-sm font-bold truncate ${titleTextClass}`}>
                                             {k.label || "(No label)"}
                                         </div>
-                                        {/* Badges */}
                                         <div className="flex items-center gap-1">
-                                            <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${k.provider === 'openrouter' ? 'bg-purple-500/20 text-purple-400' :
-                                                    (k.provider === 'gemini' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400')
-                                                }`}>
+                                            <span
+                                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${
+                                                    k.provider === "openrouter"
+                                                        ? "bg-purple-500/20 text-purple-400"
+                                                        : k.provider === "gemini"
+                                                            ? "bg-blue-500/20 text-blue-400"
+                                                            : "bg-green-500/20 text-green-400"
+                                                }`}
+                                            >
                                                 {k.provider}
                                             </span>
-                                            {k.preferred && (
+                                            {isPreferredRow && (
                                                 <span className="text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md bg-[var(--accent-color)] text-white">
-                                                    Active
+                                                    Primary
                                                 </span>
                                             )}
                                         </div>
@@ -233,7 +316,10 @@ export default function OpenAiKeyManager() {
                                         </span>
                                         {!k.disabled && (
                                             <button
-                                                onClick={() => disableKey(k.id)}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    disableKey(k.id);
+                                                }}
                                                 className="text-red-400 hover:text-red-300 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 Disable
@@ -243,23 +329,30 @@ export default function OpenAiKeyManager() {
                                 </div>
 
                                 {/* Right Action Button */}
-                                <div className="ml-4 flex-shrink-0">
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            if (!k.preferred) setPreferred(k.id);
-                                        }}
-                                        disabled={k.preferred}
-                                        className={`
-                                            h-9 px-5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center min-w-[80px]
-                                            ${k.preferred
-                                                ? "bg-[var(--accent-color)] text-white cursor-default shadow-md"
-                                                : "bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-gradient)]"
-                                            }
-                                        `}
-                                    >
-                                        {k.preferred ? "Selected" : "Select"}
-                                    </button>
+                                <div className="ml-4 flex-shrink-0 z-20">
+                                    {isPreferredRow ? (
+                                        <button
+                                            disabled
+                                            className="h-8 px-4 rounded-md bg-green-500 text-white font-bold text-xs shadow cursor-default opacity-100 flex items-center gap-1"
+                                        >
+                                            <Star size={12} fill="currentColor" />
+                                            PRIMARY
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!buttonDisabled) {
+                                                    setPreferred(k.id);
+                                                }
+                                            }}
+                                            disabled={buttonDisabled}
+                                            className="h-8 px-4 rounded-md bg-white border border-gray-200 text-black font-bold text-xs shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 active:scale-95 active:bg-blue-100 transition-all duration-75 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                                        >
+                                            {isButtonBusy ? "Saving..." : "Make Primary"}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -269,4 +362,3 @@ export default function OpenAiKeyManager() {
         </MirrorCard >
     );
 }
-

@@ -19,21 +19,21 @@ const ITEMS: DockItem[] = [
   { id: "focus", label: "Focus", href: "/focus", available: true, icon: <IconFocus /> },
   { id: "me", label: "Me", href: "/me", available: true, icon: <IconFace /> },
 
-  // Future/Apps
-  { id: "stories", label: "Stories", href: "/stories", available: false, icon: <IconBookOpen /> },
-  { id: "comics", label: "Comics", href: "/comics", available: false, icon: <IconImage /> },
-  { id: "bingo", label: "Bingo", href: "/bingo", available: false, icon: <IconGrid /> },
-  { id: "sprint", label: "Sprint", href: "/sprint", available: false, icon: <IconRun /> },
-  { id: "assist", label: "Assist", href: "/assistance", available: false, icon: <IconBot /> },
-  { id: "reports", label: "Reports", href: "/reports", available: false, icon: <IconChart /> },
-  { id: "games", label: "Games", href: "/games", available: false, icon: <IconGamepad /> },
-  { id: "social", label: "Social", href: "/social", available: false, icon: <IconUsers /> },
-  { id: "learning", label: "Learn", href: "/learning", available: false, icon: <IconGraduationCap /> },
-  { id: "business", label: "Business", href: "/business", available: false, icon: <IconBriefcase /> },
-  { id: "selling", label: "Sell", href: "/selling", available: false, icon: <IconTag /> },
-  { id: "buying", label: "Buy", href: "/buying", available: false, icon: <IconShoppingBag /> },
-  { id: "stores", label: "Store", href: "/stores", available: false, icon: <IconStore /> },
-  { id: "chat", label: "Chat", href: "/chat", available: false, icon: <IconMessageCircle /> },
+  // Future/Apps (now available)
+  { id: "stories", label: "Stories", href: "/stories", available: true, icon: <IconBookOpen /> },
+  { id: "comics", label: "Comics", href: "/comics", available: true, icon: <IconImage /> },
+  { id: "bingo", label: "Bingo", href: "/bingo", available: true, icon: <IconGrid /> },
+  { id: "sprint", label: "Sprint", href: "/sprint", available: true, icon: <IconRun /> },
+  { id: "assist", label: "Assist", href: "/assistance", available: true, icon: <IconBot /> },
+  { id: "reports", label: "Reports", href: "/reports", available: true, icon: <IconChart /> },
+  { id: "games", label: "Games", href: "/games", available: true, icon: <IconGamepad /> },
+  { id: "social", label: "Social", href: "/social", available: true, icon: <IconUsers /> },
+  { id: "learning", label: "Learn", href: "/learning", available: true, icon: <IconGraduationCap /> },
+  { id: "business", label: "Business", href: "/business", available: true, icon: <IconBriefcase /> },
+  { id: "selling", label: "Sell", href: "/selling", available: true, icon: <IconTag /> },
+  { id: "buying", label: "Buy", href: "/buying", available: true, icon: <IconShoppingBag /> },
+  { id: "stores", label: "Store", href: "/stores", available: true, icon: <IconStore /> },
+  { id: "chat", label: "Chat", href: "/chat", available: true, icon: <IconMessageCircle /> },
 ];
 
 // Icons (unchanged)
@@ -68,15 +68,15 @@ export default function BottomNav({
   const x = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Triple items for infinite scroll
-  const infiniteItems = [...ITEMS, ...ITEMS, ...ITEMS];
+  // Use the single ITEMS list for the dock (no duplicate labels)
+  const displayedItems = ITEMS;
 
   useEffect(() => {
     if (scrollRef.current) {
-      const currentIndex = ITEMS.findIndex(item => item.id === active);
+      const currentIndex = displayedItems.findIndex(item => item.id === active);
       if (currentIndex !== -1) {
-        const itemWidth = scrollRef.current.scrollWidth / infiniteItems.length;
-        const targetX = -(itemWidth * (ITEMS.length + currentIndex));
+        const itemWidth = scrollRef.current.scrollWidth / displayedItems.length;
+        const targetX = -(itemWidth * currentIndex);
         animate(x, targetX, { type: "spring", stiffness: 300, damping: 30 });
       }
     }
@@ -86,19 +86,20 @@ export default function BottomNav({
     setIsDragging(false);
     if (!scrollRef.current) return;
 
-    const itemWidth = scrollRef.current.scrollWidth / infiniteItems.length;
+    const itemWidth = scrollRef.current.scrollWidth / displayedItems.length;
     const currentX = x.get();
     const nearestIndex = Math.round(-currentX / itemWidth);
-    const targetItem = infiniteItems[nearestIndex % ITEMS.length];
+    const clampedIndex = Math.max(0, Math.min(displayedItems.length - 1, nearestIndex));
+    const targetItem = displayedItems[clampedIndex];
 
-    animate(x, -(nearestIndex * itemWidth), {
+    animate(x, -(clampedIndex * itemWidth), {
       type: "spring",
       stiffness: 300,
       damping: 30
     });
 
     setTimeout(() => {
-      if (targetItem.available && targetItem.id !== active) {
+      if (targetItem && targetItem.available && targetItem.id !== active) {
         onNavigate(targetItem.href);
       }
     }, 200);
@@ -122,12 +123,12 @@ export default function BottomNav({
         style={{ x }}
         className="flex cursor-grab active:cursor-grabbing py-4"
       >
-        {infiniteItems.map((item, i) => {
+        {displayedItems.map((item, i) => {
           const isActive = item.id === active;
           const distance = useTransform(
             x,
             (latest) => {
-              const itemWidth = 80; // Adjusted for density
+              const itemWidth = 80;
               const itemCenter = -(i * itemWidth) - itemWidth / 2;
               const diff = Math.abs(latest - itemCenter);
               return Math.max(0, 1 - diff / 150);

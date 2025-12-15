@@ -48,10 +48,64 @@ export async function POST(req: Request) {
 
     while (attempt < 3) {
         attempt++;
-        let lease = await leaseKey(session.user.email, provider, spreadsheetId, {
-            accessToken,
-            refreshToken,
-        });
+        let lease: any = null;
+
+        // PRIORITY CHECK: If this is a default/generic request, check if user has a GLOBAL PREFERRED key 
+        // that dictates a different provider (e.g. they selected Gemini as Primary).
+        // We do this by speculatively checking leases. This is a bit "expensive" on reads but ensures user preference is honored.
+        if (provider === "openai" || provider === "openrouter") {
+            const [gemKey, orKey, oaKey] = await Promise.all([
+                leaseKey(session.user.email, "gemini", spreadsheetId, { accessToken, refreshToken }),
+                leaseKey(session.user.email, "openrouter", spreadsheetId, { accessToken, refreshToken }),
+                leaseKey(session.user.email, "openai", spreadsheetId, { accessToken, refreshToken })
+            ]);
+
+            // Release unused keys immediately
+            // Since we are in the openai/openrouter block, provider cannot be gemini here.
+            if (gemKey && !gemKey.preferred) await releaseOpenAiKey(gemKey.keyId);
+
+            // LOGIC: Pick the FIRST preferred key found
+            let chosenLease = null;
+            let chosenProvider: "openai" | "openrouter" | "gemini" = provider;
+
+            if (gemKey?.preferred) {
+                chosenLease = gemKey;
+                chosenProvider = "gemini";
+            } else if (orKey?.preferred) {
+                chosenLease = orKey;
+                chosenProvider = "openrouter";
+            } else if (oaKey?.preferred) {
+                chosenLease = oaKey;
+                chosenProvider = "openai";
+            } else {
+                // No overrides, revert to intended provider
+                if (provider === 'openai') chosenLease = oaKey;
+                else if (provider === 'openrouter') chosenLease = orKey;
+            }
+
+            // Release the ones we didn't pick
+            if (gemKey && gemKey !== chosenLease) await releaseOpenAiKey(gemKey.keyId);
+            if (orKey && orKey !== chosenLease) await releaseOpenAiKey(orKey.keyId);
+            if (oaKey && oaKey !== chosenLease) await releaseOpenAiKey(oaKey.keyId);
+
+            if (chosenLease) {
+                // Apply the switch
+                lease = chosenLease;
+                provider = chosenProvider as any;
+
+                // Update model default if we switched providers
+                if (provider === 'gemini') model = 'gemini-flash-latest';
+                // OpenRouter keeps original model string usually or needs mapping
+            }
+        }
+
+        // If priority check didn't yield a lease (or we skipped it), try standard lease
+        if (!lease) {
+            lease = await leaseKey(session.user.email, provider, spreadsheetId, {
+                accessToken,
+                refreshToken,
+            });
+        }
 
         // Fallback Logic
         if (!lease) {
@@ -143,11 +197,11 @@ export async function POST(req: Request) {
             });
         } catch (e: any) {
             lastErr = e;
-            await releaseOpenAiKey(lease.keyId);
+            if (lease) await releaseOpenAiKey(lease.keyId);
 
             // 429 = rate-limited -> cooldown + try next key
             if (e?.status === 429) {
-                await cooldownOpenAiKey(lease.keyId, 30_000);
+                if (lease) await cooldownOpenAiKey(lease.keyId, 30_000);
                 continue;
             }
 
