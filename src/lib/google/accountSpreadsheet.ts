@@ -4,7 +4,7 @@ import { makeGoogleClient } from "./googleClient";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const spreadsheetCache = new Map<string, { spreadsheetId: string; ts: number }>();
 
-const TABS = ["Meta", "Episodes", "Tasks", "Worklogs", "DecisionLogs", "CaseBriefs"] as const;
+const TABS = ["Meta", "Episodes", "Tasks", "Worklogs", "DecisionLogs", "CaseBriefs", "LLM_KEYS"] as const;
 
 const HEADERS: Record<(typeof TABS)[number], string[]> = {
   Meta: ["key", "value", "updated_at"],
@@ -32,6 +32,16 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "json",
   ],
   CaseBriefs: ["id", "task_id", "episode_id", "timestamp", "bluf", "ask_type", "by_when", "json"],
+  LLM_KEYS: [
+    "id",
+    "user_email",
+    "provider",
+    "label",
+    "encrypted",
+    "created_at",
+    "updated_at",
+    "disabled",
+  ],
 };
 
 export class AccountSpreadsheetNotFoundError extends Error {

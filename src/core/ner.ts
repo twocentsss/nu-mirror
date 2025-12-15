@@ -35,7 +35,7 @@ export type NlpAnalysis = {
 };
 
 function fastAnalyze(text: string): NlpAnalysis {
-  const doc = nlp(text);
+  const doc = nlp(text) as any;
   const sentences = doc.sentences().out("array") as string[];
   const terms = doc.terms().json() as any[];
   const tokens = terms.map((t) => ({
@@ -119,12 +119,12 @@ async function mlAnalyze(text: string): Promise<NlpAnalysis> {
       group === "PER"
         ? "PERSON"
         : group === "ORG"
-        ? "ORG"
-        : group === "LOC"
-        ? "GPE"
-        : group === "MISC"
-        ? "MISC"
-        : "MISC";
+          ? "ORG"
+          : group === "LOC"
+            ? "GPE"
+            : group === "MISC"
+              ? "MISC"
+              : "MISC";
     return {
       text: entry.word,
       type,

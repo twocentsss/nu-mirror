@@ -11,13 +11,14 @@ type PatchBody = {
   id: string;
   _row?: number;
   title?: string;
+  raw_text?: string;
   status?: string;
   due_date?: string;
   time_of_day?: string;
   start_at?: string;
   end_at?: string;
   notes?: string;
-  duration_minutes?: number;
+  duration_min?: number;
 };
 
 export async function POST(req: Request) {
@@ -93,8 +94,9 @@ export async function POST(req: Request) {
   const jsonStr = String(rowData[8] ?? "{}");
   const task = JSON.parse(jsonStr);
 
-  if (typeof body.status === "string") task.status = body.status;
   if (typeof body.title === "string") task.title = body.title;
+  if (typeof body.raw_text === "string") task.raw_text = body.raw_text;
+  if (typeof body.status === "string") task.status = body.status;
 
   task.time = { ...(task.time ?? {}) };
   if (typeof body.due_date === "string") task.time.due_date = body.due_date;
@@ -103,7 +105,7 @@ export async function POST(req: Request) {
   if (typeof body.end_at === "string") task.time.end_at = body.end_at;
 
   if (typeof body.notes === "string") task.notes = body.notes;
-  if (typeof body.duration_minutes === "number") task.duration_minutes = body.duration_minutes;
+  if (typeof body.duration_min === "number") task.duration_min = body.duration_min;
 
   task.updated_at = new Date().toISOString();
 

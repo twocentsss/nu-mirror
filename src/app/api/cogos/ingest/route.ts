@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
   await bootstrapSheet();
 
-  let bundle = await geminiExtractCogos(text, userId);
+  let bundle = await geminiExtractCogos(text, userId) as any;
   bundle.raw_text = text;
   bundle = ensureBundle(bundle, text, userId);
 

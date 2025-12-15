@@ -3,6 +3,7 @@
 import TaskMenu from "@/ui/TaskMenu";
 import { MirrorCard } from "@/ui/MirrorCard";
 import TaskRow from "@/ui/TaskRow";
+import OpenAiKeyManager from "@/components/OpenAiKeyManager";
 
 export default function MePage() {
   return (
@@ -24,11 +25,13 @@ export default function MePage() {
           Settings
         </div>
         <div className="divide-y divide-black/5">
-          <TaskRow title="Profile" note="Avatar, preferences (later)" onClick={() => {}} />
-          <TaskRow title="Export" note="Share cards + backups (later)" onClick={() => {}} />
-          <TaskRow title="Integrations" note="Google, Sheets, Vercel (later)" onClick={() => {}} />
+          <TaskRow title="Profile" note="Avatar, preferences (later)" onClick={() => { }} />
+          <TaskRow title="Export" note="Share cards + backups (later)" onClick={() => { }} />
+          <TaskRow title="Integrations" note="Google, Sheets, Vercel (later)" onClick={() => { }} />
         </div>
       </MirrorCard>
+
+      <OpenAiKeyManager />
     </div>
   );
 }

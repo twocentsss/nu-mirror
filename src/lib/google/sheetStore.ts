@@ -15,7 +15,7 @@ async function withBackoff<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
     } catch (error) {
       lastError = error;
       if (!isQuotaError(error)) throw error;
-      const ms = 250 * 2 ** i;
+      const ms = 1000 * 2 ** i;
       await new Promise((resolve) => setTimeout(resolve, ms));
     }
   }
@@ -23,16 +23,19 @@ async function withBackoff<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
 }
 
 export async function appendRow(params: {
-  spreadsheetId: string;
+  spreadsheetId?: string;
   tab: string;
   values: RowValue[];
   accessToken?: string;
   refreshToken?: string;
 }) {
+  const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
+  if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
+
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   await withBackoff(() =>
     sheets.spreadsheets.values.append({
-      spreadsheetId: params.spreadsheetId,
+      spreadsheetId,
       range: `${params.tab}!A1`,
       valueInputOption: "RAW",
       insertDataOption: "INSERT_ROWS",
@@ -42,17 +45,20 @@ export async function appendRow(params: {
 }
 
 type ReadAllParams = {
-  spreadsheetId: string;
+  spreadsheetId?: string;
   tab: string;
   accessToken?: string;
   refreshToken?: string;
 };
 
 export async function readAllRows(params: ReadAllParams) {
+  const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
+  if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
+
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   const res = await withBackoff(() =>
     sheets.spreadsheets.values.get({
-      spreadsheetId: params.spreadsheetId,
+      spreadsheetId,
       range: `${params.tab}!A:Z`,
     }),
   );
@@ -66,7 +72,7 @@ export async function readAllRows(params: ReadAllParams) {
 }
 
 type UpdateByIdParams = {
-  spreadsheetId: string;
+  spreadsheetId?: string;
   tab: string;
   id: string;
   values: RowValue[];
@@ -75,10 +81,13 @@ type UpdateByIdParams = {
 };
 
 export async function updateRowById(params: UpdateByIdParams) {
+  const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
+  if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
+
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   const res = await withBackoff(() =>
     sheets.spreadsheets.values.get({
-      spreadsheetId: params.spreadsheetId,
+      spreadsheetId,
       range: `${params.tab}!A:Z`,
     }),
   );
@@ -90,7 +99,7 @@ export async function updateRowById(params: UpdateByIdParams) {
 
   const rowNumber = idx + 2;
   await updateRowByRowNumber({
-    spreadsheetId: params.spreadsheetId,
+    spreadsheetId,
     tab: params.tab,
     rowNumber,
     values: params.values,
@@ -100,7 +109,7 @@ export async function updateRowById(params: UpdateByIdParams) {
 }
 
 type UpdateByRowParams = {
-  spreadsheetId: string;
+  spreadsheetId?: string;
   tab: string;
   rowNumber: number;
   values: RowValue[];
@@ -109,10 +118,13 @@ type UpdateByRowParams = {
 };
 
 export async function updateRowByRowNumber(params: UpdateByRowParams) {
+  const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
+  if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
+
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   await withBackoff(() =>
     sheets.spreadsheets.values.update({
-      spreadsheetId: params.spreadsheetId,
+      spreadsheetId,
       range: `${params.tab}!A${params.rowNumber}:I${params.rowNumber}`,
       valueInputOption: "RAW",
       requestBody: { values: [params.values] },

@@ -189,7 +189,7 @@ export async function listByUser(tab: SheetTab, userId: string) {
   return data
     .filter((r) => (r[idxUserId] ?? "") === userId)
     .map((r) => {
-      const obj: Record<string, string> = {};
+      const obj: Record<string, any> = {};
       headers.forEach((h, i) => {
         obj[h] = r[i] ?? "";
       });

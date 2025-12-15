@@ -6,37 +6,16 @@ import {
   getAccountSpreadsheetId,
 } from "@/lib/google/accountSpreadsheet";
 import { appendRow } from "@/lib/google/sheetStore";
-import { id } from "@/lib/cogos/id";
-
-type InputTask = {
-  raw_text?: string;
-  title?: string;
-  due_date?: string;
-  time_of_day?: string;
-  start_at?: string;
-  end_at?: string;
-};
+import { newUlid } from "@/lib/id";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  if (!session?.user?.email) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const accessToken = (session as any).accessToken as string | undefined;
   const refreshToken = (session as any).refreshToken as string | undefined;
   if (!accessToken && !refreshToken) {
-    return NextResponse.json(
-      { error: "Missing Google OAuth tokens. Sign out/in again." },
-      { status: 401 },
-    );
-  }
-
-  const body = await req.json();
-  const parentTaskId: string | undefined = body.parent_task_id;
-  const subtasks: InputTask[] = Array.isArray(body.subtasks) ? body.subtasks : [];
-  if (subtasks.length === 0) {
-    return NextResponse.json({ error: "subtasks required" }, { status: 400 });
+    return NextResponse.json({ error: "Missing Google OAuth tokens. Sign out/in again." }, { status: 401 });
   }
 
   let spreadsheetId: string;
@@ -48,96 +27,60 @@ export async function POST(req: Request) {
     }));
   } catch (error) {
     if (error instanceof AccountSpreadsheetNotFoundError) {
-      return NextResponse.json(
-        { error: "Account spreadsheet not initialized. Run /api/google/account/init first." },
-        { status: 412 },
-      );
+      return NextResponse.json({ error: "Account spreadsheet not initialized." }, { status: 412 });
     }
     throw error;
   }
 
+  const body = await req.json();
+  const parent_task_id = String(body.parent_task_id || "");
+  const due_date = String(body.due_date || "");
+  const time_of_day = String(body.time_of_day || "ANYTIME");
+  const items = Array.isArray(body.items) ? body.items : [];
+
+  if (!parent_task_id) return NextResponse.json({ error: "parent_task_id required" }, { status: 400 });
+  if (!due_date) return NextResponse.json({ error: "due_date required" }, { status: 400 });
+  if (!items.length) return NextResponse.json({ error: "items required" }, { status: 400 });
+
   const created: any[] = [];
-  for (const sub of subtasks) {
-    const rawText = (sub.raw_text ?? sub.title ?? "").trim();
-    if (!rawText) continue;
-    const title = sub.title ?? rawText.slice(0, 80) ?? "Untitled";
-    const timeOfDay = (sub.time_of_day ?? "ANYTIME").toUpperCase();
-    const dueDate = sub.due_date;
-    const startAt = sub.start_at;
-    const endAt = sub.end_at;
+  const now = new Date().toISOString();
 
-    const now = new Date().toISOString();
-    const episodeId = id("ep");
+  for (const it of items) {
+    const title = String(it.title || "").trim();
+    if (!title) continue;
 
-    const episode = {
-      id: episodeId,
-      raw_text: rawText,
-      created_at: now,
-      dims: {
-        entity: { type: "person", ref: session.user.email },
-        action: { verb: "capture", class: "create" },
-        context: { domain: "work", constraints: [] },
-        intent: { goal_type: "complete", goal_text: "Capture & execute task" },
-        outcome: { expected: "Task tracked in system" },
-        time: {
-          when: startAt ? "scheduled" : dueDate ? "date" : "unspecified",
-          value: startAt ?? dueDate ?? null,
-          slot: timeOfDay,
-        },
-        meaning: { category: "task", weight: 0.6 },
-        station: { phase: "setup", confidence: 0.6 },
-      },
-    };
-
-    await appendRow({
-      spreadsheetId,
-      tab: "Episodes",
-      accessToken,
-      refreshToken,
-      values: [episode.id, episode.created_at, episode.raw_text, JSON.stringify(episode.dims)],
-    });
-
-    const taskId = id("t");
     const task = {
-      id: taskId,
-      episode_id: episodeId,
-      parent_task_id: parentTaskId ?? undefined,
+      id: newUlid(),
+      episode_id: "",
+      parent_task_id,
       title,
-      raw_text: rawText,
-      dims_snapshot: episode.dims,
-      ownership: {
-        dri: session.user.email,
-        decider: session.user.email,
-        team: "",
-        role: "owner",
-      },
+      raw_text: String(it.raw_text ?? title),
       status: "intake",
-      time: {
-        due_date: dueDate ?? (startAt ? startAt.slice(0, 10) : undefined),
-        time_of_day: timeOfDay,
-        start_at: startAt,
-        end_at: endAt,
-      },
+      time: { due_date, time_of_day },
+      notes: String(it.notes ?? ""),
+      duration_min: Number(it.duration_min ?? 0) || undefined,
       created_at: now,
       updated_at: now,
     };
+
+    const row = [
+      task.id,
+      task.episode_id,
+      task.parent_task_id,
+      task.title,
+      task.status,
+      task.time.due_date,
+      task.created_at,
+      task.updated_at,
+      JSON.stringify(task),
+    ];
 
     await appendRow({
       spreadsheetId,
       tab: "Tasks",
       accessToken,
       refreshToken,
-      values: [
-        task.id,
-        task.episode_id,
-        task.parent_task_id ?? "",
-        task.title,
-        task.status,
-        dueDate ?? "",
-        task.created_at,
-        task.updated_at,
-        JSON.stringify(task),
-      ],
+      values: row,
     });
 
     created.push(task);
