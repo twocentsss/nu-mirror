@@ -7,9 +7,9 @@ import { scoreSingleTask, scoreAllTasks } from "@/lib/actions/scoring";
 import { MirrorCard } from "@/ui/MirrorCard";
 
 const INITIAL_TASKS = [
-    { id: "1", title: "Write Nu Protocol Spec", status: "todo" },
-    { id: "2", title: "Refactor BottomNav", status: "done" },
-    { id: "3", title: "Buy groceries", status: "todo" },
+    { id: "1", title: "Write Nu Protocol Spec", status: "todo", duration_min: 120, lf: 4 }, // Deep Work
+    { id: "2", title: "Refactor BottomNav", status: "done", duration_min: 60, lf: 4 }, // Deep Work
+    { id: "3", title: "Buy groceries", status: "todo", duration_min: 45, lf: 9 }, // Chore
 ];
 
 export default function TestScoringPage() {
@@ -18,15 +18,29 @@ export default function TestScoringPage() {
 
     const addLog = (msg: string) => setLogs(prev => [msg, ...prev]);
 
-    const handleScoreSingle = async (taskId: string, title: string) => {
-        addLog(`Scoring task: ${title}...`);
-        const result = await scoreSingleTask(taskId, title);
-        addLog(`✅ Task "${title}" Scored: SPS=${result.sps.toFixed(2)}`);
+    const handleScoreSingle = async (task: typeof INITIAL_TASKS[0]) => {
+        addLog(`Scoring task: ${task.title} (LF${task.lf}, ${task.duration_min}m)...`);
+        const result = await scoreSingleTask({
+            id: task.id,
+            title: task.title,
+            status: task.status,
+            duration_min: task.duration_min,
+            lf: task.lf
+        });
+        addLog(`✅ Task "${task.title}" Scored: SPS=${result.sps.toFixed(2)} (A:${result.accountCode})`);
     };
 
     const handleScoreAll = async () => {
         addLog(`Bulk rescoring ${tasks.length} tasks...`);
-        await scoreAllTasks(tasks);
+        // We map our simple mock tasks to the ScoringInput shape
+        const inputs = tasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            duration_min: t.duration_min,
+            lf: t.lf
+        }));
+        await scoreAllTasks(inputs);
         addLog(`✅ Bulk Rescore Complete.`);
     };
 
@@ -34,7 +48,7 @@ export default function TestScoringPage() {
         <div className="p-4 space-y-6 max-w-lg mx-auto pb-40">
             <div className="mb-4">
                 <h1 className="text-3xl font-black mb-1">Scoring UI Test</h1>
-                <p className="text-gray-500">Verify single and bulk scoring actions.</p>
+                <p className="text-gray-500">Verify single and bulk scoring actions with Account Logic.</p>
             </div>
 
             <TaskMenu
@@ -48,9 +62,9 @@ export default function TestScoringPage() {
                     <TaskRow
                         key={task.id}
                         title={task.title}
-                        note={`ID: ${task.id}`}
+                        note={`LF${task.lf} • ${task.duration_min}m • ${task.status}`}
                         onClick={() => addLog(`Clicked row: ${task.title}`)}
-                        onScore={() => handleScoreSingle(task.id, task.title)}
+                        onScore={() => handleScoreSingle(task)}
                     />
                 ))}
             </div>
