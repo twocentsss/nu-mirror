@@ -4,7 +4,21 @@ import { makeGoogleClient } from "./googleClient";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const spreadsheetCache = new Map<string, { spreadsheetId: string; ts: number }>();
 
-const TABS = ["Meta", "Episodes", "Tasks", "Worklogs", "DecisionLogs", "CaseBriefs", "LLM_KEYS", "AI_PROMPTS"] as const;
+const TABS = [
+  "Meta",
+  "Episodes",
+  "Tasks",
+  "Tasks_Archive",
+  "Task_Events",
+  "Worklogs",
+  "DecisionLogs",
+  "CaseBriefs",
+  "FlowEvents",
+  "FlowEvents_Archive",
+  "Story_Instances",
+  "LLM_KEYS",
+  "AI_PROMPTS",
+] as const;
 
 const HEADERS: Record<(typeof TABS)[number], string[]> = {
   Meta: ["key", "value", "updated_at"],
@@ -20,6 +34,19 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "updated_at",
     "json",
   ],
+  Tasks_Archive: [
+    "id",
+    "episode_id",
+    "parent_task_id",
+    "title",
+    "status",
+    "due_date",
+    "created_at",
+    "updated_at",
+    "json",
+    "archived_at",
+  ],
+  Task_Events: ["id", "task_id", "event_type", "old_value", "new_value", "timestamp", "user_id"],
   Worklogs: ["id", "task_id", "timestamp_start", "duration_minutes", "status_after", "tags", "json"],
   DecisionLogs: [
     "id",
@@ -32,6 +59,9 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "json",
   ],
   CaseBriefs: ["id", "task_id", "episode_id", "timestamp", "bluf", "ask_type", "by_when", "json"],
+  FlowEvents: ["id", "timestamp", "account_code", "amount", "unit", "description", "segments_json"],
+  FlowEvents_Archive: ["id", "timestamp", "account_code", "amount", "unit", "description", "segments_json"],
+  Story_Instances: ["id", "date", "narrative", "type", "model_used"],
   LLM_KEYS: [
     "id",
     "user_email",
@@ -41,6 +71,7 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "created_at",
     "updated_at",
     "disabled",
+    "preferred",
   ],
   AI_PROMPTS: [
     "id",

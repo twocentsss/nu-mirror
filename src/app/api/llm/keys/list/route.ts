@@ -5,7 +5,7 @@ import { readAllRows } from "@/lib/google/sheetStore";
 
 import {
     AccountSpreadsheetNotFoundError,
-    initAccountSpreadsheet,
+    getAccountSpreadsheetId,
 } from "@/lib/google/accountSpreadsheet";
 
 export async function GET() {
@@ -20,7 +20,7 @@ export async function GET() {
 
     let spreadsheetId: string;
     try {
-        ({ spreadsheetId } = await initAccountSpreadsheet({
+        ({ spreadsheetId } = await getAccountSpreadsheetId({
             accessToken,
             refreshToken,
             userEmail: session.user.email,

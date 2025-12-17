@@ -2,10 +2,56 @@
 
 @import "tailwindcss";
 
-/* --- Global canvas feel: airy, near-white, barely-there gradient --- */
 :root {
   --bg-top: 255 255 255;
   --bg-bottom: 248 248 250;
+  --app-bg: #f6f7fb;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --accent-color: #6366f1;
+  --dock-bg: rgba(255, 255, 255, 0.8);
+  --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
+}
+
+html[data-theme="dark"] {
+  --bg-top: 15 23 42;
+  --bg-bottom: 2 6 23;
+  --app-bg: #030712;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(148, 163, 184, 0.25);
+  --accent-color: #a855f7;
+  --dock-bg: rgba(2, 6, 23, 0.8);
+  --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
+}
+
+html[data-theme="white"] {
+  --bg-top: 255 255 255;
+  --bg-bottom: 252 252 252;
+  --app-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(148, 163, 184, 0.05);
+  --accent-color: #2563eb;
+  --dock-bg: rgba(255, 255, 255, 0.9);
+  --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
+}
+
+html[data-theme="brown"] {
+  --bg-top: 245 230 211;
+  --bg-bottom: 226 210 189;
+  --app-bg: #f4eadc;
+  --text-primary: #3b1f0b;
+  --text-secondary: #5c4431;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(59, 31, 11, 0.2);
+  --accent-color: #d97706;
+  --dock-bg: rgba(255, 255, 255, 0.85);
+  --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
 }
 
 html,

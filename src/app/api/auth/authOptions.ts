@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword, verifyTwoPart } from "@/lib/auth/userStore";
+import { initAccountSpreadsheet } from "@/lib/google/accountSpreadsheet";
 
 type JwtToken = {
   user?: any;
@@ -119,6 +120,28 @@ export const authOptions: NextAuthOptions = {
       (session as any).refreshToken = t.refreshToken;
       (session as any).authError = t.error;
       return session;
+    },
+  },
+  events: {
+    async signIn({ account, user }) {
+      if (account?.provider !== "google") return true;
+
+      const accessToken = account.access_token as string | undefined;
+      const refreshToken = account.refresh_token as string | undefined;
+      if (!user?.email) return true;
+
+      try {
+        await initAccountSpreadsheet({
+          accessToken,
+          refreshToken,
+          userEmail: user.email,
+        });
+      } catch (error) {
+        console.error("initAccountSpreadsheet failed during sign in", error);
+        // We don't want to block the login flow, so return true regardless.
+      }
+
+      return true;
     },
   },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET!,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate, useMotionValueEvent } from "framer-motion";
 import { useUIStore } from "@/lib/store/ui-store";
 
 type DockItem = {
@@ -65,30 +65,58 @@ export default function BottomNav({
   active: string;
   onNavigate: (to: string) => void;
 }) {
+  // Infinite Scroll: Visual Wrapping
+  const displayedItems = ITEMS; // Single set
+  const ITEM_WIDTH = 80;
+  const HALF_WIDTH = ITEM_WIDTH / 2;
+  const TOTAL_WIDTH = ITEMS.length * ITEM_WIDTH;
+
+  // Initialize x to the active item's position
+  const activeIndex = ITEMS.findIndex(item => item.id === active);
+  const x = useMotionValue(activeIndex !== -1 ? -(activeIndex * ITEM_WIDTH) : 0);
+
   const scrollRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
+
   const [isDragging, setIsDragging] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Connect to UI Store for auto-hide
   const { isNavVisible } = useUIStore();
 
-  // Use the single ITEMS list for the dock (no duplicate labels)
-  const displayedItems = ITEMS;
+  // Track previous active state to strictly prevent unnecessary snaps
+  const prevActive = useRef(active);
 
   useEffect(() => {
-    // If not dragging, snap to active
-    if (!isDragging) {
-      const currentIndex = displayedItems.findIndex(item => item.id === active);
-      if (currentIndex !== -1) {
-        animate(x, -(currentIndex * 80), { type: "spring", stiffness: 300, damping: 30 });
+    // Check if active actually changed from what we last handled
+    const hasChanged = prevActive.current !== active;
+    prevActive.current = active;
+
+    if (hasChanged && !isDragging) {
+      // Find the closest "virtual" index in the infinite space to minimize travel
+      const currentX = x.get();
+      const targetIndex = ITEMS.findIndex(item => item.id === active);
+
+      if (targetIndex !== -1) {
+        // Calculate the ideal position for this index in the "canonical" set
+        // But we want the version of this index closest to currentX
+        // canonical pos = -(targetIndex * 80)
+        // We know positions repeat every TOTAL_WIDTH
+
+        // Actually, for simplicity on Nav changes, strictly snapping to the canonical is safer 
+        // unless we want really fancy shortest-path logic. 
+        // Let's just snap to canonical for now or current window.
+        // Shortest path:
+        const canonical = -(targetIndex * ITEM_WIDTH);
+        const diff = canonical - currentX;
+        const rounds = Math.round(diff / TOTAL_WIDTH);
+        const targetX = canonical - (rounds * TOTAL_WIDTH);
+
+        animate(x, targetX, { type: "spring", stiffness: 300, damping: 30 });
       }
     }
-  }, [active, isDragging]);
+  }, [active]);
 
   const handleDragEnd = () => {
     setIsDragging(false);
-    // Inertia handles the snap now via dragTransition
   };
 
   const handleItemClick = (item: DockItem) => {
@@ -96,7 +124,7 @@ export default function BottomNav({
     onNavigate(item.href);
   };
 
-  // Visibility logic: Collapsed manually OR hidden by scroll OR not visible in store
+  // Visibility logic
   const isHidden = isCollapsed || !isNavVisible;
 
   return (
@@ -120,19 +148,14 @@ export default function BottomNav({
         <motion.div
           ref={scrollRef}
           drag="x"
-          dragConstraints={{ left: -((displayedItems.length - 1) * 80), right: 0 }}
-          dragElastic={0.2} // Increased elasticity for better "throw" feel
+          dragConstraints={{ left: -100000, right: 100000 }} // Infinite drag
+          dragElastic={0.05}
           dragTransition={{
-            power: 0.8, // Increased power for "infinite throw" feel
-            timeConstant: 300, // Longer glide
+            power: 0.8,
+            timeConstant: 300,
             modifyTarget: (target) => {
-              // Snap to nearest 80px (item width)
-              const itemWidth = 80;
-              const snapped = Math.round(target / itemWidth) * itemWidth;
-              // Clamp within bounds
-              const min = -((displayedItems.length - 1) * itemWidth);
-              const max = 0;
-              return Math.min(Math.max(snapped, min), max);
+              // Snap to nearest 80px
+              return Math.round(target / ITEM_WIDTH) * ITEM_WIDTH;
             }
           }}
           onDragStart={() => setIsDragging(true)}
@@ -142,28 +165,40 @@ export default function BottomNav({
         >
           {displayedItems.map((item, i) => {
             const isActive = item.id === active;
+            const layoutPos = i * ITEM_WIDTH;
 
-            // Distance logic for scaling effect
-            const distance = useTransform(
-              x,
-              (latest) => {
-                const ideal = -(i * 80);
-                return Math.abs(latest - ideal);
-              }
-            );
+            // Visual Wrapping Logic
+            // The item shifts itself to stay within [-TOTAL_WIDTH/2, TOTAL_WIDTH/2] of the center
+            const childX = useTransform(x, (latest) => {
+              const placeValue = latest + layoutPos;
+              // Wrap into [-TOTAL_WIDTH/2, TOTAL_WIDTH/2] range
+              const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
+              // Cancel out both the parent's 'latest' movement and the child's 'layoutPos'
+              // leaving only the 'offset' (centered relative position)
+              return offset - placeValue;
+            });
+
+            // Distance for scaling (calculated from the wrapped centered position)
+            const distance = useTransform(x, (latest) => {
+              const placeValue = latest + layoutPos;
+              const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
+              return Math.abs(offset);
+            });
 
             return (
               <motion.div
-                key={`${item.id}-${i}`}
+                key={item.id}
                 onTap={() => {
                   if (!isDragging) handleItemClick(item);
                 }}
                 className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                 style={{
                   width: "80px",
+                  // Apply wrapping translation
+                  x: childX,
                   opacity: item.available ? (isActive ? 1 : 0.6) : 0.3,
                   scale: useTransform(distance, [0, 80, 160], [1.2, 0.9, 0.75]),
-                  y: useTransform(distance, [0, 80], [0, 10]), // subtle arc
+                  y: useTransform(distance, [0, 80], [0, 10]),
                 }}
               >
                 <div
