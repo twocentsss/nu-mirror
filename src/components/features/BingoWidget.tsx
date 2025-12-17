@@ -1,7 +1,8 @@
-"use client";
+ "use client";
 
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import type { FlowSummary } from "@/lib/flow/summary";
 import { BINGO_TARGET_SCORE, calculatePillarScore } from "@/lib/features/bingo/rules";
 
 type PillarSummary = {
@@ -24,14 +25,18 @@ export default function BingoWidget() {
             try {
                 const res = await fetch("/api/flow/summary");
                 if (!res.ok) throw new Error("Unable to load Flow summary");
-                const { summary } = await res.json();
+                const body = (await res.json()) as { summary: FlowSummary };
+                const { summary } = body;
                 if (cancelled) return;
 
-                const entries = Object.entries(summary.totalsByComponentGroup).map(([name, minutes]) => ({
-                    name,
-                    minutes,
-                    score: calculatePillarScore(minutes),
-                }));
+                const entries = Object.entries(summary.totalsByComponentGroup).map(([name, rawMinutes]) => {
+                    const minutes = typeof rawMinutes === "number" ? rawMinutes : Number(rawMinutes ?? 0);
+                    return {
+                        name,
+                        minutes,
+                        score: calculatePillarScore(minutes),
+                    };
+                });
 
                 setPillars(entries);
                 setTotalMinutes(summary.totalMinutes);

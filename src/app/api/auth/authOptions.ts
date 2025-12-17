@@ -124,11 +124,11 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ account, user }) {
-      if (account?.provider !== "google") return true;
+      if (account?.provider !== "google") return;
 
       const accessToken = account.access_token as string | undefined;
       const refreshToken = account.refresh_token as string | undefined;
-      if (!user?.email) return true;
+      if (!user?.email) return;
 
       try {
         await initAccountSpreadsheet({
@@ -138,10 +138,7 @@ export const authOptions: NextAuthOptions = {
         });
       } catch (error) {
         console.error("initAccountSpreadsheet failed during sign in", error);
-        // We don't want to block the login flow, so return true regardless.
       }
-
-      return true;
     },
   },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET!,

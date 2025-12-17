@@ -1,5 +1,6 @@
 import { computeTrend, sum } from "@/lib/reporting/stats";
 import { getFlowEvents } from "@/lib/features/ledger/accounting";
+import { FlowEvent } from "@/lib/core/types";
 
 export interface FlowSummaryEvent {
   id: string;
@@ -31,6 +32,9 @@ interface BuildFlowSummaryOptions {
   userEmail?: string;
 }
 
+const CACHE_TTL_MS = 30 * 1000;
+const summaryCache = new Map<string, { ts: number; summary: FlowSummary }>();
+
 export async function buildFlowSummary(options: BuildFlowSummaryOptions = {}): Promise<FlowSummary> {
   const periodDays = options.periodDays ?? 14;
   const now = options.now ?? new Date();
@@ -49,6 +53,11 @@ export async function buildFlowSummary(options: BuildFlowSummaryOptions = {}): P
     refreshToken: options.refreshToken,
     userEmail: options.userEmail,
   };
+  const cacheKey = `${options.userEmail ?? "anon"}:${periodDays}:${start.toISOString()}-${end.toISOString()}`;
+  const cached = summaryCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.summary;
+  }
   const currentEvents = await getFlowEvents(start.toISOString(), end.toISOString(), fetchOpts);
   const previousEvents = await getFlowEvents(prevStart.toISOString(), prevEnd.toISOString(), fetchOpts);
 
@@ -80,7 +89,7 @@ export async function buildFlowSummary(options: BuildFlowSummaryOptions = {}): P
 
   const trend = computeTrend(totalMinutes, previousMinutes);
 
-  return {
+  const summary: FlowSummary = {
     totalMinutes,
     eventCount: currentEvents.length,
     totalsByComponentGroup,
@@ -94,4 +103,6 @@ export async function buildFlowSummary(options: BuildFlowSummaryOptions = {}): P
     },
     lastUpdated: new Date().toISOString(),
   };
+  summaryCache.set(cacheKey, { ts: Date.now(), summary });
+  return summary;
 }
