@@ -1,8 +1,8 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search, Settings, Info } from "lucide-react";
+import { Search, Settings, Info, Plus } from "lucide-react";
 import { useUIStore } from "@/lib/store/ui-store";
 import { useState } from "react";
 import AboutModal from "@/components/AboutModal";
@@ -11,6 +11,7 @@ import Link from "next/link";
 export default function GlobalHeader() {
     const pathname = usePathname();
     const { isNavVisible } = useUIStore();
+    const router = useRouter();
     const [showAbout, setShowAbout] = useState(false);
 
     // Don't show on Today page (it has its own custom header)
@@ -39,9 +40,9 @@ export default function GlobalHeader() {
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex gap-2">
-                        <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
-                            <button
+                        <div className="flex gap-2">
+                            <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
+                                <button
                                 onClick={() => alert("Search")}
                                 className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                             >
@@ -56,11 +57,17 @@ export default function GlobalHeader() {
                             <button
                                 onClick={() => setShowAbout(true)}
                                 className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                                >
+                                    <Info size={16} />
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => router.push("/today?openTask=1")}
+                                className="p-1.5 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                             >
-                                <Info size={16} />
+                                <Plus size={16} />
                             </button>
                         </div>
-                    </div>
                 </div>
             </motion.div>
 

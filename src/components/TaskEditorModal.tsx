@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 export type TaskRecord = {
@@ -12,6 +13,13 @@ export type TaskRecord = {
   notes?: string;
   duration_min?: number;
   lf?: number;
+  priority?: "low" | "medium" | "high";
+};
+
+type SuggestedSubtask = {
+  title: string;
+  duration_min?: number;
+  rationale?: string;
 };
 
 export default function TaskEditorModal(props: {
@@ -32,13 +40,14 @@ export default function TaskEditorModal(props: {
   const [notes, setNotes] = useState("");
   const [durationMin, setDurationMin] = useState<number>(15);
   const [lf, setLf] = useState<number | "">("");
+  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
 
   const [q1, setQ1] = useState("");
   const [q2, setQ2] = useState("");
   const [q3, setQ3] = useState("");
 
   const [decomposing, setDecomposing] = useState(false);
-  const [suggested, setSuggested] = useState<Array<{ title: string; duration_min?: number; rationale?: string }>>([]);
+  const [suggested, setSuggested] = useState<SuggestedSubtask[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<Set<number>>(new Set());
 
   useEffect(() => {
@@ -47,14 +56,17 @@ export default function TaskEditorModal(props: {
     setStatus(task.status ?? "intake");
     setDueDate(task.time?.due_date?.slice(0, 10) ?? "");
     setTimeOfDay(task.time?.time_of_day ?? "ANYTIME");
-    setNotes((task as any).notes ?? "");
-    setDurationMin(Number((task as any).duration_min ?? 15) || 15);
+    setNotes(task.notes ?? "");
+    setDurationMin(Number(task.duration_min ?? 15) || 15);
     setLf(task.lf ?? "");
 
     setSuggested([]);
     setSelectedIdx(new Set());
-    setQ1(""); setQ2(""); setQ3("");
-  }, [task?.id]);
+    setQ1("");
+    setQ2("");
+    setQ3("");
+    setPriority(task.priority ?? "medium");
+  }, [task]);
 
   const subtasks = useMemo(() => {
     if (!task?.id) return [];
@@ -72,16 +84,17 @@ export default function TaskEditorModal(props: {
         const res = await fetch("/api/cogos/task/update", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            id: task.id,
-            title,
-            status,
-            due_date: dueDate,
-            time_of_day: timeOfDay,
-            notes,
-            duration_min: durationMin,
-            lf: lf === "" ? undefined : Number(lf),
-          }),
+        body: JSON.stringify({
+          id: task.id,
+          title,
+          status,
+          due_date: dueDate,
+          time_of_day: timeOfDay,
+          notes,
+          duration_min: durationMin,
+          lf: lf === "" ? undefined : Number(lf),
+          priority,
+        }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -93,16 +106,17 @@ export default function TaskEditorModal(props: {
         const res = await fetch("/api/cogos/task/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            title: title || "New Task",
-            raw_text: title,
-            status,
-            due_date: dueDate,
-            time_of_day: timeOfDay,
-            notes,
-            duration_min: durationMin,
-            lf: lf === "" ? undefined : Number(lf),
-          }),
+        body: JSON.stringify({
+          title: title || "New Task",
+          raw_text: title || notes || "New Task",
+          status,
+          due_date: dueDate,
+          time_of_day: timeOfDay,
+          notes,
+          duration_min: durationMin,
+          lf: lf === "" ? undefined : Number(lf),
+          priority,
+        }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -142,7 +156,7 @@ export default function TaskEditorModal(props: {
         alert(j.error ?? "Decompose failed");
         return;
       }
-      const list = (j.subtasks ?? []) as any[];
+      const list = (j.subtasks ?? []) as SuggestedSubtask[];
       setSuggested(list);
       setSelectedIdx(new Set(list.map((_, i) => i)));
     } finally {
@@ -207,91 +221,150 @@ export default function TaskEditorModal(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4" onMouseDown={props.onClose}>
-      <div
-        className="w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl border border-white/10 bg-[#121212] text-white shadow-[0_0_100px_rgba(0,0,0,0.8)] h-[90vh] sm:h-[85vh] flex flex-col transform transition-all"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
-          <div className="text-lg font-semibold text-[var(--text-primary)]">{task.id ? "Edit task" : "Create task"}</div>
-          <button className="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm hover:bg-[var(--glass-border)] transition text-[var(--text-secondary)]" onClick={props.onClose}>
-            Close
-          </button>
-        </div>
+    <AnimatePresence>
+      {props.open && task && (
+        <motion.div
+          key="overlay"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onMouseDown={props.onClose}
+        >
+          <motion.div
+            className="w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl border border-white/10 bg-[#121212] text-white shadow-[0_0_100px_rgba(0,0,0,0.8)] h-[90vh] sm:h-[85vh] flex flex-col"
+            onMouseDown={(e) => e.stopPropagation()}
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 120, damping: 25 }}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
+              <div className="text-lg font-semibold text-[var(--text-primary)]">{task.id ? "Edit task" : "Create task"}</div>
+              <button className="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm hover:bg-[var(--glass-border)] transition text-[var(--text-secondary)]" onClick={props.onClose}>
+                Close
+              </button>
+            </div>
 
         <div className="overflow-y-auto p-4 flex-1">
-          <div className="space-y-3">
-            <input
-              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-            />
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs uppercase tracking-[0.4em] text-white/60">Title</label>
+                <input
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300 transition"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Title"
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)]"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {["intake", "defined", "decomposed", "planned", "doing", "blocked", "done", "canceled"].map((s) => (
-                  <option key={s} value={s} className="bg-white text-black dark:bg-black dark:text-white">{s}</option>
-                ))}
-              </select>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Status</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["intake", "defined", "planned", "doing", "blocked", "done"].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setStatus(option)}
+                        className={`flex-1 min-w-[80px] rounded-2xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${
+                          status === option
+                            ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
+                            : "border-white/10 text-white/60"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              <input
-                type="date"
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)] h-[38px]"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Due date</label>
+                  <input
+                    type="date"
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Time of day</label>
+                  <select
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
+                    value={timeOfDay}
+                    onChange={(e) => setTimeOfDay(e.target.value)}
+                  >
+                    {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Duration</label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={180}
+                    value={durationMin}
+                    onChange={(e) => setDurationMin(Number(e.target.value))}
+                    className="w-full accent-cyan-400"
+                  />
+                  <div className="text-[12px] text-white/70">
+                    {durationMin} min
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Life focus</label>
+                  <input
+                    type="range"
+                    min={1}
+                    max={9}
+                    value={lf === "" ? 1 : lf}
+                    onChange={(e) => setLf(Number(e.target.value))}
+                    className="w-full accent-purple-400"
+                  />
+                  <div className="text-[12px] text-white/70">
+                    LF {lf === "" ? 1 : lf}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Priority</label>
+                <div className="flex gap-2">
+                  {["low", "medium", "high"].map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setPriority(level as "low" | "medium" | "high")}
+                      className={`flex-1 rounded-2xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${
+                        priority === level
+                          ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-white"
+                          : "border border-white/15 bg-white/5 text-white/70"
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-cyan-300"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notes"
               />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <select
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] focus:border-[var(--accent-color)]"
-                value={timeOfDay}
-                onChange={(e) => setTimeOfDay(e.target.value)}
-              >
-                {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
-                  <option key={t} value={t} className="bg-white text-black dark:bg-black dark:text-white">{t}</option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
-                value={durationMin}
-                onChange={(e) => setDurationMin(Number(e.target.value || 0))}
-                min={1}
-                placeholder="Min"
-              />
-
-              <input
-                type="number"
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
-                value={lf}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") setLf("");
-                  else {
-                    const n = parseInt(v);
-                    if (!isNaN(n) && n >= 1 && n <= 9) setLf(n);
-                  }
-                }}
-                placeholder="LF (1-9)"
-                min={1}
-                max={9}
-              />
-            </div>
-
-            <textarea
-              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:border-[var(--accent-color)]"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Notes"
-            />
 
             <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 p-3">
               <div className="text-sm font-semibold text-[var(--text-primary)]">Subtasks ({subtasks.length})</div>
@@ -386,7 +459,9 @@ export default function TaskEditorModal(props: {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+  )}
+    </AnimatePresence>
   );
 }
