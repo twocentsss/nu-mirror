@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Target, SlidersHorizontal, PartyPopper } from "lucide-react"; // Icons
+import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info } from "lucide-react"; // Icons
+import AboutModal from "@/components/AboutModal";
 import TaskEditorModal, { TaskRecord } from "@/components/TaskEditorModal";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUIStore } from "@/lib/store/ui-store";
 
 type ViewMode = "DAY" | "WEEK" | "SPRINT" | "MONTH" | "QUARTER";
 
@@ -65,16 +67,18 @@ function computeRange(mode: ViewMode, baseDate: Date) {
 export default function TodayPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.email);
+  const { isNavVisible } = useUIStore();
 
-  const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("DAY");
   const [lfFilter, setLfFilter] = useState<number | null>(null);
-
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
 
@@ -99,13 +103,13 @@ export default function TodayPage() {
 
   async function handleSave() {
     await fetchTasks(dateRange);
-    setEditorOpen(false);
+    setIsEditorOpen(false);
     setEditingTask(null);
   }
 
   function openEditor(task?: TaskRecord) {
     setEditingTask(task ?? {});
-    setEditorOpen(true);
+    setIsEditorOpen(true);
   }
 
   // Scoring Handler
@@ -147,8 +151,13 @@ export default function TodayPage() {
       <div className="min-h-screen pb-32 relative text-[var(--text-primary)] transition-colors duration-500">
 
         {/* Dynamic Header "Island" */}
-        <div className="sticky top-0 z-20 pt-4 px-4 pb-4">
-          <div className="glass-panel rounded-3xl p-4 flex flex-col gap-4">
+        <motion.div
+          initial={false}
+          animate={{ y: isNavVisible ? 0 : -200, opacity: isNavVisible ? 1 : 0 }}
+          transition={{ type: "spring", damping: 20, stiffness: 100 }}
+          className="sticky top-0 z-20 pt-4 px-4 pb-4 bg-transparent pointer-events-none"
+        >
+          <div className="glass-panel rounded-3xl p-4 flex flex-col gap-4 pointer-events-auto shadow-2xl backdrop-blur-md">
 
             {/* Top Row: Date & Actions */}
             <div className="flex items-center justify-between">
@@ -199,6 +208,20 @@ export default function TodayPage() {
                   <PartyPopper size={14} className="text-[var(--accent-color)]" />
                   <span className="text-xs font-bold text-[var(--text-secondary)]">{completedCount}/{totalTasks}</span>
                 </div>
+
+                {/* Top Actions */}
+                <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
+                  <button onClick={() => alert("Search")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Search size={16} />
+                  </button>
+                  <button onClick={() => alert("Settings")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Settings size={16} />
+                  </button>
+                  <button onClick={() => setShowAbout(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Info size={16} />
+                  </button>
+                </div>
+
                 <button
                   className="h-9 w-9 rounded-full bg-black hover:opacity-90 flex items-center justify-center shadow-lg transition-all text-white"
                   onClick={() => openEditor()}
@@ -248,7 +271,9 @@ export default function TodayPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
+
+
 
         {/* LF Filter Bar */}
         {lfFilter !== null && (
@@ -387,14 +412,16 @@ export default function TodayPage() {
         <TaskEditorModal
           task={editingTask}
           allTasks={tasks}
-          open={editorOpen}
+          open={isEditorOpen}
           onClose={() => {
-            setEditorOpen(false);
+            setIsEditorOpen(false);
             setEditingTask(null);
           }}
           onChanged={handleSave}
         />
+
+        <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
       </div>
-    </SwipeToCreate>
+    </SwipeToCreate >
   );
 }
