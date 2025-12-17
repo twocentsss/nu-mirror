@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info } from "lucide-react"; // Icons
@@ -112,17 +112,6 @@ export default function TodayPage() {
     setEditingTask(task ?? {});
     setIsEditorOpen(true);
   }, []);
-
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const searchString = searchParams.toString();
-
-  useEffect(() => {
-    if (searchParams.get("openTask") === "1") {
-      openEditor();
-      router.replace("/today", { scroll: false });
-    }
-  }, [searchString, openEditor, router, searchParams]);
 
   const handleScore = async (task: TaskRecord) => {
     const result = await scoreSingleTask({
@@ -420,6 +409,9 @@ export default function TodayPage() {
           )}
         </div>
 
+        <Suspense fallback={null}>
+          <TaskEditorLauncher openEditor={openEditor} />
+        </Suspense>
         <TaskEditorModal
           task={editingTask}
           allTasks={tasks}
@@ -435,4 +427,18 @@ export default function TodayPage() {
       </div>
     </SwipeToCreate >
   );
+}
+
+function TaskEditorLauncher({ openEditor }: { openEditor: (task?: TaskRecord) => void }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("openTask") === "1") {
+      openEditor();
+      router.replace("/today", { scroll: false });
+    }
+  }, [openEditor, router, searchParams]);
+
+  return null;
 }
