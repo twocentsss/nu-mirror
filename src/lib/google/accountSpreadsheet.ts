@@ -29,6 +29,7 @@ const HEADERS: Record<(typeof TABS)[number], string[]> = {
     "parent_task_id",
     "title",
     "status",
+    "progress",
     "due_date",
     "created_at",
     "updated_at",

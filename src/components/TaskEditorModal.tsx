@@ -14,6 +14,7 @@ export type TaskRecord = {
   duration_min?: number;
   lf?: number;
   priority?: "low" | "medium" | "high";
+  progress?: number;
 };
 
 type SuggestedSubtask = {
