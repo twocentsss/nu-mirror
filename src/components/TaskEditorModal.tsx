@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type TaskRecord = {
+export type TaskRecord = {
   id?: string;
   title?: string;
   raw_text?: string;
@@ -207,9 +207,9 @@ export default function TaskEditorModal(props: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={props.onClose}>
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4" onMouseDown={props.onClose}>
       <div
-        className="mx-auto w-full max-w-xl rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--text-primary)] shadow-2xl max-h-[90vh] flex flex-col backdrop-blur-xl"
+        className="w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl border border-white/10 bg-[#121212] text-white shadow-[0_0_100px_rgba(0,0,0,0.8)] h-[90vh] sm:h-[85vh] flex flex-col transform transition-all"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">

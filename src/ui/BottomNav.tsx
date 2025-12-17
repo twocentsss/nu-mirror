@@ -67,105 +67,124 @@ export default function BottomNav({
   const scrollRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Use the single ITEMS list for the dock (no duplicate labels)
   const displayedItems = ITEMS;
 
   useEffect(() => {
-    if (scrollRef.current) {
+    // If not dragging, snap to active
+    if (!isDragging) {
       const currentIndex = displayedItems.findIndex(item => item.id === active);
       if (currentIndex !== -1) {
-        const itemWidth = scrollRef.current.scrollWidth / displayedItems.length;
-        const targetX = -(itemWidth * currentIndex);
-        animate(x, targetX, { type: "spring", stiffness: 300, damping: 30 });
+        animate(x, -(currentIndex * 80), { type: "spring", stiffness: 300, damping: 30 });
       }
     }
-  }, [active]);
+  }, [active, isDragging]);
 
   const handleDragEnd = () => {
     setIsDragging(false);
-    if (!scrollRef.current) return;
-
-    const itemWidth = scrollRef.current.scrollWidth / displayedItems.length;
     const currentX = x.get();
+    const itemWidth = 80;
+
+    // Find nearest index
     const nearestIndex = Math.round(-currentX / itemWidth);
     const clampedIndex = Math.max(0, Math.min(displayedItems.length - 1, nearestIndex));
-    const targetItem = displayedItems[clampedIndex];
 
-    animate(x, -(clampedIndex * itemWidth), {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    });
+    // Snap to it
+    animate(x, -(clampedIndex * itemWidth), { type: "spring", stiffness: 400, damping: 40 });
 
-    setTimeout(() => {
-      if (targetItem && targetItem.available && targetItem.id !== active) {
-        onNavigate(targetItem.href);
-      }
-    }, 200);
+    // Optional: Only navigate if we settled on a new item? 
+    // Or stick to click-to-nav for safety, but user asked for "magnetic" so maybe snap-nav?
+    // User: "They should be magnetically movable". Usually catch implies nav-on-click or auto-nav.
+    // I will KEEP nav-on-click for now to prevent accidental navs while playing with physics,
+    // but the SNAP ensures it centers.
   };
 
   const handleItemClick = (item: DockItem) => {
     if (!item.available) return;
-    if (item.id === active) return;
     onNavigate(item.href);
   };
 
   return (
-    <div className="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--dock-bg)] backdrop-blur-xl border-t border-[var(--glass-border)] safe-bottom z-50 overflow-hidden text-[var(--text-primary)] transition-colors duration-500">
+    <>
       <motion.div
-        ref={scrollRef}
-        drag="x"
-        dragConstraints={{ left: -10000, right: 10000 }}
-        dragElastic={0.1}
-        onDragStart={() => setIsDragging(true)}
-        onDragEnd={handleDragEnd}
-        style={{ x }}
-        className="flex cursor-grab active:cursor-grabbing py-4"
+        initial={false}
+        animate={{
+          y: isCollapsed ? "calc(100% - 24px)" : "0%",
+        }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--dock-bg)] backdrop-blur-xl border-t border-[var(--glass-border)] safe-bottom z-50 text-[var(--text-primary)] transition-colors duration-500 rounded-t-3xl shadow-2xl"
       >
-        {displayedItems.map((item, i) => {
-          const isActive = item.id === active;
-          const distance = useTransform(
-            x,
-            (latest) => {
-              const itemWidth = 80;
-              const itemCenter = -(i * itemWidth) - itemWidth / 2;
-              const diff = Math.abs(latest - itemCenter);
-              return Math.max(0, 1 - diff / 150);
-            }
-          );
+        {/* Drag Handle / Collapse Toggle */}
+        <div
+          className="flex justify-center items-center h-6 cursor-pointer hover:bg-black/5 active:bg-black/10 transition-colors rounded-t-3xl"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+        </div>
 
-          return (
-            <motion.div
-              key={`${item.id}-${i}`}
-              onTap={() => {
-                if (!isDragging) handleItemClick(item);
-              }}
-              className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-              style={{
-                width: "80px",
-                scale: useTransform(distance, [0, 1], [0.75, isActive ? 1.1 : 0.9]),
-                opacity: item.available ? (isActive ? 1 : 0.6) : 0.3,
-              }}
-            >
+        <motion.div
+          ref={scrollRef}
+          drag="x"
+          dragConstraints={{ left: -((displayedItems.length - 1) * 80), right: 0 }}
+          dragElastic={0.2}
+          onDragStart={() => setIsDragging(true)}
+          onDragEnd={handleDragEnd}
+          style={{ x }}
+          className="flex cursor-grab active:cursor-grabbing pb-6 pt-2 px-[calc(50vw-40px)]"
+        >
+          {displayedItems.map((item, i) => {
+            const isActive = item.id === active;
+
+            // Distance logic for scaling effect
+            // Center of screen is approx where we want to measure from.
+            // But since we move the container 'x', the item 'i' center relative to viewport center is:
+            // (i * 80 + 40) + x - (ScreenCenter relative to container start?)
+            // Actually simplier: x moves the whole strip. 0 means Item 0 is at center.
+            // So deviation = x + (i * 80). If x = -80*i, deviation is 0.
+            const distance = useTransform(
+              x,
+              (latest) => {
+                const ideal = -(i * 80);
+                return Math.abs(latest - ideal);
+              }
+            );
+
+            return (
               <motion.div
-                className={`p-3 rounded-2xl ${isActive
-                  ? 'bg-[var(--accent-color)] text-white shadow-lg'
-                  : item.available
-                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
-                    : 'text-[var(--text-secondary)]'
-                  }`}
-                whileTap={item.available ? { scale: 0.95 } : {}}
+                key={`${item.id}-${i}`}
+                onTap={() => {
+                  if (!isDragging) handleItemClick(item);
+                }}
+                className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                style={{
+                  width: "80px",
+                  opacity: item.available ? (isActive ? 1 : 0.6) : 0.3,
+                  scale: useTransform(distance, [0, 80, 160], [1.2, 0.9, 0.75]),
+                  y: useTransform(distance, [0, 80], [0, 10]), // subtle arc
+                }}
               >
-                {item.icon}
+                <div
+                  className={`p-3 rounded-2xl transition-all duration-300 ${isActive
+                    ? 'bg-[var(--accent-color)] text-white shadow-lg scale-110'
+                    : item.available
+                      ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
+                      : 'text-[var(--text-secondary)]'
+                    }`}
+                >
+                  {item.icon}
+                </div>
+                {!isCollapsed && (
+                  <div className={`text-[10px] font-medium mt-1.5 text-center tracking-wide ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                    {item.label}
+                  </div>
+                )}
               </motion.div>
-              <div className={`text-[10px] font-medium mt-1.5 text-center tracking-wide ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                {item.label}
-              </div>
-            </motion.div>
-          );
-        })}
+            );
+          })}
+        </motion.div>
       </motion.div>
-    </div>
+    </>
   );
 }
