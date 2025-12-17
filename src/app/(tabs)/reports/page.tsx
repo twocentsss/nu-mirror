@@ -44,7 +44,8 @@ export default async function ReportsPage() {
     // Last day of previous month
     const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
 
-    const fetchOpts = { spreadsheetId, accessToken, refreshToken, userEmail: session?.user?.email };
+    const userEmail = session?.user?.email ?? undefined;
+    const fetchOpts = { spreadsheetId, accessToken, refreshToken, userEmail };
     const currentEvents = await getFlowEvents(startOfMonth, endOfMonth, fetchOpts);
     const prevEvents = await getFlowEvents(startOfPrevMonth, endOfPrevMonth, fetchOpts);
 

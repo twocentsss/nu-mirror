@@ -32,11 +32,12 @@ export default async function SocialPage() {
     throw new Error("Spreadsheet not initialized; sign in with Google to create it.");
   }
 
+  const userEmail = session?.user?.email ?? undefined;
   const summary = await buildFlowSummary({
     spreadsheetId,
     accessToken,
     refreshToken,
-    userEmail: session?.user?.email,
+    userEmail,
   });
   const topGroups = Object.entries(summary.totalsByComponentGroup)
     .sort(([, a], [, b]) => b - a)

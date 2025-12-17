@@ -131,15 +131,4 @@ export async function getFlowEvents(
         throw error;
     }
     
-    return rows
-        .map(row => ({
-            id: String(row[0]),
-            timestamp: String(row[1]),
-            account_code: String(row[2]),
-            amount: Number(row[3]),
-            unit: String(row[4]),
-            description: String(row[5]),
-            segments: JSON.parse(String(row[6] || '{}'))
-        }))
-        .filter(e => e.timestamp >= startDate && e.timestamp <= endDate);
 }
