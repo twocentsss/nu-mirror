@@ -1,8 +1,12 @@
 "use client";
 
+
 import { ReactNode, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import BottomNav from "@/ui/BottomNav";
+import { Settings, Search, Info } from "lucide-react";
+import GlobalHeader from "@/components/GlobalHeader";
+import ScrollAwareLayout from "@/components/ScrollAwareLayout";
 
 export default function TabsLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -11,7 +15,6 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
   const active = useMemo(() => {
     if (!pathname) return "today";
     // Check for explicit matches first
-    const path = pathname.split("/").pop(); // simplistic
     if (pathname.includes("/today")) return "today";
     if (pathname.includes("/todo")) return "todo";
     if (pathname.includes("/focus")) return "focus";
@@ -29,7 +32,7 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
     if (pathname.includes("/selling")) return "selling";
     if (pathname.includes("/buying")) return "buying";
     if (pathname.includes("/stores")) return "stores";
-    if (pathname.includes("/assistance")) return "assist"; // Note: ID in BottomNav is "assist", href is "/assistance"
+    if (pathname.includes("/assistance")) return "assist";
 
     // Fallback or specific sub-routes
     return "today";
@@ -37,9 +40,10 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="pb-20">
+      <GlobalHeader />
+      <ScrollAwareLayout className={`pb-24 ${active === 'today' ? '' : 'pt-24'}`}>
         {children}
-      </div>
+      </ScrollAwareLayout>
       <BottomNav
         active={active}
         onNavigate={(to) => {
