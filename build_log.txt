@@ -1,0 +1,821 @@
+
+> nu-mirror@0.1.0 build
+> next build
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 16 errors:
+./node_modules/google-auth-library/build/src/auth/googleauth.js:17:25
+Module not found: Can't resolve 'child_process'
+[0m [90m 15 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 16 |[39m exports[33m.[39m[33mGoogleAuth[39m [33m=[39m exports[33m.[39m[33mGoogleAuthExceptionMessages[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 17 |[39m [36mconst[39m child_process_1 [33m=[39m require([32m"child_process"[39m)[33m;[39m
+ [90m    |[39m                         [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 18 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m 19 |[39m [36mconst[39m gaxios_1 [33m=[39m require([32m"gaxios"[39m)[33m;[39m
+ [90m 20 |[39m [36mconst[39m gcpMetadata [33m=[39m require([32m"gcp-metadata"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js:18:22
+Module not found: Can't resolve 'child_process'
+[0m [90m 16 |[39m exports[33m.[39m[33mPluggableAuthHandler[39m [33m=[39m exports[33m.[39m[33mExecutableError[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 17 |[39m [36mconst[39m executable_response_1 [33m=[39m require([32m"./executable-response"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 18 |[39m [36mconst[39m childProcess [33m=[39m require([32m"child_process"[39m)[33m;[39m
+ [90m    |[39m                      [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 19 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m 20 |[39m [90m/**[39m
+ [90m 21 |[39m [90m * Error thrown from the executable run by PluggableAuthClient.[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/gcp-metadata/build/src/gcp-residency.js:24:14
+Module not found: Can't resolve 'fs'
+[0m [90m 22 |[39m exports[33m.[39misGoogleComputeEngine [33m=[39m isGoogleComputeEngine[33m;[39m
+ [90m 23 |[39m exports[33m.[39mdetectGCPResidency [33m=[39m detectGCPResidency[33m;[39m
+[31m[1m>[22m[39m[90m 24 |[39m [36mconst[39m fs_1 [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m              [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 25 |[39m [36mconst[39m os_1 [33m=[39m require([32m"os"[39m)[33m;[39m
+ [90m 26 |[39m [90m/**[39m
+ [90m 27 |[39m [90m * Known paths unique to Google Compute Engine Linux instances[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/gcp-metadata/build/src/gcp-residency.js
+    ./node_modules/gcp-metadata/build/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/gcp-metadata/build/src/gcp-residency.js [Client Component Browser]
+    ./node_modules/gcp-metadata/build/src/index.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/gcp-metadata/build/src/gcp-residency.js [Client Component SSR]
+    ./node_modules/gcp-metadata/build/src/index.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/auth/certificatesubjecttokensupplier.js:18:12
+Module not found: Can't resolve 'fs'
+[0m [90m 16 |[39m exports[33m.[39m[33mCertificateSubjectTokenSupplier[39m [33m=[39m exports[33m.[39m[33mInvalidConfigurationError[39m [33m=[39m exports[33m.[39m[33mCertificateSourceUnavailableError[39m [33m=[39m exports[33m.[39m[33mCERTIFICATE_CONFIGURATION_ENV_VARIABLE[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 17 |[39m [36mconst[39m util_1 [33m=[39m require([32m"../util"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 18 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 19 |[39m [36mconst[39m crypto_1 [33m=[39m require([32m"crypto"[39m)[33m;[39m
+ [90m 20 |[39m [36mconst[39m https [33m=[39m require([32m"https"[39m)[33m;[39m
+ [90m 21 |[39m exports[33m.[39m[33mCERTIFICATE_CONFIGURATION_ENV_VARIABLE[39m [33m=[39m [32m'GOOGLE_API_CERTIFICATE_CONFIG'[39m[33m;[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/certificatesubjecttokensupplier.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/certificatesubjecttokensupplier.js
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/certificatesubjecttokensupplier.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/certificatesubjecttokensupplier.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/auth/filesubjecttokensupplier.js:18:12
+Module not found: Can't resolve 'fs'
+[0m [90m 16 |[39m exports[33m.[39m[33mFileSubjectTokenSupplier[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 17 |[39m [36mconst[39m util_1 [33m=[39m require([32m"util"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 18 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 19 |[39m [90m// fs.readfile is undefined in browser karma tests causing[39m
+ [90m 20 |[39m [90m// `npm run browser-test` to fail as test.oauth2.ts imports this file via[39m
+ [90m 21 |[39m [90m// src/index.ts.[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/filesubjecttokensupplier.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/filesubjecttokensupplier.js
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/filesubjecttokensupplier.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/filesubjecttokensupplier.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/identitypoolclient.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/auth/googleauth.js:18:12
+Module not found: Can't resolve 'fs'
+[0m [90m 16 |[39m exports[33m.[39m[33mGoogleAuth[39m [33m=[39m exports[33m.[39m[33mGoogleAuthExceptionMessages[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 17 |[39m [36mconst[39m child_process_1 [33m=[39m require([32m"child_process"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 18 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 19 |[39m [36mconst[39m gaxios_1 [33m=[39m require([32m"gaxios"[39m)[33m;[39m
+ [90m 20 |[39m [36mconst[39m gcpMetadata [33m=[39m require([32m"gcp-metadata"[39m)[33m;[39m
+ [90m 21 |[39m [36mconst[39m os [33m=[39m require([32m"os"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js:19:12
+Module not found: Can't resolve 'fs'
+[0m [90m 17 |[39m [36mconst[39m executable_response_1 [33m=[39m require([32m"./executable-response"[39m)[33m;[39m
+ [90m 18 |[39m [36mconst[39m childProcess [33m=[39m require([32m"child_process"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [90m/**[39m
+ [90m 21 |[39m [90m * Error thrown from the executable run by PluggableAuthClient.[39m
+ [90m 22 |[39m [90m */[39m[0m
+
+
+
+Import traces:
+  #1 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js
+    ./node_modules/google-auth-library/build/src/auth/googleauth.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/@google/genai/dist/node/index.mjs
+    ./src/lib/ai/gemini.ts
+    ./src/app/api/cogos/ingest/route.ts
+
+  #2 [App Route]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  #3 [Client Component Browser]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+  #4 [Client Component SSR]:
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-handler.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/pluggable-auth-client.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/test-scoring/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/google-auth-library/build/src/util.js:22:12
+Module not found: Can't resolve 'fs'
+[0m [90m 20 |[39m exports[33m.[39misValidFile [33m=[39m isValidFile[33m;[39m
+ [90m 21 |[39m exports[33m.[39mgetWellKnownCertificateConfigFileLocation [33m=[39m getWellKnownCertificateConfigFileLocation[33m;[39m
+[31m[1m>[22m[39m[90m 22 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 23 |[39m [36mconst[39m os [33m=[39m require([32m"os"[39m)[33m;[39m
+ [90m 24 |[39m [36mconst[39m path [33m=[39m require([32m"path"[39m)[33m;[39m
+ [90m 25 |[39m [36mconst[39m [33mWELL_KNOWN_CERTIFICATE_CONFIG_FILE[39m [33m=[39m [32m'certificate_config.json'[39m[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/google-auth-library/build/src/util.js
+    ./node_modules/google-auth-library/build/src/auth/baseexternalclient.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/google-auth-library/build/src/util.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/baseexternalclient.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/google-auth-library/build/src/util.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/baseexternalclient.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/googleapis-common/build/src/discovery.js:16:12
+Module not found: Can't resolve 'fs'
+[0m [90m 14 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 15 |[39m exports[33m.[39m[33mDiscovery[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 16 |[39m [36mconst[39m fs [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m    |[39m            [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 17 |[39m [36mconst[39m gaxios_1 [33m=[39m require([32m"gaxios"[39m)[33m;[39m
+ [90m 18 |[39m [36mconst[39m resolve [33m=[39m require([32m"url"[39m)[33m;[39m
+ [90m 19 |[39m [36mconst[39m util [33m=[39m require([32m"util"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/googleapis-common/build/src/discovery.js
+    ./node_modules/googleapis-common/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/googleapis-common/build/src/discovery.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/googleapis-common/build/src/discovery.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/gtoken/build/cjs/src/index.cjs:7:34
+Module not found: Can't resolve 'fs'
+[0m [90m  5 |[39m })[33m;[39m
+ [90m  6 |[39m exports[33m.[39m[33mGoogleToken[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mvar[39m fs [33m=[39m _interopRequireWildcard(require([32m"fs"[39m))[33m;[39m
+ [90m    |[39m                                  [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mvar[39m _gaxios [33m=[39m require([32m"gaxios"[39m)[33m;[39m
+ [90m  9 |[39m [36mvar[39m jws [33m=[39m _interopRequireWildcard(require([32m"jws"[39m))[33m;[39m
+ [90m 10 |[39m [36mvar[39m path [33m=[39m _interopRequireWildcard(require([32m"path"[39m))[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/gtoken/build/cjs/src/index.cjs
+    ./node_modules/google-auth-library/build/src/auth/jwtclient.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/gtoken/build/cjs/src/index.cjs [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/auth/jwtclient.js [Client Component Browser]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/gtoken/build/cjs/src/index.cjs [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/auth/jwtclient.js [Client Component SSR]
+    ./node_modules/google-auth-library/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/googleapis-common/build/src/http2.js:18:15
+Module not found: Can't resolve 'http2'
+[0m [90m 16 |[39m exports[33m.[39mrequest [33m=[39m request[33m;[39m
+ [90m 17 |[39m exports[33m.[39mcloseSession [33m=[39m closeSession[33m;[39m
+[31m[1m>[22m[39m[90m 18 |[39m [36mconst[39m http2 [33m=[39m require([32m"http2"[39m)[33m;[39m
+ [90m    |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 19 |[39m [36mconst[39m zlib [33m=[39m require([32m"zlib"[39m)[33m;[39m
+ [90m 20 |[39m [36mconst[39m url_1 [33m=[39m require([32m"url"[39m)[33m;[39m
+ [90m 21 |[39m [36mconst[39m qs [33m=[39m require([32m"qs"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/googleapis-common/build/src/http2.js
+    ./node_modules/googleapis-common/build/src/apirequest.js
+    ./node_modules/googleapis-common/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/googleapis-common/build/src/http2.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/apirequest.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/googleapis-common/build/src/http2.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/apirequest.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/agent-base/dist/index.js:30:26
+Module not found: Can't resolve 'net'
+[0m [90m 28 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 29 |[39m exports[33m.[39m[33mAgent[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 30 |[39m [36mconst[39m net [33m=[39m __importStar(require([32m"net"[39m))[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 31 |[39m [36mconst[39m http [33m=[39m __importStar(require([32m"http"[39m))[33m;[39m
+ [90m 32 |[39m [36mconst[39m https_1 [33m=[39m require([32m"https"[39m)[33m;[39m
+ [90m 33 |[39m __exportStar(require([32m"./helpers"[39m)[33m,[39m exports)[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/agent-base/dist/index.js
+    ./node_modules/https-proxy-agent/dist/index.js
+    ./node_modules/gaxios/build/cjs/src/gaxios.js
+    ./node_modules/gaxios/build/cjs/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/agent-base/dist/index.js [Client Component Browser]
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/agent-base/dist/index.js [Client Component SSR]
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/https-proxy-agent/dist/index.js:30:26
+Module not found: Can't resolve 'net'
+[0m [90m 28 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 29 |[39m exports[33m.[39m[33mHttpsProxyAgent[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 30 |[39m [36mconst[39m net [33m=[39m __importStar(require([32m"net"[39m))[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 31 |[39m [36mconst[39m tls [33m=[39m __importStar(require([32m"tls"[39m))[33m;[39m
+ [90m 32 |[39m [36mconst[39m assert_1 [33m=[39m __importDefault(require([32m"assert"[39m))[33m;[39m
+ [90m 33 |[39m [36mconst[39m debug_1 [33m=[39m __importDefault(require([32m"debug"[39m))[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/https-proxy-agent/dist/index.js
+    ./node_modules/gaxios/build/cjs/src/gaxios.js
+    ./node_modules/gaxios/build/cjs/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/https-proxy-agent/dist/index.js:31:26
+Module not found: Can't resolve 'tls'
+[0m [90m 29 |[39m exports[33m.[39m[33mHttpsProxyAgent[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 30 |[39m [36mconst[39m net [33m=[39m __importStar(require([32m"net"[39m))[33m;[39m
+[31m[1m>[22m[39m[90m 31 |[39m [36mconst[39m tls [33m=[39m __importStar(require([32m"tls"[39m))[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 32 |[39m [36mconst[39m assert_1 [33m=[39m __importDefault(require([32m"assert"[39m))[33m;[39m
+ [90m 33 |[39m [36mconst[39m debug_1 [33m=[39m __importDefault(require([32m"debug"[39m))[33m;[39m
+ [90m 34 |[39m [36mconst[39m agent_base_1 [33m=[39m require([32m"agent-base"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  App Route:
+    ./node_modules/https-proxy-agent/dist/index.js
+    ./node_modules/gaxios/build/cjs/src/gaxios.js
+    ./node_modules/gaxios/build/cjs/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/https-proxy-agent/dist/index.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/fetch-blob/from.js
+Code generation for chunk item errored
+An error occurred while generating the chunk item [project]/node_modules/fetch-blob/from.js [app-client] (ecmascript) <locals>
+
+Caused by:
+- the chunking context (unknown) does not support external modules (request: node:fs)
+
+Debug info:
+- An error occurred while generating the chunk item [project]/node_modules/fetch-blob/from.js [app-client] (ecmascript) <locals>
+- Execution of <MergedEcmascriptModuleChunkItem as EcmascriptChunkItem>::content_with_async_module_info failed
+- Execution of *EcmascriptChunkItemContent::new failed
+- Execution of EcmascriptModuleContent::new_merged failed
+- the chunking context (unknown) does not support external modules (request: node:fs)
+
+Import traces:
+  App Route:
+    ./node_modules/fetch-blob/from.js
+    ./node_modules/node-fetch/src/index.js
+    ./node_modules/gaxios/build/cjs/src/gaxios.js
+    ./node_modules/gaxios/build/cjs/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/fetch-blob/from.js [Client Component Browser]
+    ./node_modules/node-fetch/src/index.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/fetch-blob/from.js [Client Component SSR]
+    ./node_modules/node-fetch/src/index.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+
+./node_modules/node-fetch/src/index.js
+Code generation for chunk item errored
+An error occurred while generating the chunk item [project]/node_modules/node-fetch/src/index.js [app-client] (ecmascript)
+
+Caused by:
+- the chunking context (unknown) does not support external modules (request: node:net)
+
+Debug info:
+- An error occurred while generating the chunk item [project]/node_modules/node-fetch/src/index.js [app-client] (ecmascript)
+- Execution of <MergedEcmascriptModuleChunkItem as EcmascriptChunkItem>::content_with_async_module_info failed
+- Execution of *EcmascriptChunkItemContent::new failed
+- Execution of EcmascriptModuleContent::new_merged failed
+- the chunking context (unknown) does not support external modules (request: node:net)
+
+Import traces:
+  App Route:
+    ./node_modules/node-fetch/src/index.js
+    ./node_modules/gaxios/build/cjs/src/gaxios.js
+    ./node_modules/gaxios/build/cjs/src/index.js
+    ./node_modules/google-auth-library/build/src/index.js
+    ./node_modules/googleapis/build/src/index.js
+    ./src/lib/sheets/sheetsDb.ts
+    ./src/app/api/sheets/bootstrap/route.ts
+
+  Client Component Browser:
+    ./node_modules/node-fetch/src/index.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component Browser]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component Browser]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component Browser]
+    ./node_modules/googleapis/build/src/index.js [Client Component Browser]
+    ./src/lib/google/googleClient.ts [Client Component Browser]
+    ./src/lib/google/sheetStore.ts [Client Component Browser]
+    ./src/lib/actions/scoring.ts [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Client Component Browser]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/node-fetch/src/index.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/gaxios.js [Client Component SSR]
+    ./node_modules/gaxios/build/cjs/src/index.js [Client Component SSR]
+    ./node_modules/googleapis-common/build/src/index.js [Client Component SSR]
+    ./node_modules/googleapis/build/src/index.js [Client Component SSR]
+    ./src/lib/google/googleClient.ts [Client Component SSR]
+    ./src/lib/google/sheetStore.ts [Client Component SSR]
+    ./src/lib/actions/scoring.ts [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Client Component SSR]
+    ./src/app/(tabs)/today/page.tsx [Server Component]
+
+
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

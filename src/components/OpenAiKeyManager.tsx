@@ -49,6 +49,7 @@ export default function OpenAiKeyManager() {
     const [newLabel, setNewLabel] = useState("");
     const [newKey, setNewKey] = useState("");
     const [newDailyLimit, setNewDailyLimit] = useState("");
+    const [toast, setToast] = useState<string | null>(null);
 
     const [usage, setUsage] = useState<Record<string, { total: number }>>({});
     const [usageByKey, setUsageByKey] = useState<Record<string, number>>({});
@@ -78,6 +79,12 @@ export default function OpenAiKeyManager() {
     useEffect(() => {
         fetchKeys();
     }, []);
+
+    useEffect(() => {
+        if (!toast) return undefined;
+        const timer = setTimeout(() => setToast(null), 3200);
+        return () => clearTimeout(timer);
+    }, [toast]);
 
     async function addKey() {
         if (!newKey.trim()) return;
@@ -147,15 +154,15 @@ export default function OpenAiKeyManager() {
             if (!res.ok) {
                 setKeys(oldKeys);
                 const errorBody = await res.json().catch(() => null);
-                alert(errorBody?.error ?? "Failed to save preference");
+                setToast(errorBody?.error ?? "Failed to save preference");
                 return;
             }
 
             await fetchKeys();
-            alert(`Default AI changed to ${selectedLabel}`);
+            setToast(`Default AI changed to ${selectedLabel}`);
         } catch (e) {
             setKeys(oldKeys);
-            alert("Network error setting preference");
+            setToast("Network error setting preference");
         } finally {
             setPreferringKeyId(null);
         }
@@ -165,8 +172,8 @@ export default function OpenAiKeyManager() {
 
     return (
         <MirrorCard className="overflow-hidden p-0" tilt={false}>
-            <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
-                <div className="flex flex-col gap-1">
+        <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
+            <div className="flex flex-col gap-1">
                     <span className="text-[var(--text-primary)]">LLM Keys</span>
                     <span className="text-[10px] text-[var(--text-secondary)] font-normal">
                         {activeKey
@@ -191,6 +198,9 @@ export default function OpenAiKeyManager() {
                             );
                         })}
                     </div>
+                    {toast && (
+                        <div className="text-xs text-emerald-500 font-semibold">{toast}</div>
+                    )}
                 </div>
                 <button
                     onClick={fetchKeys}
@@ -306,25 +316,39 @@ export default function OpenAiKeyManager() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
-                                        <span className={isOverLimit ? "text-red-400 font-bold" : ""}>
-                                            {limitText} tokens used
-                                        </span>
-                                        <span className="opacity-50">•</span>
-                                        <span className="font-mono opacity-70">
-                                            {new Date(k.created_at).toLocaleDateString()}
-                                        </span>
-                                        {!k.disabled && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    disableKey(k.id);
-                                                }}
-                                                className="text-red-400 hover:text-red-300 hover:underline opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                Disable
-                                            </button>
-                                        )}
+                <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
+                    <span className={isOverLimit ? "text-red-400 font-bold" : ""}>
+                        {limitText} tokens used
+                    </span>
+                    <span className="opacity-50">•</span>
+                    <span className="font-mono opacity-70">
+                        {new Date(k.created_at).toLocaleDateString()}
+                    </span>
+                    {!k.disabled && (
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    disableKey(k.id);
+                                }}
+                                className="text-red-400 hover:text-red-300 hover:underline transition-opacity"
+                            >
+                                Disable
+                            </button>
+                            {!isPreferredRow && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreferred(k.id);
+                                }}
+                                type="button"
+                                className="px-3 py-1 ml-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold shadow-lg shadow-purple-400/40"
+                            >
+                                    Set Default
+                                </button>
+                            )}
+                        </>
+                    )}
                                     </div>
                                 </div>
 
@@ -332,8 +356,17 @@ export default function OpenAiKeyManager() {
                                 <div className="ml-4 flex-shrink-0 z-20">
                                     {isPreferredRow ? (
                                         <button
-                                            disabled
-                                            className="h-8 px-4 rounded-md bg-green-500 text-white font-bold text-xs shadow cursor-default opacity-100 flex items-center gap-1"
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (!preferringKeyId && !k.disabled) {
+                                                    setPreferred(k.id);
+                                                }
+                                            }}
+                                            disabled={Boolean(preferringKeyId) || k.disabled}
+                                            className="h-8 px-4 rounded-md bg-green-500 text-white font-bold text-xs shadow flex items-center gap-1 hover:opacity-90 active:scale-95 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                            aria-label="Re-apply default key"
+                                            title="Click to re-apply default"
                                         >
                                             <Star size={12} fill="currentColor" />
                                             PRIMARY
@@ -350,7 +383,7 @@ export default function OpenAiKeyManager() {
                                             disabled={buttonDisabled}
                                             className="h-8 px-4 rounded-md bg-white border border-gray-200 text-black font-bold text-xs shadow-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 active:scale-95 active:bg-blue-100 transition-all duration-75 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            {isButtonBusy ? "Saving..." : "Make Primary"}
+                                            {isButtonBusy ? "Saving..." : "Make Default"}
                                         </button>
                                     )}
                                 </div>

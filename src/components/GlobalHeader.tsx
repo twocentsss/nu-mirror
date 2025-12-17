@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Search, Settings, Info, ArrowLeft } from "lucide-react";
+import { Search, Settings, Info } from "lucide-react";
 import { useUIStore } from "@/lib/store/ui-store";
 import { useState } from "react";
 import AboutModal from "@/components/AboutModal";
