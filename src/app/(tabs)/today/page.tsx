@@ -1,15 +1,15 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info } from "lucide-react"; // Icons
+import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info, Check } from "lucide-react"; // Icons
 import AboutModal from "@/components/AboutModal";
 import TaskEditorModal, { TaskRecord } from "@/components/TaskEditorModal";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, PanInfo } from "framer-motion";
 import { useUIStore } from "@/lib/store/ui-store";
 
 type ViewMode = "DAY" | "WEEK" | "SPRINT" | "MONTH" | "QUARTER";
@@ -102,16 +102,33 @@ export default function TodayPage() {
     fetchTasks(dateRange);
   }, [fetchTasks, dateRange]);
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     await fetchTasks(dateRange);
     setIsEditorOpen(false);
     setEditingTask(null);
-  }
+  }, [fetchTasks, dateRange]);
 
   const openEditor = useCallback((task?: TaskRecord) => {
     setEditingTask(task ?? {});
     setIsEditorOpen(true);
   }, []);
+
+  const markDone = useCallback(async (task: TaskRecord) => {
+    if (!task?.id) return;
+    const nextStatus = task.status === "done" ? "in_progress" : "done";
+    const payload: Record<string, string | number> = { id: task.id, status: nextStatus };
+    payload.progress = nextStatus === "done" ? 100 : task.progress ?? 0;
+    const res = await fetch("/api/cogos/task/update", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      await handleSave();
+      return { status: nextStatus, progress: payload.progress as number };
+    }
+    return null;
+  }, [handleSave]);
 
   const handleScore = async (task: TaskRecord) => {
     const result = await scoreSingleTask({
@@ -307,87 +324,16 @@ export default function TodayPage() {
           <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
 
           <AnimatePresence>
-            {filteredTasks.map((task, i) => {
-              const isDone = task.status === "done";
-
-              return (
-                <motion.div
-                  key={task.id || i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="relative pl-8 group"
-                  onClick={() => openEditor(task)}
-                >
-                  {/* Timeline Dot */}
-                  <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-8 flex justify-center`}>
-                    <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone
-                      ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
-                      : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"
-                      }`} />
-                  </div>
-
-                  {/* Glass Card */}
-                  <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 cursor-pointer ${isDone ? 'opacity-50 grayscale' : ''}`}>
-
-                    {/* Left: Time or Icon */}
-                    <div className="flex-shrink-0 pt-1">
-                      {task.time?.start_at ? (
-                        <div className="text-center">
-                          <div className="text-xs font-bold text-[var(--text-primary)]">{new Date(task.time.start_at).getHours()}:{new Date(task.time.start_at).getMinutes().toString().padStart(2, '0')}</div>
-                          <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">{new Date(task.time.start_at).getHours() >= 12 ? 'PM' : 'AM'}</div>
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-[var(--glass-bg)] flex items-center justify-center">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/30" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>
-                          {task.title || "Untitled Task"}
-                        </h3>
-                        {/* Actions Row */}
-                        <div className="flex items-center gap-2">
-                          {task.lf && (
-                            <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">
-                              LF{task.lf}
-                            </span>
-                          )}
-                          <button
-                            className="h-6 w-6 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleScore(task);
-                            }}
-                            title="Score Task"
-                          >
-                            <Target size={12} className="text-blue-600" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {(task.notes || task.duration_min) && (
-                        <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-                          {task.duration_min && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />
-                              {task.duration_min} min
-                            </span>
-                          )}
-                          {task.notes && <span className="truncate max-w-[150px]">{task.notes}</span>}
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                </motion.div>
-              );
-            })}
+            {filteredTasks.map((task, i) => (
+              <TodayTaskRow
+                key={task.id ?? `task-${i}`}
+                task={task}
+                index={i}
+                markDone={markDone}
+                handleScore={handleScore}
+                openEditor={openEditor}
+              />
+            ))}
           </AnimatePresence>
 
           {loadingTasks && (
@@ -429,9 +375,292 @@ export default function TodayPage() {
   );
 }
 
+type TodayTaskRowProps = {
+  task: TaskRecord;
+  index: number;
+  markDone: (task: TaskRecord) => void;
+  handleScore: (task: TaskRecord) => void;
+  openEditor: (task?: TaskRecord) => void;
+};
+
+function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayTaskRowProps) {
+  const isDone = task.status === "done";
+  const dragX = useMotionValue(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragLockRef = useRef(false);
+  const resetTimerRef = useRef<number | null>(null);
+  const dragThreshold = 140;
+  const startTime = task.time?.start_at ? new Date(task.time.start_at) : null;
+  const [savedProgress, setSavedProgress] = useState(task.progress ?? 0);
+  const [draftProgress, setDraftProgress] = useState(savedProgress);
+  const [progressUpdating, setProgressUpdating] = useState(false);
+
+  useEffect(() => {
+    const initial = task.progress ?? 0;
+    setSavedProgress(initial);
+    setDraftProgress(initial);
+  }, [task.progress]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleDragEnd = (_event: unknown, info: PanInfo) => {
+    setIsDragging(false);
+    dragX.set(0);
+    dragLockRef.current = true;
+    if (resetTimerRef.current) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => {
+      dragLockRef.current = false;
+      resetTimerRef.current = null;
+    }, 220);
+
+    if (info.offset.x > dragThreshold && !isDone) {
+      markDone(task);
+    }
+  };
+
+  const triggerMarkDone = async () => {
+    const result = await markDone(task);
+    if (!result) return;
+    if (result.status === "done") {
+      setSavedProgress(100);
+      setDraftProgress(100);
+    } else {
+      setSavedProgress(result.progress ?? 0);
+      setDraftProgress(result.progress ?? 0);
+    }
+  };
+
+  const handleProgressChange = (value: number) => {
+    setDraftProgress(value);
+  };
+
+  const confirmProgress = async () => {
+    if (progressUpdating || draftProgress === savedProgress) return;
+    setProgressUpdating(true);
+    try {
+      const res = await fetch("/api/cogos/task/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: task.id,
+          progress: draftProgress,
+          status: draftProgress === 100 ? "done" : task.status,
+        }),
+      });
+      if (res.ok) {
+        setSavedProgress(draftProgress);
+        if (draftProgress === 100 && !isDone) {
+          markDone(task);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update progress", error);
+    } finally {
+      setProgressUpdating(false);
+    }
+  };
+
+  const resetProgressDraft = () => {
+    setDraftProgress(savedProgress);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 26 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
+      exit={{ opacity: 0, scale: 0.94 }}
+      transition={{ delay: index * 0.05 }}
+      drag="x"
+      dragConstraints={{ left: 0, right: 150 }}
+      dragElastic={0.25}
+      dragMomentum={false}
+      style={{ x: dragX }}
+      onDragStart={() => {
+        setIsDragging(true);
+      }}
+      onDragEnd={handleDragEnd}
+      className="relative pl-8 group cursor-pointer"
+      onClick={() => {
+        if (dragLockRef.current || isDragging) return;
+        openEditor(task);
+      }}
+    >
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 flex justify-center">
+        <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone
+          ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
+          : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"
+          }`} />
+      </div>
+
+      <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 ${isDone ? "opacity-60 grayscale" : ""}`}>
+        <div className="flex-shrink-0 pt-1">
+          {startTime ? (
+            <div className="text-center">
+              <div className="text-xs font-bold text-[var(--text-primary)]">
+                {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}
+              </div>
+              <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">
+                {startTime.getHours() >= 12 ? "PM" : "AM"}
+              </div>
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[var(--glass-bg)] flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/30" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>
+              {task.title || "Untitled Task"}
+            </h3>
+          </div>
+
+          {(task.notes || task.duration_min) && (
+            <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+              {task.duration_min && (
+                <span className="flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />
+                  {task.duration_min} min
+                </span>
+              )}
+              {task.notes && <span className="truncate max-w-[150px]">{task.notes}</span>}
+            </div>
+          )}
+
+            <div className="flex flex-col gap-2 mt-4 text-[var(--text-secondary)]">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  {task.lf && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">
+                      LF{task.lf}
+                    </span>
+                  )}
+                  <label
+                    className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]"
+                    onClick={(event: MouseEvent<HTMLLabelElement>) => {
+                      event.stopPropagation();
+                      triggerMarkDone();
+                    }}
+                    role="button"
+                    aria-pressed={isDone}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isDone}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                        event.stopPropagation();
+                        triggerMarkDone();
+                      }}
+                      className="sr-only"
+                    />
+                    <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"
+                      }`}>
+                      <Check size={14} />
+                    </span>
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}
+                    >
+                      {isDone ? "Done" : "Mark done"}
+                    </span>
+                  </label>
+                </div>
+                <button
+                  className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors"
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleScore(task);
+                  }}
+                >
+                  <Target size={14} className="text-blue-600" />
+                  Score
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]">
+                  <span className="text-[var(--text-secondary)]">Progress</span>
+                  <span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span>
+                </div>
+                <div
+                  className="w-1/5"
+                  onPointerDownCapture={(event) => event.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={draftProgress}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      event.stopPropagation();
+                      handleProgressChange(Number(event.target.value));
+                    }}
+                    className="w-full accent-[var(--accent-color)] h-2 rounded-lg"
+                    style={{ maxHeight: "1.25rem" }}
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onPointerDownCapture={(event) => event.stopPropagation()}
+                    onPointerMove={(event) => event.stopPropagation()}
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      confirmProgress();
+                    }}
+                    disabled={progressUpdating || draftProgress === savedProgress}
+                    className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a",
+                    }}
+                    title="Accept"
+                  >
+                    <Check size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      resetProgressDraft();
+                    }}
+                    disabled={progressUpdating || draftProgress === savedProgress}
+                    className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(239,68,68,0.4)" : "#dc2626",
+                    }}
+                    title="Reject"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              {progressUpdating && (
+                <p className="text-[10px] text-[var(--text-secondary)]">Saving...</p>
+              )}
+            </div>
+          </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function TaskEditorLauncher({ openEditor }: { openEditor: (task?: TaskRecord) => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
 
   useEffect(() => {
     if (searchParams.get("openTask") === "1") {
