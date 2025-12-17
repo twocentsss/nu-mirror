@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info } from "lucide-react"; // Icons
 import AboutModal from "@/components/AboutModal";
@@ -107,12 +108,22 @@ export default function TodayPage() {
     setEditingTask(null);
   }
 
-  function openEditor(task?: TaskRecord) {
+  const openEditor = useCallback((task?: TaskRecord) => {
     setEditingTask(task ?? {});
     setIsEditorOpen(true);
-  }
+  }, []);
 
-  // Scoring Handler
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchString = searchParams.toString();
+
+  useEffect(() => {
+    if (searchParams.get("openTask") === "1") {
+      openEditor();
+      router.replace("/today", { scroll: false });
+    }
+  }, [searchString, openEditor, router, searchParams]);
+
   const handleScore = async (task: TaskRecord) => {
     const result = await scoreSingleTask({
       id: task.id || `temp-${Date.now()}`,
