@@ -113,11 +113,12 @@ export default function TodayPage() {
     setIsEditorOpen(true);
   }, []);
 
-  const markDone = useCallback(async (task: TaskRecord) => {
-    if (!task?.id) return;
-    const nextStatus = task.status === "done" ? "in_progress" : "done";
-    const payload: Record<string, string | number> = { id: task.id, status: nextStatus };
-    payload.progress = nextStatus === "done" ? 100 : task.progress ?? 0;
+  const markDone = useCallback(
+    async (task: TaskRecord): Promise<{ status: string; progress: number } | null> => {
+    if (!task?.id) return null;
+      const nextStatus = task.status === "done" ? "in_progress" : "done";
+      const payload: Record<string, string | number> = { id: task.id, status: nextStatus };
+      payload.progress = nextStatus === "done" ? 100 : task.progress ?? 0;
     const res = await fetch("/api/cogos/task/update", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -378,7 +379,7 @@ export default function TodayPage() {
 type TodayTaskRowProps = {
   task: TaskRecord;
   index: number;
-  markDone: (task: TaskRecord) => void;
+  markDone: (task: TaskRecord) => Promise<{ status: string; progress: number } | null>;
   handleScore: (task: TaskRecord) => void;
   openEditor: (task?: TaskRecord) => void;
 };
@@ -455,12 +456,12 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
           status: draftProgress === 100 ? "done" : task.status,
         }),
       });
-      if (res.ok) {
-        setSavedProgress(draftProgress);
-        if (draftProgress === 100 && !isDone) {
-          markDone(task);
+        if (res.ok) {
+          setSavedProgress(draftProgress);
+          if (draftProgress === 100 && !isDone) {
+            await markDone(task);
+          }
         }
-      }
     } catch (error) {
       console.error("Failed to update progress", error);
     } finally {
