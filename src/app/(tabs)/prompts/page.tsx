@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MirrorCard } from "@/ui/MirrorCard";
 import PromptEditorModal from "@/components/PromptEditorModal";
 import { Plus, Play, Edit2 } from "lucide-react";
+import { useUIStore } from "@/lib/store/ui-store";
 
 type PromptRecord = {
   id?: string;
@@ -43,7 +44,14 @@ export default function PromptsPage() {
     fetchPrompts();
   }, []);
 
-  function openEditor(prompt?: PromptRecord) {
+  const { setClickOrigin } = useUIStore();
+
+  function openEditor(prompt?: PromptRecord, e?: React.MouseEvent) {
+    if (e) {
+      setClickOrigin({ x: e.clientX, y: e.clientY });
+    } else {
+      setClickOrigin(null);
+    }
     setEditingPrompt(prompt ?? {});
     setEditorOpen(true);
   }
@@ -94,7 +102,7 @@ export default function PromptsPage() {
         </div>
         <button
           className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center shadow-lg"
-          onClick={() => openEditor()}
+          onClick={(e) => openEditor(undefined, e)}
         >
           <Plus size={20} />
         </button>
@@ -120,7 +128,7 @@ export default function PromptsPage() {
               <div className="flex flex-col gap-2">
                 <button
                   className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
-                  onClick={() => openEditor(p)}
+                  onClick={(e) => openEditor(p, e)}
                 >
                   <Edit2 size={14} />
                 </button>

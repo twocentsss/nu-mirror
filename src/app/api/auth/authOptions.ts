@@ -55,11 +55,12 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
+          prompt: "consent",
           access_type: "offline",
-          prompt: "consent select_account",
-          scope: "openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
-        },
-      },
+          response_type: "code",
+          scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets"
+        }
+      }
     }),
     CredentialsProvider({
       name: "Streamforge Login",
@@ -97,6 +98,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (account?.provider === "google") {
+        console.log("[Auth] Google callback scope:", account.scope);
         nextToken.accessToken = account.access_token;
         nextToken.refreshToken = account.refresh_token;
         nextToken.expiresAt = account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000;
@@ -136,8 +138,17 @@ export const authOptions: NextAuthOptions = {
           refreshToken,
           userEmail: user.email,
         });
+
+        // Initialize Postgres Trial Schema on SSO
+        const storageUrl = process.env.DATABASE_URL;
+        if (storageUrl) {
+          const { getSqlClient, getTenantSchema, ensureTenantSchema } = await import("@/lib/events/client");
+          const sql = getSqlClient(storageUrl);
+          const schema = getTenantSchema(user.email);
+          await ensureTenantSchema(sql, schema);
+        }
       } catch (error) {
-        console.error("initAccountSpreadsheet failed during sign in", error);
+        console.error("initAccountSpreadsheet or Postgres setup failed during sign in", error);
       }
     },
   },

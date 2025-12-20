@@ -2,7 +2,8 @@
 
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { X, Sparkles, Shield, Target, Zap, Heart, Users, Briefcase, TrendingUp, Globe, Lightbulb, Flame } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useUIStore } from "@/lib/store/ui-store";
 
 interface AboutModalProps {
     isOpen: boolean;
@@ -10,7 +11,18 @@ interface AboutModalProps {
 }
 
 export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
+    const { clickOrigin } = useUIStore();
+    const modalRef = useRef<HTMLDivElement>(null);
     const scrollY = useMotionValue(0);
+
+    const getTransformOrigin = () => {
+        if (!clickOrigin || !modalRef.current) return "center center";
+        const rect = modalRef.current.getBoundingClientRect();
+        return `${clickOrigin.x - rect.left}px ${clickOrigin.y - rect.top}px`;
+    };
+
+    // Parallax transforms based on manual scroll value
+    // ... Parallax code remains same
 
     // Parallax transforms based on manual scroll value
     const heroY = useTransform(scrollY, [0, 200], [0, -50]);
@@ -37,9 +49,21 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
         <AnimatePresence>
             <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
+                    ref={modalRef}
+                    initial={{ opacity: 0, scale: 0, filter: "blur(15px)" }}
+                    animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, scale: 0, filter: "blur(15px)" }}
+                    style={{
+                        transformOrigin: getTransformOrigin(),
+                        willChange: "transform, opacity, filter"
+                    }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 110,
+                        damping: 24,
+                        mass: 1.5,
+                        restDelta: 0.001
+                    }}
                     className="relative w-full max-w-4xl h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden"
                 >
                     {/* Close Button */}

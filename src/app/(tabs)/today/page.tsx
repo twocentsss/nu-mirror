@@ -68,7 +68,7 @@ function computeRange(mode: ViewMode, baseDate: Date) {
 export default function TodayPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.email);
-  const { isNavVisible } = useUIStore();
+  const { isNavVisible, setClickOrigin } = useUIStore();
 
   const [loadingTasks, setLoadingTasks] = useState(false);
 
@@ -78,7 +78,6 @@ export default function TodayPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
 
   const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
@@ -108,28 +107,33 @@ export default function TodayPage() {
     setEditingTask(null);
   }, [fetchTasks, dateRange]);
 
-  const openEditor = useCallback((task?: TaskRecord) => {
+  const openEditor = useCallback((task?: TaskRecord, e?: MouseEvent) => {
+    if (e) {
+      setClickOrigin({ x: e.clientX, y: e.clientY });
+    } else {
+      setClickOrigin(null);
+    }
     setEditingTask(task ?? {});
     setIsEditorOpen(true);
-  }, []);
+  }, [setClickOrigin]);
 
   const markDone = useCallback(
     async (task: TaskRecord): Promise<{ status: string; progress: number } | null> => {
-    if (!task?.id) return null;
+      if (!task?.id) return null;
       const nextStatus = task.status === "done" ? "in_progress" : "done";
       const payload: Record<string, string | number> = { id: task.id, status: nextStatus };
       payload.progress = nextStatus === "done" ? 100 : task.progress ?? 0;
-    const res = await fetch("/api/cogos/task/update", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      await handleSave();
-      return { status: nextStatus, progress: payload.progress as number };
-    }
-    return null;
-  }, [handleSave]);
+      const res = await fetch("/api/cogos/task/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        await handleSave();
+        return { status: nextStatus, progress: payload.progress as number };
+      }
+      return null;
+    }, [handleSave]);
 
   const handleScore = async (task: TaskRecord) => {
     const result = await scoreSingleTask({
@@ -143,13 +147,12 @@ export default function TodayPage() {
     alert(`🎯 SCORED: ${result.sps.toFixed(2)} SPS\n\nAccount: ${result.accountCode}\nBPS: ${result.bps.toFixed(2)} (Base)\n\n(See Console for Journal Entry)`);
   };
 
-  // --- Compute Stats ---
   const filteredTasks = useMemo(() => {
     let res = tasks;
     if (lfFilter !== null) {
       res = res.filter((t) => t.lf === lfFilter);
     }
-    return res.sort((a, b) => {
+    return res.sort((a: any, b: any) => {
       const ta = a.time?.start_at ? new Date(a.time.start_at).getTime() : 0;
       const tb = b.time?.start_at ? new Date(b.time.start_at).getTime() : 0;
       if (ta && tb) return ta - tb;
@@ -161,14 +164,12 @@ export default function TodayPage() {
 
   const completedCount = tasks.filter(t => t.status === 'done').length;
   const totalTasks = tasks.length;
-
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(selectedDate);
 
   return (
     <SwipeToCreate onTrigger={() => openEditor()}>
       <div className="min-h-screen pb-32 relative text-[var(--text-primary)] transition-colors duration-500">
 
-        {/* Dynamic Header "Island" */}
         <motion.div
           initial={false}
           animate={{ y: isNavVisible ? 0 : -200, opacity: isNavVisible ? 1 : 0 }}
@@ -176,11 +177,8 @@ export default function TodayPage() {
           className="sticky top-0 z-20 pt-4 px-4 pb-4 bg-transparent pointer-events-none"
         >
           <div className="glass-panel rounded-3xl p-4 flex flex-col gap-4 pointer-events-auto shadow-2xl backdrop-blur-md">
-
-            {/* Top Row: Date & Actions */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {/* Date Navigator */}
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1">
                     <button
@@ -227,7 +225,6 @@ export default function TodayPage() {
                   <span className="text-xs font-bold text-[var(--text-secondary)]">{completedCount}/{totalTasks}</span>
                 </div>
 
-                {/* Top Actions */}
                 <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
                   <button onClick={() => alert("Search")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Search size={16} />
@@ -242,14 +239,13 @@ export default function TodayPage() {
 
                 <button
                   className="h-9 w-9 rounded-full bg-black hover:opacity-90 flex items-center justify-center shadow-lg transition-all text-white"
-                  onClick={() => openEditor()}
+                  onClick={(e) => openEditor(undefined, e)}
                 >
                   <Plus size={20} />
                 </button>
               </div>
             </div>
 
-            {/* Middle: Circular Date Picker */}
             <div className="-mx-2">
               <CircularDatePicker
                 selectedDate={selectedDate}
@@ -257,7 +253,6 @@ export default function TodayPage() {
               />
             </div>
 
-            {/* Bottom: View Controls & Filters */}
             <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-hide">
               <div className="flex bg-[var(--glass-bg)] rounded-full p-1 border border-[var(--glass-border)]">
                 {(["DAY", "WEEK", "SPRINT", "MONTH", "QUARTER"] as ViewMode[]).map((mode) => (
@@ -274,7 +269,6 @@ export default function TodayPage() {
                 ))}
               </div>
 
-              {/* Quick Filter LF */}
               <div className="flex gap-1">
                 <button
                   onClick={() => setLfFilter(lfFilter === null ? 1 : null)}
@@ -291,9 +285,6 @@ export default function TodayPage() {
           </div>
         </motion.div>
 
-
-
-        {/* LF Filter Bar */}
         {lfFilter !== null && (
           <div className="px-4 mb-4">
             <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2">
@@ -319,11 +310,8 @@ export default function TodayPage() {
           </div>
         )}
 
-        {/* Main Content: Glass Timeline */}
         <div className="px-4 flex flex-col gap-4 relative mt-2">
-          {/* Vertical Line */}
           <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
-
           <AnimatePresence>
             {filteredTasks.map((task, i) => (
               <TodayTaskRow
@@ -337,39 +325,24 @@ export default function TodayPage() {
             ))}
           </AnimatePresence>
 
-          {loadingTasks && (
-            <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">
-              Loading thoughts...
-            </div>
-          )}
-
+          {loadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
           {!loadingTasks && filteredTasks.length === 0 && (
             <div className="py-20 text-center">
-              <div className="w-16 h-16 rounded-full bg-[var(--glass-bg)] mx-auto mb-4 flex items-center justify-center">
-                <PartyPopper className="text-[var(--text-secondary)]" />
-              </div>
+              <div className="w-16 h-16 rounded-full bg-[var(--glass-bg)] mx-auto mb-4 flex items-center justify-center"><PartyPopper className="text-[var(--text-secondary)]" /></div>
               <p className="text-[var(--text-secondary)] text-sm">No tasks for this period.</p>
-              <button onClick={() => openEditor()} className="mt-4 text-[var(--accent-color)] text-sm hover:underline">
-                + Create one
-              </button>
+              <button onClick={(e) => openEditor(undefined, e as any)} className="mt-4 text-[var(--accent-color)] text-sm hover:underline">+ Create one</button>
             </div>
           )}
         </div>
 
-        <Suspense fallback={null}>
-          <TaskEditorLauncher openEditor={openEditor} />
-        </Suspense>
+        <Suspense fallback={null}><TaskEditorLauncher openEditor={openEditor} /></Suspense>
         <TaskEditorModal
           task={editingTask}
           allTasks={tasks}
           open={isEditorOpen}
-          onClose={() => {
-            setIsEditorOpen(false);
-            setEditingTask(null);
-          }}
+          onClose={() => { setIsEditorOpen(false); setEditingTask(null); }}
           onChanged={handleSave}
         />
-
         <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
       </div>
     </SwipeToCreate >
@@ -381,7 +354,7 @@ type TodayTaskRowProps = {
   index: number;
   markDone: (task: TaskRecord) => Promise<{ status: string; progress: number } | null>;
   handleScore: (task: TaskRecord) => void;
-  openEditor: (task?: TaskRecord) => void;
+  openEditor: (task?: TaskRecord, e?: MouseEvent) => void;
 };
 
 function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayTaskRowProps) {
@@ -402,45 +375,20 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
     setDraftProgress(initial);
   }, [task.progress]);
 
-  useEffect(() => {
-    return () => {
-      if (resetTimerRef.current) {
-        window.clearTimeout(resetTimerRef.current);
-      }
-    };
-  }, []);
-
   const handleDragEnd = (_event: unknown, info: PanInfo) => {
     setIsDragging(false);
     dragX.set(0);
     dragLockRef.current = true;
-    if (resetTimerRef.current) {
-      window.clearTimeout(resetTimerRef.current);
-    }
-    resetTimerRef.current = window.setTimeout(() => {
-      dragLockRef.current = false;
-      resetTimerRef.current = null;
-    }, 220);
-
-    if (info.offset.x > dragThreshold && !isDone) {
-      markDone(task);
-    }
+    if (resetTimerRef.current) window.clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = window.setTimeout(() => { dragLockRef.current = false; resetTimerRef.current = null; }, 220);
+    if (info.offset.x > dragThreshold && !isDone) markDone(task);
   };
 
   const triggerMarkDone = async () => {
     const result = await markDone(task);
     if (!result) return;
-    if (result.status === "done") {
-      setSavedProgress(100);
-      setDraftProgress(100);
-    } else {
-      setSavedProgress(result.progress ?? 0);
-      setDraftProgress(result.progress ?? 0);
-    }
-  };
-
-  const handleProgressChange = (value: number) => {
-    setDraftProgress(value);
+    setSavedProgress(result.status === "done" ? 100 : result.progress ?? 0);
+    setDraftProgress(result.status === "done" ? 100 : result.progress ?? 0);
   };
 
   const confirmProgress = async () => {
@@ -450,27 +398,13 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
       const res = await fetch("/api/cogos/task/update", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          progress: draftProgress,
-          status: draftProgress === 100 ? "done" : task.status,
-        }),
+        body: JSON.stringify({ id: task.id, progress: draftProgress, status: draftProgress === 100 ? "done" : task.status }),
       });
-        if (res.ok) {
-          setSavedProgress(draftProgress);
-          if (draftProgress === 100 && !isDone) {
-            await markDone(task);
-          }
-        }
-    } catch (error) {
-      console.error("Failed to update progress", error);
-    } finally {
-      setProgressUpdating(false);
-    }
-  };
-
-  const resetProgressDraft = () => {
-    setDraftProgress(savedProgress);
+      if (res.ok) {
+        setSavedProgress(draftProgress);
+        if (draftProgress === 100 && !isDone) await markDone(task);
+      }
+    } catch (error) { console.error(error); } finally { setProgressUpdating(false); }
   };
 
   return (
@@ -484,33 +418,24 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
       dragElastic={0.25}
       dragMomentum={false}
       style={{ x: dragX }}
-      onDragStart={() => {
-        setIsDragging(true);
-      }}
+      onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
       className="relative pl-8 group cursor-pointer"
-      onClick={() => {
+      onClick={(e) => {
         if (dragLockRef.current || isDragging) return;
-        openEditor(task);
+        openEditor(task, e);
       }}
     >
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 flex justify-center">
-        <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone
-          ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]"
-          : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"
-          }`} />
+        <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"}`} />
       </div>
 
       <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 ${isDone ? "opacity-60 grayscale" : ""}`}>
         <div className="flex-shrink-0 pt-1">
           {startTime ? (
             <div className="text-center">
-              <div className="text-xs font-bold text-[var(--text-primary)]">
-                {startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}
-              </div>
-              <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">
-                {startTime.getHours() >= 12 ? "PM" : "AM"}
-              </div>
+              <div className="text-xs font-bold text-[var(--text-primary)]">{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}</div>
+              <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">{startTime.getHours() >= 12 ? "PM" : "AM"}</div>
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full bg-[var(--glass-bg)] flex items-center justify-center">
@@ -521,138 +446,36 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>
-              {task.title || "Untitled Task"}
-            </h3>
+            <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>{task.title || "Untitled Task"}</h3>
           </div>
-
           {(task.notes || task.duration_min) && (
             <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-              {task.duration_min && (
-                <span className="flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />
-                  {task.duration_min} min
-                </span>
-              )}
+              {task.duration_min && <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />{task.duration_min} min</span>}
               {task.notes && <span className="truncate max-w-[150px]">{task.notes}</span>}
             </div>
           )}
-
-            <div className="flex flex-col gap-2 mt-4 text-[var(--text-secondary)]">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  {task.lf && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">
-                      LF{task.lf}
-                    </span>
-                  )}
-                  <label
-                    className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]"
-                    onClick={(event: MouseEvent<HTMLLabelElement>) => {
-                      event.stopPropagation();
-                      triggerMarkDone();
-                    }}
-                    role="button"
-                    aria-pressed={isDone}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isDone}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                        event.stopPropagation();
-                        triggerMarkDone();
-                      }}
-                      className="sr-only"
-                    />
-                    <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone
-                      ? "bg-emerald-500 border-emerald-500 text-white"
-                      : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"
-                      }`}>
-                      <Check size={14} />
-                    </span>
-                    <span
-                      className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}
-                    >
-                      {isDone ? "Done" : "Mark done"}
-                    </span>
-                  </label>
-                </div>
-                <button
-                  className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors"
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleScore(task);
-                  }}
-                >
-                  <Target size={14} className="text-blue-600" />
-                  Score
-                </button>
+          <div className="flex flex-col gap-2 mt-4 text-[var(--text-secondary)]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {task.lf && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">LF{task.lf}</span>}
+                <label className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]" onClick={(e) => { e.stopPropagation(); triggerMarkDone(); }} role="button">
+                  <input type="checkbox" checked={isDone} onChange={(e) => { e.stopPropagation(); triggerMarkDone(); }} className="sr-only" />
+                  <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"}`}><Check size={14} /></span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}>{isDone ? "Done" : "Mark done"}</span>
+                </label>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]">
-                  <span className="text-[var(--text-secondary)]">Progress</span>
-                  <span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span>
-                </div>
-                <div
-                  className="w-1/5"
-                  onPointerDownCapture={(event) => event.stopPropagation()}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={draftProgress}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      event.stopPropagation();
-                      handleProgressChange(Number(event.target.value));
-                    }}
-                    className="w-full accent-[var(--accent-color)] h-2 rounded-lg"
-                    style={{ maxHeight: "1.25rem" }}
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onPointerDownCapture={(event) => event.stopPropagation()}
-                    onPointerMove={(event) => event.stopPropagation()}
-                  />
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      confirmProgress();
-                    }}
-                    disabled={progressUpdating || draftProgress === savedProgress}
-                    className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a",
-                    }}
-                    title="Accept"
-                  >
-                    <Check size={12} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      resetProgressDraft();
-                    }}
-                    disabled={progressUpdating || draftProgress === savedProgress}
-                    className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(239,68,68,0.4)" : "#dc2626",
-                    }}
-                    title="Reject"
-                  >
-                    ✕
-                  </button>
-                </div>
+              <button className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors" type="button" onClick={(e) => { e.stopPropagation(); handleScore(task); }}><Target size={14} className="text-blue-600" />Score</button>
+            </div>
+            <div className="flex items-center gap-3" onPointerDownCapture={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]"><span className="text-[var(--text-secondary)]">Progress</span><span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span></div>
+              <input type="range" min={0} max={100} value={draftProgress} onChange={(e) => { e.stopPropagation(); setDraftProgress(Number(e.target.value)); }} className="flex-1 accent-[var(--accent-color)] h-2 rounded-lg" onMouseDown={(e) => e.stopPropagation()} />
+              <div className="flex gap-1">
+                <button type="button" onClick={(e) => { e.stopPropagation(); confirmProgress(); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a" }}><Check size={12} /></button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setDraftProgress(savedProgress); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(239,68,68,0.4)" : "#dc2626" }}>✕</button>
               </div>
-              {progressUpdating && (
-                <p className="text-[10px] text-[var(--text-secondary)]">Saving...</p>
-              )}
             </div>
           </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -661,14 +484,11 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
 function TaskEditorLauncher({ openEditor }: { openEditor: (task?: TaskRecord) => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-
   useEffect(() => {
     if (searchParams.get("openTask") === "1") {
       openEditor();
       router.replace("/today", { scroll: false });
     }
   }, [openEditor, router, searchParams]);
-
   return null;
 }

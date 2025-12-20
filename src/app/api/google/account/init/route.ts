@@ -3,7 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { initAccountSpreadsheet } from "@/lib/google/accountSpreadsheet";
 
-export async function POST() {
+/**
+ * Manually initialize or repair the user's account spreadsheet.
+ * Useful if the automated sign-in event failed or if scopes were recently updated.
+ */
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -11,20 +15,29 @@ export async function POST() {
 
   const accessToken = (session as any).accessToken as string | undefined;
   const refreshToken = (session as any).refreshToken as string | undefined;
+
   if (!accessToken && !refreshToken) {
-    return NextResponse.json(
-      {
-        error: "Missing Google OAuth tokens in session. Sign out and sign in again.",
-      },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "Missing Google OAuth tokens. Sign out/in again." }, { status: 401 });
   }
 
-  const result = await initAccountSpreadsheet({
-    accessToken,
-    refreshToken,
-    userEmail: session.user.email,
-  });
+  try {
+    const result = await initAccountSpreadsheet({
+      accessToken,
+      refreshToken,
+      userEmail: session.user.email,
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json({
+      ok: true,
+      message: "Account spreadsheet initialized successfully.",
+      ...result
+    });
+  } catch (err: any) {
+    console.error("[AccountInit] Failed:", err);
+    return NextResponse.json({
+      ok: false,
+      error: err.message,
+      code: err.code || err.status
+    }, { status: 500 });
+  }
 }

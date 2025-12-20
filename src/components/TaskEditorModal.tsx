@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useUIStore } from "@/lib/store/ui-store";
 
 export type TaskRecord = {
   id?: string;
@@ -23,6 +24,27 @@ type SuggestedSubtask = {
   rationale?: string;
 };
 
+export const WORLDS = [
+  { id: 1, name: "Core", desc: "Soul, purpose, being", keywords: ["meditation", "spirit", "pray", "soul", "purpose", "being", "religion", "god", "destiny", "core"], color: "from-rose-500 to-pink-500" },
+  { id: 2, name: "Self", desc: "Body, mind, heart", keywords: ["gym", "workout", "exercise", "run", "health", "mind", "heart", "therapy", "mental", "spa", "sleep", "self"], color: "from-purple-500 to-indigo-500" },
+  { id: 3, name: "Circle", desc: "Family, friends, love", keywords: ["family", "friend", "love", "date", "wife", "kids", "mom", "dad", "sister", "brother", "call", "social", "circle"], color: "from-blue-500 to-cyan-500" },
+  { id: 4, name: "Grind", desc: "Work, responsibilities", keywords: ["work", "meeting", "email", "report", "office", "task", "project", "duty", "chores", "laundry", "bills", "clean", "grind"], color: "from-gray-600 to-gray-800" },
+  { id: 5, name: "Level Up", desc: "Skills, growth, business", keywords: ["skill", "learn", "course", "growth", "business", "startup", "code", "study", "practice", "master", "invest", "money", "wealth"], color: "from-emerald-500 to-green-500" },
+  { id: 6, name: "Impact", desc: "Giving back, community", keywords: ["give", "community", "help", "volunteer", "charity", "impact", "mentor", "teaching", "donation"], color: "from-teal-500 to-cyan-600" },
+  { id: 7, name: "Play", desc: "Joy, creativity, travel", keywords: ["fun", "game", "travel", "play", "joy", "creative", "art", "music", "guitar", "movie", "party", "hike", "vacation"], color: "from-yellow-500 to-orange-500" },
+  { id: 8, name: "Insight", desc: "Knowledge, wisdom", keywords: ["knowledge", "wisdom", "read", "think", "journal", "insight", "research", "philosophy", "book", "analysis", "data"], color: "from-amber-500 to-yellow-600" },
+  { id: 9, name: "Chaos", desc: "The unexpected", keywords: ["unexpected", "emergency", "fix", "crash", "chaos", "random", "luck", "shift"], color: "from-red-500 to-orange-600" },
+];
+
+export function classifyTask(text: string) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  for (const world of WORLDS) {
+    if (world.keywords.some(k => lower.includes(k))) return world;
+  }
+  return null;
+}
+
 export default function TaskEditorModal(props: {
   open: boolean;
   task: TaskRecord | null;
@@ -30,6 +52,17 @@ export default function TaskEditorModal(props: {
   onClose: () => void;
   onChanged: () => Promise<void>;
 }) {
+  const { clickOrigin } = useUIStore();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  const getTransformOrigin = () => {
+    if (!clickOrigin || !modalRef.current) return "center center";
+    const rect = modalRef.current.getBoundingClientRect();
+    const x = clickOrigin.x - rect.left;
+    const y = clickOrigin.y - rect.top;
+    return `${x}px ${y}px`;
+  };
+
   const task = props.task;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -55,11 +88,22 @@ export default function TaskEditorModal(props: {
     if (!task) return;
     setTitle(task.title ?? "");
     setStatus(task.status ?? "intake");
-    setDueDate(task.time?.due_date?.slice(0, 10) ?? "");
+
+    let initialDueDate = task.time?.due_date?.slice(0, 10) ?? "";
+    if (!task.id && !initialDueDate) {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() + (day === 0 ? 0 : 7 - day); // Distance to Sunday
+      const sunday = new Date(now.setDate(diff));
+      initialDueDate = sunday.toISOString().slice(0, 10);
+    }
+    setDueDate(initialDueDate);
+
     setTimeOfDay(task.time?.time_of_day ?? "ANYTIME");
     setNotes(task.notes ?? "");
     setDurationMin(Number(task.duration_min ?? 15) || 15);
-    setLf(task.lf ?? "");
+
+    setLf(task.lf ?? (task.id ? "" : 9));
 
     setSuggested([]);
     setSelectedIdx(new Set());
@@ -68,6 +112,14 @@ export default function TaskEditorModal(props: {
     setQ3("");
     setPriority(task.priority ?? "medium");
   }, [task]);
+
+  const detectedWorld = useMemo(() => classifyTask(title), [title]);
+
+  useEffect(() => {
+    if (!task?.id && detectedWorld) {
+      setLf(detectedWorld.id);
+    }
+  }, [detectedWorld, task?.id]);
 
   const subtasks = useMemo(() => {
     if (!task?.id) return [];
@@ -85,17 +137,17 @@ export default function TaskEditorModal(props: {
         const res = await fetch("/api/cogos/task/update", {
           method: "POST",
           headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          id: task.id,
-          title,
-          status,
-          due_date: dueDate,
-          time_of_day: timeOfDay,
-          notes,
-          duration_min: durationMin,
-          lf: lf === "" ? undefined : Number(lf),
-          priority,
-        }),
+          body: JSON.stringify({
+            id: task.id,
+            title,
+            status,
+            due_date: dueDate,
+            time_of_day: timeOfDay,
+            notes,
+            duration_min: durationMin,
+            lf: lf === "" ? undefined : Number(lf),
+            priority,
+          }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -107,17 +159,17 @@ export default function TaskEditorModal(props: {
         const res = await fetch("/api/cogos/task/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          title: title || "New Task",
-          raw_text: title || notes || "New Task",
-          status,
-          due_date: dueDate,
-          time_of_day: timeOfDay,
-          notes,
-          duration_min: durationMin,
-          lf: lf === "" ? undefined : Number(lf),
-          priority,
-        }),
+          body: JSON.stringify({
+            title: title || "New Task",
+            raw_text: title || notes || "New Task",
+            status,
+            due_date: dueDate,
+            time_of_day: timeOfDay,
+            notes,
+            duration_min: durationMin,
+            lf: lf === "" ? undefined : Number(lf),
+            priority,
+          }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -221,248 +273,256 @@ export default function TaskEditorModal(props: {
     }
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      save();
+    }
+    if (e.key === "Escape") {
+      props.onClose();
+    }
+  };
+
   return (
     <AnimatePresence>
       {props.open && task && (
         <motion.div
           key="overlay"
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-4 lg:p-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
+          transition={{ duration: 0.3 }}
           onMouseDown={props.onClose}
         >
           <motion.div
-            className="w-full sm:max-w-xl sm:rounded-2xl rounded-t-3xl border border-white/10 bg-[#121212] text-white shadow-[0_0_100px_rgba(0,0,0,0.8)] h-[90vh] sm:h-[85vh] flex flex-col"
+            ref={modalRef}
+            className="w-full max-w-2xl bg-[#1c1c1e] text-white shadow-[0_32px_128px_rgba(0,0,0,0.8)] rounded-[2rem] border border-white/10 flex flex-col overflow-hidden max-h-[90vh]"
             onMouseDown={(e) => e.stopPropagation()}
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 120, damping: 25 }}
+            style={{
+              transformOrigin: getTransformOrigin(),
+              willChange: "transform, opacity, filter"
+            }}
+            initial={{ scale: 0, opacity: 0, filter: "blur(20px)" }}
+            animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+            exit={{ scale: 0, opacity: 0, filter: "blur(20px)" }}
+            transition={{
+              type: "spring",
+              stiffness: 140,
+              damping: 24,
+              mass: 1.2,
+              restDelta: 0.001
+            }}
+            onKeyDown={handleKeyDown}
           >
-            <div className="flex items-center justify-between p-4 border-b border-[var(--glass-border)]">
-              <div className="text-lg font-semibold text-[var(--text-primary)]">{task.id ? "Edit task" : "Create task"}</div>
-              <button className="rounded-full border border-[var(--glass-border)] px-3 py-1 text-sm hover:bg-[var(--glass-border)] transition text-[var(--text-secondary)]" onClick={props.onClose}>
-                Close
-              </button>
+            {/* Spotlight Header Input */}
+            <div className="relative border-b border-white/10 p-4 lg:p-6 bg-white/3">
+              <input
+                autoFocus
+                className="w-full bg-transparent text-2xl lg:text-3xl font-medium outline-none placeholder:text-white/20"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What's on your mind?"
+              />
+              <div className="mt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AnimatePresence mode="wait">
+                    {detectedWorld && (
+                      <motion.div
+                        key={detectedWorld.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.2em] bg-gradient-to-r ${detectedWorld.color} text-white shadow-lg flex items-center gap-1.5`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
+                        {detectedWorld.name}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  {title && !detectedWorld && (
+                    <span className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-bold animate-pulse">Analyzing context...</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 opacity-40 pointer-events-none hidden lg:flex">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">⌘</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">ENTER</span>
+                </div>
+              </div>
             </div>
 
-        <div className="overflow-y-auto p-4 flex-1">
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs uppercase tracking-[0.4em] text-white/60">Title</label>
-                <input
-                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300 transition"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Title"
+            {/* Scrollable Helpful Info */}
+            <div className="overflow-y-auto p-6 lg:p-8 space-y-8 flex-1">
+
+              {/* Context Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Status</label>
+                    <div className="flex flex-wrap gap-2">
+                      {["intake", "doing", "done"].map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setStatus(option)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${status === option
+                            ? "bg-white text-black border-white"
+                            : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
+                            }`}
+                        >
+                          {option.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Deadline</label>
+                    <input
+                      type="date"
+                      className="w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Focus</label>
+                    <div className="flex gap-2">
+                      {["low", "high"].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setPriority(p as any)}
+                          className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${priority === p ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/5 border-white/5 text-white/40'
+                            }`}
+                        >
+                          {p.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-2 relative group-picker">
+                      <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
+                        <div className="py-10"> {/* Top/Bottom spacing for center snapping */}
+                          {WORLDS.map((w) => (
+                            <button
+                              key={w.id}
+                              type="button"
+                              onClick={() => setLf(w.id)}
+                              className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
+                                  ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
+                                  : 'text-white/20 hover:text-white/40'
+                                }`}
+                            >
+                              <div className="flex flex-col items-start text-left">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                  {w.name}
+                                </span>
+                                {lf === w.id && <span className="text-[8px] opacity-80 font-medium">{w.desc}</span>}
+                              </div>
+                              <span className="text-xs font-mono opacity-20">{w.id}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Glassy Overlays for the Rolling Effect */}
+                      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
+                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Extra Context / Notes</label>
+                <textarea
+                  className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none placeholder:text-white/10 focus:border-white/10 transition leading-relaxed"
+                  rows={4}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Any details to help with execution..."
                 />
               </div>
 
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Status</label>
-                  <div className="flex flex-wrap gap-2">
-                    {["intake", "defined", "planned", "doing", "blocked", "done"].map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => setStatus(option)}
-                        className={`flex-1 min-w-[80px] rounded-2xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${
-                          status === option
-                            ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
-                            : "border-white/10 text-white/60"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Due date</label>
-                  <input
-                    type="date"
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Time of day</label>
-                  <select
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-                    value={timeOfDay}
-                    onChange={(e) => setTimeOfDay(e.target.value)}
-                  >
-                    {["ANYTIME", "MORNING", "AFTERNOON", "EVENING"].map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Duration</label>
-                  <input
-                    type="range"
-                    min={5}
-                    max={180}
-                    value={durationMin}
-                    onChange={(e) => setDurationMin(Number(e.target.value))}
-                    className="w-full accent-cyan-400"
-                  />
-                  <div className="text-[12px] text-white/70">
-                    {durationMin} min
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Life focus</label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={9}
-                    value={lf === "" ? 1 : lf}
-                    onChange={(e) => setLf(Number(e.target.value))}
-                    className="w-full accent-purple-400"
-                  />
-                  <div className="text-[12px] text-white/70">
-                    LF {lf === "" ? 1 : lf}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-[0.4em] text-white/60">Priority</label>
-                <div className="flex gap-2">
-                  {["low", "medium", "high"].map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setPriority(level as "low" | "medium" | "high")}
-                      className={`flex-1 rounded-2xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] ${
-                        priority === level
-                          ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-white"
-                          : "border border-white/15 bg-white/5 text-white/70"
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <textarea
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-cyan-300"
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notes"
-              />
-
-            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 p-3">
-              <div className="text-sm font-semibold text-[var(--text-primary)]">Subtasks ({subtasks.length})</div>
-              {subtasks.length === 0 ? (
-                <div className="mt-2 text-xs text-[var(--text-secondary)] opacity-70">No subtasks yet.</div>
-              ) : (
-                <ul className="mt-2 space-y-1 text-sm">
-                  {subtasks.map((t) => (
-                    <li key={t.id} className="text-[var(--text-secondary)]">• {t.title}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)]/50 p-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-[var(--text-primary)]">AI breakdown</div>
-                <button
-                  className="rounded-full bg-[var(--accent-color)] px-3 py-1 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition"
-                  disabled={decomposing}
-                  onClick={suggestBreakdown}
-                >
-                  {decomposing ? "Thinking..." : "Suggest breakdown"}
-                </button>
-              </div>
-
-              <div className="mt-2 grid gap-2">
-                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                  value={q1} onChange={(e) => setQ1(e.target.value)} placeholder="Goal/outcome (optional)" />
-                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                  value={q2} onChange={(e) => setQ2(e.target.value)} placeholder="Constraints (optional)" />
-                <input className="rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-sm"
-                  value={q3} onChange={(e) => setQ3(e.target.value)} placeholder="Context/stakeholders (optional)" />
-              </div>
-
-              {suggested.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {suggested.map((s, i) => {
-                    const checked = selectedIdx.has(i);
-                    return (
-                      <label key={i} className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/5 p-2">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => {
-                            const next = new Set(selectedIdx);
-                            if (next.has(i)) next.delete(i);
-                            else next.add(i);
-                            setSelectedIdx(next);
-                          }}
-                          className="mt-1"
-                        />
-                        <div>
-                          <div className="text-sm font-semibold">{s.title}</div>
-                          <div className="text-xs text-white/60">
-                            {s.duration_min ? `${s.duration_min} min` : ""} {s.rationale ? `— ${s.rationale}` : ""}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-
+              {/* Subtasks Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between group">
+                  <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">AI Brainstorming</label>
                   <button
-                    className="w-full rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
-                    onClick={createSelectedSubtasks}
-                    disabled={selectedIdx.size === 0}
+                    className="text-[10px] font-bold bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-white/60 transition-colors"
+                    disabled={decomposing}
+                    onClick={suggestBreakdown}
                   >
-                    Create selected subtasks
+                    {decomposing ? "THINKING..." : "GENERATE SUBTASKS"}
                   </button>
                 </div>
-              )}
+
+                {suggested.length === 0 && (
+                  <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-[2rem] opacity-20">
+                    <p className="text-xs">Optional AI-powered breakdown available</p>
+                  </div>
+                )}
+
+                {suggested.length > 0 && (
+                  <div className="grid gap-3">
+                    {suggested.map((s, i) => {
+                      const checked = selectedIdx.has(i);
+                      return (
+                        <div
+                          key={i}
+                          onClick={() => {
+                            const next = new Set(selectedIdx);
+                            if (next.has(i)) next.delete(i); else next.add(i);
+                            setSelectedIdx(next);
+                          }}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer ${checked ? 'bg-white/10 border-white/20' : 'bg-white/3 border-white/5 opacity-50'
+                            }`}
+                        >
+                          <div className="text-sm font-semibold">{s.title}</div>
+                          <div className="text-[10px] text-white/40 mt-1">{s.rationale}</div>
+                        </div>
+                      );
+                    })}
+                    <button
+                      className="w-full py-3 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[0.98] transition-transform active:scale-95 mt-2"
+                      onClick={createSelectedSubtasks}
+                      disabled={selectedIdx.size === 0}
+                    >
+                      Create {selectedIdx.size} Subtasks
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
 
-            <div className="mt-8 pt-4 border-t border-white/10 space-y-3">
+            {/* Toolbar / Actions */}
+            <div className="p-4 bg-white/3 border-t border-white/5 flex items-center justify-between">
+              <div className="flex gap-4">
+                {task.id && (
+                  <button
+                    onClick={deleteTask}
+                    className="text-[10px] font-bold text-red-500/50 hover:text-red-500 transition-colors"
+                  >
+                    DELETE TASK
+                  </button>
+                )}
+                <button onClick={props.onClose} className="text-[10px] font-bold text-white/30 hover:text-white/60">CANCEL</button>
+              </div>
+
               <button
-                className="w-full rounded-full bg-white px-3 py-2 text-sm font-semibold text-black disabled:opacity-50"
+                className="bg-white text-black px-6 py-2 rounded-full font-bold text-sm shadow-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                 disabled={saving || deleting}
                 onClick={save}
               >
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? "SAVING..." : task.id ? "SAVE CHANGES" : "CREATE TASK"}
               </button>
-
-              {task.id && (
-                <button
-                  className="w-full rounded-full border border-red-500/50 text-red-400 px-3 py-2 text-sm font-semibold hover:bg-red-500/10 disabled:opacity-50"
-                  disabled={saving || deleting}
-                  onClick={deleteTask}
-                >
-                  {deleting ? "Deleting…" : "Delete task"}
-                </button>
-              )}
             </div>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

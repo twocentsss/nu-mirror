@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { getAccountSpreadsheetId } from "@/lib/google/accountSpreadsheet";
+import { resolveStorageUrl } from "@/lib/config/storage";
 import { getFlowEvents } from "@/lib/features/ledger/accounting";
 import { generateDepartmentReports } from "@/lib/reporting/aggregator";
+import { eventClient } from "@/lib/events/client";
+import { LedgerPostedBody } from "@/lib/events/types";
+import { mapLedgerEventsToFlowEvents } from "@/lib/reporting/mapper";
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -38,9 +42,36 @@ export async function POST() {
   const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
   const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
 
-  const fetchOpts = { spreadsheetId, accessToken, refreshToken, userEmail: session.user.email };
-  const currentEvents = await getFlowEvents(startOfMonth, endOfMonth, fetchOpts);
-  const prevEvents = await getFlowEvents(startOfPrevMonth, endOfPrevMonth, fetchOpts);
+  // Migration: Use EventClient instead of Sheets DB
+  // const fetchOpts = { spreadsheetId, accessToken, refreshToken, userEmail: session.user.email };
+  // const currentEvents = await getFlowEvents(startOfMonth, endOfMonth, fetchOpts);
+  // const prevEvents = await getFlowEvents(startOfPrevMonth, endOfPrevMonth, fetchOpts);
+
+  // Resolve Storage (BYODB)
+  const storageUrl = await resolveStorageUrl({
+    userEmail: session.user.email,
+    accessToken,
+    refreshToken
+  }) || undefined;
+
+  // New Event Path
+  const currentLedgerEvents = await eventClient.getEvents<LedgerPostedBody>({
+    type: 'ledger.posted',
+    after: startOfMonth,
+    before: endOfMonth,
+    tenantId: session.user.email,
+    storageUrl
+  });
+  const prevLedgerEvents = await eventClient.getEvents<LedgerPostedBody>({
+    type: 'ledger.posted',
+    after: startOfPrevMonth,
+    before: endOfPrevMonth,
+    tenantId: session.user.email,
+    storageUrl
+  });
+
+  const currentEvents = mapLedgerEventsToFlowEvents(currentLedgerEvents);
+  const prevEvents = mapLedgerEventsToFlowEvents(prevLedgerEvents);
 
   const reports = generateDepartmentReports(currentEvents, prevEvents);
 
