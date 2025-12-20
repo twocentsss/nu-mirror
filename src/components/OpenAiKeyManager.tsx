@@ -14,7 +14,7 @@ type KeyRow = {
     preferred?: boolean | string | number;
 };
 
-const PROVIDER_ORDER: LlmProvider[] = ["openai", "openrouter", "anthropic", "gemini"];
+const PROVIDER_ORDER: LlmProvider[] = ["openai", "openrouter", "anthropic", "gemini", "mistral"];
 
 const PROVIDER_META: Record<LlmProvider, { label: string; border: string; text: string; bg: string }> = {
     openai: {
@@ -41,6 +41,12 @@ const PROVIDER_META: Record<LlmProvider, { label: string; border: string; text: 
         text: "text-orange-400",
         bg: "bg-orange-500/10",
     },
+    mistral: {
+        label: "Mistral",
+        border: "border-purple-400/70",
+        text: "text-purple-400",
+        bg: "bg-purple-500/10",
+    },
 };
 
 const prefers = (target?: KeyRow["preferred"]) =>
@@ -56,6 +62,7 @@ export default function OpenAiKeyManager() {
     const [newKey, setNewKey] = useState("");
     const [newDailyLimit, setNewDailyLimit] = useState("");
     const [toast, setToast] = useState<string | null>(null);
+    const [newProvider, setNewProvider] = useState<LlmProvider>("openai");
 
     const [usage, setUsage] = useState<Record<string, { total: number }>>({});
     const [usageByKey, setUsageByKey] = useState<Record<string, number>>({});
@@ -102,7 +109,7 @@ export default function OpenAiKeyManager() {
                 body: JSON.stringify({
                     label: newLabel,
                     apiKey: newKey.trim(),
-                    provider: newKey.startsWith("sk-or-") ? "openrouter" : (newKey.startsWith("AIza") ? "gemini" : (newKey.startsWith("sk-ant-") ? "anthropic" : "openai")),
+                    provider: newProvider,
                     daily_limit: newDailyLimit ? Number(newDailyLimit) : 0
                 }),
             });
@@ -220,7 +227,25 @@ export default function OpenAiKeyManager() {
             <div className="p-4 space-y-4">
                 {/* Add Key Form */}
                 <div className="bg-[var(--glass-bg)] rounded-lg p-3 space-y-2 border border-[var(--glass-border)]">
-                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase">Add New Key</div>
+                    <div className="text-xs font-medium text-[var(--text-secondary)] uppercase">
+                        Add New Key
+                    </div>
+
+                    {/* Provider Selector Row */}
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-[var(--text-secondary)] opacity-50 ml-1">AI Provider</label>
+                        <select
+                            value={newProvider}
+                            onChange={(e) => setNewProvider(e.target.value as LlmProvider)}
+                            className="w-full text-sm rounded bg-white/5 border border-[var(--glass-border)] px-2 py-2 outline-none focus:border-[var(--accent-color)] text-[var(--text-primary)] appearance-none cursor-pointer"
+                        >
+                            {PROVIDER_ORDER.map(p => (
+                                <option key={p} value={p} className="bg-[#1c1c1e] text-white">
+                                    {PROVIDER_META[p].label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <input
                         className="w-full text-sm rounded bg-transparent border border-[var(--glass-border)] px-2 py-1 outline-none focus:border-[var(--accent-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)]/50"
                         placeholder="Label (e.g. OpenRouter Team)"
@@ -305,12 +330,12 @@ export default function OpenAiKeyManager() {
                                         <div className="flex items-center gap-1">
                                             <span
                                                 className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${k.provider === "openrouter"
-                                                        ? "bg-purple-500/20 text-purple-400"
-                                                        : k.provider === "gemini"
-                                                            ? "bg-blue-500/20 text-blue-400"
-                                                            : k.provider === "anthropic"
-                                                                ? "bg-orange-500/20 text-orange-400"
-                                                                : "bg-green-500/20 text-green-400"
+                                                    ? "bg-purple-500/20 text-purple-400"
+                                                    : k.provider === "gemini"
+                                                        ? "bg-blue-500/20 text-blue-400"
+                                                        : k.provider === "anthropic"
+                                                            ? "bg-orange-500/20 text-orange-400"
+                                                            : "bg-green-500/20 text-green-400"
                                                     }`}
                                             >
                                                 {k.provider}

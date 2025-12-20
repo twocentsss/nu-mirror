@@ -1,3 +1,4 @@
+// Cache bust: 2025-12-20T15:40:00
 import { redis } from "@/lib/kv/redis";
 import { decryptSecret } from "@/lib/crypto/secrets";
 import { listKeysForUser, StoredKeyRow } from "@/lib/llm/keyStore";
@@ -46,7 +47,7 @@ async function getInflight(keyId: string) {
 
 export async function leaseKey(
     userEmail: string,
-    provider: "openai" | "openrouter" | "gemini" | "anthropic",
+    provider: "openai" | "openrouter" | "gemini" | "anthropic" | "mistral",
     _spreadsheetId?: string,
     _tokens?: { accessToken?: string; refreshToken?: string },
     excludeKeyIds?: string[],
@@ -77,7 +78,9 @@ export async function leaseKey(
         // If a specific provider was requested, we strongly prefer it.
         // But we allow others if they are the user's "preferred" key.
         const providerMatch = k.provider === provider;
-        if (!providerMatch && !k.preferred) continue;
+        // Allow matching provider, OR proxy (openrouter), OR user's explicitly preferred key
+        const isProxy = provider === "openrouter" || k.provider === "openrouter";
+        if (!providerMatch && !isProxy && !k.preferred) continue;
 
         const cd = await getCooldown(k.id);
         if (cd > nowMs()) continue;
@@ -97,7 +100,7 @@ export async function leaseKey(
 
     // Fallback: System Keys
     if (candidates.length === 0) {
-        console.log("[leaseKey] No user keys, trying fallback...");
+        console.log(`[leaseKey] No user keys for ${provider}, trying fallback...`);
 
         let sysKeys = await getActiveSystemKeys(provider);
 
@@ -109,8 +112,8 @@ export async function leaseKey(
             } else if (provider === "openrouter") { // Rare case
                 console.log("[leaseKey] No OpenRouter keys, trying OpenAI fallback...");
                 sysKeys = await getActiveSystemKeys("openai");
-            } else if (provider === "anthropic") {
-                console.log("[leaseKey] No Anthropic keys, trying OpenRouter fallback...");
+            } else if (provider === "anthropic" || provider === "gemini" || provider === "mistral") {
+                console.log(`[leaseKey] No ${provider} keys, trying OpenRouter fallback...`);
                 sysKeys = await getActiveSystemKeys("openrouter");
             }
         }
@@ -267,14 +270,23 @@ export async function leaseKey(
         keyId: chosen.id,
         apiKey: chosen.isSystem ? chosen.decryptedKey! : decryptSecret(chosen.encrypted!),
         preferred: chosen.preferred,
-        isSystem: chosen.isSystem
+        isSystem: chosen.isSystem,
+        keyProvider: chosen.keyProvider
     };
 }
 
-export async function releaseOpenAiKey(keyId: string) {
+export async function releaseLlmKey(keyId: string) {
     await inflightDec(keyId);
 }
 
-export async function cooldownOpenAiKey(keyId: string, ms: number) {
+export async function cooldownLlmKey(keyId: string, ms: number) {
     await setCooldown(keyId, nowMs() + ms);
+}
+
+// Temporary aliases for backward compatibility with stale build caches
+export async function releaseOpenAiKey(keyId: string) {
+    return releaseLlmKey(keyId);
+}
+export async function cooldownOpenAiKey(keyId: string, ms: number) {
+    return cooldownLlmKey(keyId, ms);
 }

@@ -1,5 +1,5 @@
 
-import { leaseKey, releaseOpenAiKey, cooldownOpenAiKey } from "../src/lib/llm/router";
+import { leaseKey, releaseLlmKey, cooldownLlmKey } from "../src/lib/llm/router";
 import { getSqlClient } from "../src/lib/events/client";
 import { encryptSecret } from "../src/lib/crypto/secrets";
 import { newUlid } from "../src/lib/id";
@@ -45,7 +45,7 @@ async function run() {
         // Simulate failure of Lease 1
         console.log("Simulating failure of Lease 1...");
         excluded.push(lease1.keyId);
-        // await cooldownOpenAiKey(lease1.keyId, 60000); // Optional: router checks excluded anyway
+        // await cooldownLlmKey(lease1.keyId, 60000); // Optional: router checks excluded anyway
 
         console.log("Attempt 2: Leasing with exclusion...");
         let lease2 = await leaseKey(TEST_EMAIL, 'openai', 'dummy', undefined, excluded);

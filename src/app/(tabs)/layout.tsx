@@ -15,6 +15,7 @@ import { DayWaterfallView } from "@/components/DayWaterfallView";
 import { EndOfDayReport } from "@/components/EndOfDayReport";
 import { PersonalizationView } from "@/components/PersonalizationView";
 import { AnimatePresence } from "framer-motion";
+import RantModal from "@/components/RantModal";
 
 export default function TabsLayout({
   children,
@@ -31,6 +32,7 @@ export default function TabsLayout({
     showWaterfall, setShowWaterfall,
     showReport, setShowReport,
     showPersonalization, setShowPersonalization,
+    showRantModal, setShowRantModal,
     showTaskEditor, editingTask, openTaskEditor, closeTaskEditor
   } = useUIStore();
 
@@ -46,6 +48,10 @@ export default function TabsLayout({
   const handleAction = (id: string) => {
     if (id === "capture") {
       openTaskEditor({});
+      return;
+    }
+    if (id === "rant") {
+      setShowRantModal(true);
       return;
     }
 
@@ -124,6 +130,13 @@ export default function TabsLayout({
 
       {/* System Modals */}
       <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <RantModal
+        isOpen={showRantModal}
+        onClose={() => setShowRantModal(false)}
+        onCreated={async () => {
+          await refreshTasks();
+        }}
+      />
       <AnimatePresence>
         {showGraph && <WorldGraphView key="graph" tasks={tasks} onClose={() => setShowGraph(false)} />}
         {showWaterfall && <DayWaterfallView key="waterfall" tasks={tasks} onClose={() => setShowWaterfall(false)} />}

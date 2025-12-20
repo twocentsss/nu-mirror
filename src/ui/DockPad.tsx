@@ -33,7 +33,7 @@ import ViewSelector from "@/components/today/ViewSelector";
 import { useUIStore } from "@/lib/store/ui-store";
 
 export type DockActionId =
-  | "chat" | "solve" | "capture"
+  | "chat" | "solve" | "capture" | "rant"
   | "calendar" | "reports" | "comics"
   | "story" | "agents" | "settings"
   | "todo" | "today" | "focus" | "me"
@@ -51,8 +51,8 @@ interface DockItem {
 const ITEMS_BY_SIDE: Record<Exclude<DockPosition, 'top'>, DockItem[]> = {
   left: [
     { id: "capture", label: "Create Task", sub: "Quantum Capture", icon: <Plus size={18} /> },
+    { id: "rant", label: "Rant to Task", sub: "AI Generation", icon: <Zap size={18} /> },
     { id: "chat", label: "Ask Nu", sub: "Quick chat", icon: <MessageCircle size={18} /> },
-    { id: "solve", label: "Auto-Solve", sub: "Break tasks", icon: <Zap size={18} /> },
   ],
   right: [
     { id: "story", label: "Story", sub: "Narrative", icon: <BookOpen size={18} /> },

@@ -1,13 +1,17 @@
+// Cache bust: 2025-12-20T15:40:00
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
-import { leaseKey, releaseOpenAiKey, cooldownOpenAiKey } from "@/lib/llm/router";
+import { leaseKey, releaseLlmKey, cooldownLlmKey } from "@/lib/llm/router";
 import { getActiveSystemKeys, incrementUserSystemUsage } from "@/lib/admin/adminStore";
 
 
 import { openAiResponses } from "@/lib/llm/openai";
+// Cache bust: 2025-12-20T15:40:00
+import { redis } from "@/lib/kv/redis";
 import { geminiResponses } from "@/lib/llm/gemini";
 import { anthropicResponses } from "@/lib/llm/anthropic";
+import { mistralResponses } from "@/lib/llm/mistral";
 import { logLlmUsage } from "@/lib/llm/logging";
 
 
@@ -41,8 +45,8 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    let model = String(body.model || "gpt-4.1-mini");
-    let provider = String(body.provider || (model.includes("/") ? "openrouter" : (model.includes("gemini") ? "gemini" : (model.includes("claude") ? "anthropic" : "openai")))) as "openai" | "openrouter" | "gemini" | "anthropic";
+    let model = String(body.model || "gpt-4o-mini");
+    let provider = String(body.provider || (model.includes("/") ? "openrouter" : (model.includes("gemini") ? "gemini" : (model.includes("claude") ? "anthropic" : (model.includes("mistral") ? "mistral" : "openai"))))) as "openai" | "openrouter" | "gemini" | "anthropic" | "mistral";
     const prompt = String(body.prompt || "");
 
     if (!prompt.trim()) return NextResponse.json({ error: "prompt required" }, { status: 400 });
@@ -59,37 +63,16 @@ export async function POST(req: Request) {
         let lease: any = null;
 
         try {
-            // ... (existing priority check logic mostly same, but need to pass failedKeys)
-            // Actually, priority check logic is complex to wrap.
-            // Let's simplify: Standard lease first. Priority check is optimization.
-            // If we want to keep priority check, we must pass failedKeys to it.
-
             // Simplified Smart Routing:
             // 1. Try to lease a key (respecting exclusions)
             lease = await leaseKey(session.user.email, provider, spreadsheetId, { accessToken, refreshToken }, failedKeys);
 
             if (!lease) {
-                // Try fallback providers if OpenAI failed? 
-                // (Existing fallback logic handling)
-                if (provider === "openai" && retry === 0) {
-                    // ... (keep fallback logic or simplify?)
-                    // For now, let's trust leaseKey's internal fallback to system keys.
-                    // But leaseKey doesn't cross-provider fallback.
-                    // Should we duplicate the complex fallback logic? 
-                    // Let's keep the user's provider preference logic but make it robust.
-                }
                 break; // No keys left
             }
 
             // EXECUTE
-            const isOpenRouterKey = lease.apiKey.startsWith("sk-or-");
-            const isGeminiKey = lease.apiKey.startsWith("AIza");
-            const isAnthropicKey = lease.apiKey.startsWith("sk-ant-");
-
-            let effectiveProvider = provider;
-            if (isOpenRouterKey) effectiveProvider = "openrouter";
-            if (isGeminiKey) effectiveProvider = "gemini";
-            if (isAnthropicKey) effectiveProvider = "anthropic";
+            let effectiveProvider = lease.keyProvider;
 
             let out;
             if (effectiveProvider === "gemini") {
@@ -102,6 +85,12 @@ export async function POST(req: Request) {
                 out = await anthropicResponses({
                     apiKey: lease.apiKey,
                     model: model.includes("claude") ? model : "claude-3-5-sonnet-20240620",
+                    input: prompt
+                });
+            } else if (effectiveProvider === "mistral") {
+                out = await mistralResponses({
+                    apiKey: lease.apiKey,
+                    model: model || "mistral-small-latest",
                     input: prompt
                 });
             } else {
@@ -118,7 +107,7 @@ export async function POST(req: Request) {
             }
 
             // Success!
-            await releaseOpenAiKey(lease.keyId);
+            await releaseLlmKey(lease.keyId);
 
             // Track usage if system key
             if (lease.isSystem && out.usage?.total_tokens) {
@@ -136,16 +125,16 @@ export async function POST(req: Request) {
             console.warn(`[SmartRouting] Key ${lease?.keyId} failed:`, e.message);
 
             if (lease) {
-                await releaseOpenAiKey(lease.keyId);
+                await releaseLlmKey(lease.keyId);
                 failedKeys.push(lease.keyId);
 
                 // Rate limit? Cooldown.
                 if (e?.status === 429) {
-                    await cooldownOpenAiKey(lease.keyId, 60_000);
+                    await cooldownLlmKey(lease.keyId, 60_000);
                 }
                 // Auth error? Cooldown longer.
                 if (e?.status === 401) {
-                    await cooldownOpenAiKey(lease.keyId, 3600_000);
+                    await cooldownLlmKey(lease.keyId, 3600_000);
                 }
             }
 

@@ -254,7 +254,7 @@ export default function TaskEditorModal(props: {
           notes,
           duration_min: durationMin,
           answers,
-          model: "gpt-4.1-mini",
+          model: "gpt-4o-mini",
         }),
       });
       const j = await res.json();

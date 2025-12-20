@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import { Event, EvtType } from './types';
 const sqlPool = new Map<string, postgres.Sql>();
+const ensuredSchemas = new Set<string>();
 
 export function getTenantSchema(email: string): string {
     // Sanitize email: alphabets, numbers, and underscores only.
@@ -9,6 +10,8 @@ export function getTenantSchema(email: string): string {
 }
 
 export async function ensureTenantSchema(sql: postgres.Sql, schema: string) {
+    if (ensuredSchemas.has(schema)) return;
+
     // In a production app, you might want to cache the fact that it's created
     // or run this only during initialization.
     await sql.unsafe(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
@@ -55,6 +58,8 @@ export async function ensureTenantSchema(sql: postgres.Sql, schema: string) {
         ALTER TABLE ${schema}.goals ADD COLUMN IF NOT EXISTS due_date timestamptz;
         ALTER TABLE ${schema}.projects ADD COLUMN IF NOT EXISTS due_date timestamptz;
     `);
+
+    ensuredSchemas.add(schema);
 }
 
 export async function ensureGlobalSchema(sql: postgres.Sql) {

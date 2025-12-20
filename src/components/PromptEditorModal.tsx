@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/lib/store/ui-store";
+import { RECOMMENDED_MODELS } from "@/lib/llm/models";
 
 type PromptRecord = {
   id?: string;
@@ -170,14 +171,34 @@ export default function PromptEditorModal(props: {
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-[0.4em] text-white/50 px-1">Model</label>
-                    <input
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-cyan-500/50 transition"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder="e.g. gpt-4"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-[0.4em] text-white/50 px-1">Model</label>
+                      <input
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-cyan-500/50 transition font-mono"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        placeholder="e.g. gpt-4"
+                      />
+                    </div>
+
+                    {/* Model Suggestions */}
+                    <div className="flex flex-wrap gap-2">
+                      {RECOMMENDED_MODELS.filter(m => m.provider === provider).map(m => (
+                        <button
+                          key={m.id}
+                          onClick={() => setModel(m.id)}
+                          className={`text-[10px] px-3 py-1.5 rounded-full border transition-all ${model === m.id
+                            ? "bg-white text-black border-white"
+                            : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                            }`}
+                          title={m.description}
+                        >
+                          {m.name}
+                          {m.isFree && <span className="ml-1 text-[8px] text-emerald-400 font-bold">FREE</span>}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

@@ -6,12 +6,13 @@ import {
   getAccountSpreadsheetId,
 } from "@/lib/google/accountSpreadsheet";
 import { readAllRows } from "@/lib/google/sheetStore";
-import { leaseKey, releaseOpenAiKey } from "@/lib/llm/router";
+import { leaseKey, releaseLlmKey } from "@/lib/llm/router";
 import { incrementUserSystemUsage } from "@/lib/admin/adminStore";
 
 import { openAiResponses } from "@/lib/llm/openai";
 import { geminiResponses } from "@/lib/llm/gemini";
 import { anthropicResponses } from "@/lib/llm/anthropic";
+import { mistralResponses } from "@/lib/llm/mistral";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -98,6 +99,13 @@ export async function POST(req: Request) {
         input: promptText,
         jsonMode: jsonMode ?? false,
       });
+    } else if (provider === "mistral") {
+      result = await mistralResponses({
+        apiKey: leased.apiKey,
+        model: model || "mistral-small-latest",
+        input: promptText,
+        jsonMode: jsonMode ?? false,
+      });
     } else {
       let baseURL: string | undefined;
       const isOR = provider === "openrouter" || leased.apiKey.startsWith("sk-or-");
@@ -123,6 +131,6 @@ export async function POST(req: Request) {
     console.error("AI Run Error:", error);
     return NextResponse.json({ error: error.message || "AI execution failed" }, { status: 500 });
   } finally {
-    await releaseOpenAiKey(leased.keyId);
+    await releaseLlmKey(leased.keyId);
   }
 }

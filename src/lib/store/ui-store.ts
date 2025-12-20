@@ -18,6 +18,8 @@ interface UIState {
     setShowReport: (show: boolean) => void;
     showPersonalization: boolean;
     setShowPersonalization: (show: boolean) => void;
+    showRantModal: boolean;
+    setShowRantModal: (show: boolean) => void;
 
     // Task Editor
     showTaskEditor: boolean;
@@ -42,6 +44,8 @@ export const useUIStore = create<UIState>((set) => ({
     setShowReport: (show) => set({ showReport: show }),
     showPersonalization: false,
     setShowPersonalization: (show) => set({ showPersonalization: show }),
+    showRantModal: false,
+    setShowRantModal: (show) => set({ showRantModal: show }),
 
     showTaskEditor: false,
     editingTask: null,

@@ -7,6 +7,11 @@ import {
 } from "@/lib/google/accountSpreadsheet";
 import { appendRow } from "@/lib/google/sheetStore";
 import { newUlid } from "@/lib/id";
+import { eventClient } from "@/lib/events/client";
+import { taskProjector } from "@/lib/events/projector/taskProjector";
+import { resolveStorageUrl } from "@/lib/config/storage";
+import { id } from "@/lib/cogos/id";
+import { SHEET_TABS } from "@/lib/google/schema";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -34,8 +39,10 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const parent_task_id = String(body.parent_task_id || "");
+  const episode_id = String(body.episode_id || "");
   const due_date = String(body.due_date || "");
   const time_of_day = String(body.time_of_day || "ANYTIME");
+  const lf = body.lf ? Number(body.lf) : undefined;
   const items = Array.isArray(body.items) ? body.items : [];
 
   if (!parent_task_id) return NextResponse.json({ error: "parent_task_id required" }, { status: 400 });
@@ -43,7 +50,20 @@ export async function POST(req: Request) {
   if (!items.length) return NextResponse.json({ error: "items required" }, { status: 400 });
 
   const created: any[] = [];
+  const events: any[] = [];
   const now = new Date().toISOString();
+  const commonEnv = {
+    id: id("evt"),
+    ts: Date.now(),
+    src: 'api',
+    ver: '1',
+    kind: 'evt' as const,
+    trace: { traceId: id("tr"), spanId: id("sp") },
+    auth: {
+      tenantId: session.user.email,
+      actorId: session.user.email
+    }
+  };
 
   for (const it of items) {
     const title = String(it.title || "").trim();
@@ -51,11 +71,12 @@ export async function POST(req: Request) {
 
     const task = {
       id: newUlid(),
-      episode_id: "",
+      episode_id,
       parent_task_id,
       title,
       raw_text: String(it.raw_text ?? title),
       status: "intake",
+      lf,
       time: { due_date, time_of_day },
       notes: String(it.notes ?? ""),
       duration_min: Number(it.duration_min ?? 0) || undefined,
@@ -63,27 +84,35 @@ export async function POST(req: Request) {
       updated_at: now,
     };
 
-    const row = [
-      task.id,
-      task.episode_id,
-      task.parent_task_id,
-      task.title,
-      task.status,
-      task.time.due_date,
-      task.created_at,
-      task.updated_at,
-      JSON.stringify(task),
-    ];
-
-    await appendRow({
-      spreadsheetId,
-      tab: "Tasks",
-      accessToken,
-      refreshToken,
-      values: row,
+    events.push({
+      env: { ...commonEnv, id: id("evt") },
+      type: 'task.created' as const,
+      agg: { kind: 'task', id: task.id },
+      seq: 1,
+      body: task
     });
 
     created.push(task);
+  }
+
+  if (events.length > 0) {
+    // 1. Resolve Storage
+    const storageUrl = await resolveStorageUrl({
+      userEmail: session.user.email,
+      accessToken,
+      refreshToken
+    }) || undefined;
+
+    // 2. Append to Log
+    await eventClient.append(events as any, { storageUrl });
+
+    // 3. Project to Sheets & SQL
+    await taskProjector.process(events as any, {
+      spreadsheetId,
+      accessToken,
+      refreshToken,
+      storageUrl
+    });
   }
 
   return NextResponse.json({ ok: true, created });

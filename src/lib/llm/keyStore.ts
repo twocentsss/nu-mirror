@@ -4,7 +4,7 @@ import { newUlid } from "@/lib/id";
 
 const DB_URL = process.env.DATABASE_URL;
 
-export type LlmProvider = "openai" | "openrouter" | "gemini" | "anthropic";
+export type LlmProvider = "openai" | "openrouter" | "gemini" | "anthropic" | "mistral";
 export type StoredKeyRow = {
     id: string;
     user_email: string;

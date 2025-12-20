@@ -1,5 +1,5 @@
 
-import { leaseKey, releaseOpenAiKey } from "../src/lib/llm/router";
+import { leaseKey, releaseLlmKey } from "../src/lib/llm/router";
 import { incrementUserSystemUsage } from "../src/lib/admin/adminStore";
 
 // Mock environment for testing
@@ -62,7 +62,7 @@ async function run() {
             // const usage = await checkUserSystemUsage(TEST_EMAIL); // Need to export this or check DB
             console.log(`Usage incremented. Current usage (approx): (Note: verify script needs to read via adminStore to be sure, or trust impl)`);
 
-            await releaseOpenAiKey(lease.keyId);
+            await releaseLlmKey(lease.keyId);
             console.log("Key released.");
         }
 
