@@ -20,7 +20,11 @@ type PatchBody = {
   notes?: string;
   duration_min?: number;
   lf?: number;
+  priority?: string;
   progress?: number;
+  step?: number;
+  goal?: string;
+  project?: string;
 };
 
 export async function POST(req: Request) {
@@ -109,7 +113,11 @@ export async function POST(req: Request) {
   if (typeof body.notes === "string") task.notes = body.notes;
   if (typeof body.duration_min === "number") task.duration_min = body.duration_min;
   if (typeof body.lf === "number") task.lf = body.lf;
+  if (typeof body.priority === "string") task.priority = body.priority;
   if (typeof body.progress === "number") task.progress = body.progress;
+  if (typeof body.step === "number") task.step = body.step;
+  if (typeof body.goal === "string") task.goal = body.goal;
+  if (typeof body.project === "string") task.project = body.project;
 
   task.updated_at = new Date().toISOString();
 

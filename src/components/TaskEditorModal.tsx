@@ -20,6 +20,9 @@ export type TaskRecord = {
   lf?: number;
   priority?: "low" | "medium" | "high";
   progress?: number;
+  step?: number;
+  goal?: string;
+  project?: string;
 };
 
 type SuggestedSubtask = {
