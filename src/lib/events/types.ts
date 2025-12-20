@@ -28,6 +28,7 @@ export type EvtType =
     | 'game.bingo_marked' | 'game.bingo_won' | 'game.match_started'
     // Creative Domain
     | 'creative.story_drafted' | 'creative.asset_generated' | 'creative.comic_published'
+    | 'story.generated'
     // Platform / Scaling
     | 'platform.addon_enabled' | 'platform.storage_attached'
     ;
