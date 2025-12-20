@@ -5,15 +5,14 @@ import { Task } from '../../core/types';
 import { ulid } from 'ulid';
 
 /**
- * Closes a task.
- * 1. Updates status to 'done'
- * 2. Logs a 'close' event
+ * @deprecated This module is replaced by Event-Driven Architecture (EventClient + TaskProjector).
+ * Do not use for new implementations. See src/app/api/tasks/* for new patterns.
  */
 export async function closeTask(taskId: string, userId: string = 'system'): Promise<void> {
     // 1. Fetch current task to preserve other fields
     const { rows } = await readAllRows({ tab: SHEET_TABS.TASKS });
     const taskRow = rows.find(r => r[0] === taskId);
-    
+
     if (!taskRow) throw new Error(`Task ${taskId} not found`);
 
     // Update status (index 2 based on schema)
@@ -39,7 +38,7 @@ export async function closeTask(taskId: string, userId: string = 'system'): Prom
 export async function archiveTask(taskId: string, userId: string = 'system'): Promise<void> {
     const { rows } = await readAllRows({ tab: SHEET_TABS.TASKS });
     const taskRow = rows.find(r => r[0] === taskId);
-    
+
     if (!taskRow) throw new Error(`Task ${taskId} not found`);
 
     // 1. Add to Archive
@@ -73,7 +72,7 @@ export async function reopenTask(taskId: string, userId: string = 'system'): Pro
         const updatedRow = [...activeTask];
         updatedRow[2] = 'in_progress';
         updatedRow[8] = new Date().toISOString();
-        
+
         await updateRowById({ tab: SHEET_TABS.TASKS, id: taskId, values: updatedRow });
         await logTaskEvent(taskId, 'reopen', 'done', 'in_progress', userId);
         return;

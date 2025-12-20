@@ -1,0 +1,224 @@
+@schema v1
+@strict true
+@description "ANtigravity ↔ Nu: canonical contract schema (event-sourced, projection-friendly)"
+@version "2025-12-19"
+
+# -------------------------
+# Common primitives
+# -------------------------
+Id: str pattern:uuid
+Ts: i64 min:0                      # unix ms
+Str1: str nonempty:true
+Key: str pattern:^[a-zA-Z0-9_.:-]{1,64}$
+Path: str nonempty:true            # JSONPath-like / TONL path
+Hash: str pattern:^[a-f0-9]{16,128}$
+
+KV: obj
+  k: Key required
+  v: any required
+
+TagSet: list<str> unique:true
+
+# -------------------------
+# Envelope (every message / event)
+# -------------------------
+Envelope: obj
+  id: Id required
+  ts: Ts required
+  src: str required                # "nu" | "antigravity" | "cli" | "web"
+  ver: str required                # schema/app version
+  kind: str required               # "cmd" | "evt" | "qry" | "res" | "err"
+  trace: obj required
+    traceId: Id required
+    spanId: Id required
+    parentSpanId: Id?
+  auth: obj?
+    actorId: Id?
+    tenantId: Id?
+    scopes: list<str>?
+  meta: list<KV>?
+
+# -------------------------
+# Canonical object: Activity (a.k.a Episode)
+# Everything else is a projection of Activity streams.
+# -------------------------
+LifeFocus: obj
+  code: str required pattern:^(core|self|circle|grind|selfbusiness|impact|insight|indulge|chaos)$
+  label: Str1 required
+
+Stage: str pattern:^(new|parsed|planned|active|blocked|done|archived)$
+Severity: str pattern:^(low|med|high|critical)$
+
+Utterance: obj
+  id: Id required
+  ts: Ts required
+  raw: Str1 required
+  lang: str? pattern:^[a-z]{2}(-[A-Z]{2})?$
+  tokens: u32?
+  pos: obj?                        # optional POS tags, compressed
+    ver: str?
+    tags: list<KV>?                # e.g. [{k:"NOUN",v:3},{k:"VERB",v:2}]
+  intent: obj?
+    top: str?
+    conf: f64? min:0 max:1
+    alts: list<obj>?
+  refs: list<Id>?                  # mention links (tasks, people, docs)
+  tags: TagSet?
+
+Activity: obj
+  id: Id required
+  createdTs: Ts required
+  updatedTs: Ts required
+  focus: LifeFocus required
+  stage: Stage required
+  title: Str1?
+  summary: str?
+  severity: Severity?
+  tags: TagSet?
+  raw: obj required
+    utterances: list<Utterance> required min:1
+  state: obj?
+    mood: str?
+    energy: str?
+    location: str?
+    context: list<KV>?
+  semantics: obj?
+    entities: list<obj>?
+    constraints: list<obj>?
+    hypotheses: list<obj>?
+  links: obj?
+    parentId: Id?
+    childIds: list<Id>?
+    relatedIds: list<Id>?
+  projections: obj?
+    taskIds: list<Id>?
+    reportIds: list<Id>?
+    storyIds: list<Id>?
+    comicIds: list<Id>?
+
+# -------------------------
+# Projections (derived views)
+# -------------------------
+TaskStatus: str pattern:^(todo|doing|blocked|done|canceled)$
+
+Task: obj
+  id: Id required
+  activityId: Id required
+  title: Str1 required
+  status: TaskStatus required
+  dueTs: Ts?
+  estMin: u32?
+  priority: u8? min:0 max:10
+  tags: TagSet?
+  fields: list<KV>?                # flexible extension (costCenter, jarId, etc.)
+
+Goal: obj
+  id: Id required
+  title: Str1 required
+  focus: LifeFocus required
+  horizon: str? pattern:^(day|week|month|quarter|year|decade)$
+  metric: obj?
+    name: str?
+    target: f64?
+    unit: str?
+  taskIds: list<Id>?
+
+# -------------------------
+# Event-sourcing core (append-only log)
+# -------------------------
+EvtType: str pattern:^(activity\.created|activity\.updated|utterance\.added|task\.created|task\.updated|task\.status_set|task\.archived|task\.restored|edge\.added|edge\.removed|entity\.tagged|search\.performed|index\.upserted|projection\.rebuilt|index\.created|acl\.changed|preference\.set|consent\.updated|device\.registered|assist\.requested|llm\.call\.logged|provider\.key\.added|no_data_ai\.toggled|ledger\.posted|audit\.segment\.scored|report\.generated|story\.generated|comic\.rendered|social\.space\.created|social\.wall\.posted|social\.partner\.linked|game\.bingo\.updated|game\.sprint\.updated|platform\.metric\.ingested|feedback\.submitted|feature_request\.submitted|ui_bug\.reported|third_party\.connected|company\.upserted|store\.item\.upserted|commerce\.order\.created)$
+
+Event: obj
+  env: Envelope required
+  type: EvtType required
+  agg: obj required                 # aggregate pointer
+    kind: str required              # "activity" | "task" | "goal" | "social" | "game" | "audit" | "platform"
+    id: Id required
+  seq: u64 required                 # monotonic per-aggregate
+  prevHash: Hash?
+  body: any required                # typed by "type"
+  hash: Hash?                       # optional integrity
+
+# -------------------------
+# Query / Modify contract between Nu and ANtigravity
+# -------------------------
+CmdType: str pattern:^(get|query|set|merge|delete|push|pop|diff|snapshot|rebuildProjection|createIndex|dropIndex|validate)$
+
+Command: obj
+  env: Envelope required
+  cmd: CmdType required
+  target: obj required
+    kind: str required              # "doc"|"activity"|"task"|"eventlog"
+    id: Id?
+    path: Path?                     # doc path (users[0].name etc.)
+    query: str?                     # JSONPath-like
+  args: obj?
+    value: any?
+    options: obj?
+
+Result: obj
+  env: Envelope required
+  ok: bool required
+  data: any?
+  stats: obj?
+    bytes: u32?
+    tokens: u32?
+    ms: u32?
+    cacheHit: bool?
+  err: obj?
+    code: str?
+    message: str?
+    detail: any?
+
+# -------------------------
+# Index + ACL (minimal ReBAC-ish hooks)
+# -------------------------
+IndexType: str pattern:^(hash|btree|compound)$
+
+IndexSpec: obj
+  name: Key required
+  type: IndexType required
+  on: str required                  # path root, e.g. "activities[*]" or "tasks[*]"
+  fields: list<Path> required min:1
+  unique: bool?
+
+AclRule: obj
+  id: Id required
+  subject: obj required             # who
+    kind: str required              # "user"|"role"|"group"
+    id: Id required
+  object: obj required              # what
+    kind: str required
+    id: Id required
+  rel: str required                 # "owner"|"editor"|"viewer"
+  perms: list<str> required         # "read"|"write"|"admin"
+
+# -------------------------
+# Optional Projection Types (Materialized Read Models)
+# -------------------------
+AuditSegment: obj
+  id: Id required
+  tenantId: Id required
+  day: str required
+  segment: str required              # "segment_1".."segment_7"
+  score: u8 required min:0 max:100
+  evidence: list<Id>?                # activity/task/ledger ids
+
+PlatformMetric: obj
+  id: Id required
+  tenantId: Id required
+  ts: Ts required
+  name: Key required                 # "dau"|"screen_seconds"|"feature_touch"...
+  value: f64 required
+  dims: list<KV>?                    # {k:"feature",v:"today"} etc.
+
+SocialPost: obj
+  id: Id required
+  tenantId: Id required
+  ts: Ts required
+  spaceId: Id?
+  wallId: Id?
+  authorId: Id required
+  text: Str1 required
+  refs: list<Id>?
+  tags: TagSet?

@@ -6,6 +6,7 @@ import {
   getAccountSpreadsheetId,
 } from "@/lib/google/accountSpreadsheet";
 import { readAllRows } from "@/lib/google/sheetStore";
+import { resolveStorageUrl } from "@/lib/config/storage";
 
 function inRange(dateStr: string, start?: string, end?: string) {
   if (!dateStr) return false;
@@ -49,27 +50,62 @@ export async function GET(req: Request) {
     );
   }
 
-  let spreadsheetId: string;
+  // 1. Resolve Resources
+  const storageUrl = await resolveStorageUrl({
+    userEmail: session.user.email,
+    accessToken,
+    refreshToken
+  });
+
+  let spreadsheetId: string | undefined;
   try {
-    ({ spreadsheetId } = await getAccountSpreadsheetId({
+    const account = await getAccountSpreadsheetId({
       accessToken,
       refreshToken,
       userEmail: session.user.email,
-    }));
+    });
+    spreadsheetId = account.spreadsheetId;
   } catch (error) {
-    if (error instanceof AccountSpreadsheetNotFoundError) {
-      return NextResponse.json(
-        { error: "Account spreadsheet not initialized. Run /api/google/account/init first." },
-        { status: 412 },
-      );
-    }
-    throw error;
+    spreadsheetId = process.env.SHEETS_ID;
+  }
+
+  if (!spreadsheetId) {
+    return NextResponse.json({ error: "Spreadsheet not initialized" }, { status: 412 });
   }
 
   const { searchParams } = new URL(req.url);
   const start = searchParams.get("start") ?? undefined;
   const end = searchParams.get("end") ?? undefined;
 
+  // 2. Postgres Projection (Trial / BYODB)
+  if (storageUrl) {
+    try {
+      const { getSqlClient, getTenantSchema } = await import("@/lib/events/client");
+      const sql = getSqlClient(storageUrl);
+      const schema = getTenantSchema(session.user.email);
+
+      const projectionResults = await sql.unsafe(`
+            SELECT * FROM ${schema}.projection_tasks 
+            WHERE tenant_id = $1
+            ORDER BY updated_at DESC
+        `, [session.user.email]).catch(() => []);
+
+      if (projectionResults.length > 0) {
+        const tasks = projectionResults.map((row: any) => ({
+          id: row.task_id,
+          title: row.title,
+          status: row.status,
+          time: { due_date: row.due_ts ? new Date(row.due_ts).toISOString().split('T')[0] : null },
+          ...(row.fields || {})
+        }));
+        return NextResponse.json({ spreadsheetId, tasks, source: 'postgres' });
+      }
+    } catch (err) {
+      console.warn("[TaskList] Postgres read failed, falling back to Sheets", err);
+    }
+  }
+
+  // 3. Sheets Fallback
   const { rows, startRow } = await readAllRows({
     spreadsheetId,
     tab: "Tasks",
@@ -95,5 +131,5 @@ export async function GET(req: Request) {
       return inRange(due, start, end);
     });
 
-  return NextResponse.json({ spreadsheetId, tasks });
+  return NextResponse.json({ spreadsheetId, tasks, source: 'sheets' });
 }

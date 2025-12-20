@@ -7,6 +7,9 @@ import {
 } from "@/lib/google/accountSpreadsheet";
 import { appendRow } from "@/lib/google/sheetStore";
 import { id } from "@/lib/cogos/id";
+import { eventClient } from "@/lib/events/client";
+import { taskProjector } from "@/lib/events/projector/taskProjector";
+import { resolveStorageUrl } from "@/lib/config/storage";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -77,14 +80,7 @@ export async function POST(req: Request) {
     },
   };
 
-  await appendRow({
-    spreadsheetId,
-    tab: "Episodes",
-    accessToken,
-    refreshToken,
-    values: [episode.id, episode.created_at, episode.raw_text, JSON.stringify(episode.dims)],
-  });
-
+  /* Restoring Task Definition */
   const taskId = id("t");
   const task = {
     id: taskId,
@@ -111,23 +107,49 @@ export async function POST(req: Request) {
     updated_at: now,
   };
 
-  await appendRow({
-    spreadsheetId,
-    tab: "Tasks",
+  /* MIGRATION: Event-Driven Write */
+  const commonEnv = {
+    id: id("evt"),
+    ts: Date.now(),
+    src: 'api',
+    ver: '1',
+    kind: 'evt' as const,
+    trace: { traceId: id("tr"), spanId: id("sp") },
+    auth: {
+      tenantId: session.user.email,
+      actorId: session.user.email
+    }
+  };
+
+  const events = [
+    {
+      env: { ...commonEnv, id: id("evt") },
+      type: 'activity.created' as const,
+      agg: { kind: 'activity', id: episode.id },
+      seq: 1,
+      body: episode
+    },
+    {
+      env: { ...commonEnv, id: id("evt") },
+      type: 'task.created' as const,
+      agg: { kind: 'task', id: task.id },
+      seq: 1,
+      body: task
+    }
+  ];
+
+  // 1. Resolve Storage (BYODB)
+  const storageUrl = await resolveStorageUrl({
+    userEmail: session.user.email,
     accessToken,
-    refreshToken,
-    values: [
-      task.id,
-      task.episode_id,
-      task.parent_task_id ?? "",
-      task.title,
-      task.status,
-      dueDate ?? "",
-      task.created_at,
-      task.updated_at,
-      JSON.stringify(task),
-    ],
-  });
+    refreshToken
+  }) || undefined;
+
+  // 2. Append to Log
+  await eventClient.append(events as any, { storageUrl });
+
+  // 3. Project to Sheets & SQL (Maintain Read Compatibility)
+  await taskProjector.process(events as any, { spreadsheetId, accessToken, refreshToken, storageUrl });
 
   return NextResponse.json({ spreadsheetId, episode, task });
 }

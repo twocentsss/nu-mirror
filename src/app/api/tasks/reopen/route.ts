@@ -1,7 +1,6 @@
-
 import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/authOptions";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/authOptions';
 import { eventClient } from "@/lib/events/client";
 import { taskProjector } from "@/lib/events/projector/taskProjector";
 import { id } from "@/lib/cogos/id";
@@ -9,12 +8,12 @@ import { getAccountSpreadsheetId } from "@/lib/google/accountSpreadsheet";
 import { resolveStorageUrl } from "@/lib/config/storage";
 
 export async function POST(request: Request) {
-    try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-        }
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
 
+    try {
         const { taskId } = await request.json();
 
         if (!taskId) {
@@ -37,10 +36,10 @@ export async function POST(request: Request) {
 
         const events = [{
             env: { id: id("evt"), ts: Date.now(), src: 'api', ver: '1', kind: 'evt', trace: { traceId: id("tr"), spanId: id("sp") } },
-            type: 'task.status_set' as const,
+            type: 'task.restored' as const,
             agg: { kind: 'task', id: taskId },
-            seq: 1, // simplified seq for migration
-            body: { status: 'done', prevStatus: 'in_progress' }
+            seq: 1,
+            body: {} // Projector handles status set to 'in_progress' implicitly
         }];
 
         // Resolve Storage (BYODB)
@@ -55,7 +54,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, taskId });
     } catch (error) {
-        console.error('Error closing task:', error);
+        console.error('Error reopening task:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

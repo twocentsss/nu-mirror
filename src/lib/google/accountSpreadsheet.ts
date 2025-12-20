@@ -1,7 +1,8 @@
 import type { drive_v3, sheets_v4 } from "googleapis";
 import { makeGoogleClient } from "./googleClient";
+import { redis } from "../kv/redis";
 
-const CACHE_TTL_MS = 10 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const spreadsheetCache = new Map<string, { spreadsheetId: string; ts: number }>();
 
 const TABS = [
@@ -99,32 +100,62 @@ function cacheKey(email: string) {
   return email.trim().toLowerCase();
 }
 
-function setCache(userEmail: string, spreadsheetId: string) {
+async function setCache(userEmail: string, spreadsheetId: string) {
   spreadsheetCache.set(cacheKey(userEmail), { spreadsheetId, ts: Date.now() });
+  if (redis) {
+    try {
+      await redis.set(`nu:sheet_id:${cacheKey(userEmail)}`, spreadsheetId, { ex: 24 * 3600 });
+    } catch (err) {
+      console.error("[accountSpreadsheet] Redis set failed", err);
+    }
+  }
 }
 
-function getCachedSpreadsheetId(userEmail: string) {
-  const cached = spreadsheetCache.get(cacheKey(userEmail));
-  if (!cached) return null;
-  if (Date.now() - cached.ts > CACHE_TTL_MS) {
-    spreadsheetCache.delete(cacheKey(userEmail));
-    return null;
+async function getCachedSpreadsheetId(userEmail: string) {
+  const cKey = cacheKey(userEmail);
+
+  // L1: Memory
+  const cached = spreadsheetCache.get(cKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.spreadsheetId;
   }
-  return cached.spreadsheetId;
+
+  // L2: Redis
+  if (redis) {
+    try {
+      const stored = await redis.get<string>(`nu:sheet_id:${cKey}`);
+      if (stored) {
+        spreadsheetCache.set(cKey, { spreadsheetId: stored, ts: Date.now() });
+        return stored;
+      }
+    } catch (err) {
+      console.error("[accountSpreadsheet] Redis get failed", err);
+    }
+  }
+
+  return null;
 }
 
 async function lookupSpreadsheetId(userEmail: string, drive: drive_v3.Drive) {
   const fileName = `NuMirror Account - ${userEmail}`;
-  const list = await drive.files.list({
-    q: [
-      `name='${fileName.replace(/'/g, "\\'")}'`,
-      "mimeType='application/vnd.google-apps.spreadsheet'",
-      "trashed=false",
-    ].join(" and "),
-    fields: "files(id,name)",
-    pageSize: 5,
-  });
-  return list.data.files?.[0]?.id ?? null;
+  try {
+    const list = await drive.files.list({
+      q: [
+        `name='${fileName.replace(/'/g, "\\'")}'`,
+        "mimeType='application/vnd.google-apps.spreadsheet'",
+        "trashed=false",
+      ].join(" and "),
+      fields: "files(id,name)",
+      pageSize: 5,
+    });
+    return list.data.files?.[0]?.id ?? null;
+  } catch (err: any) {
+    if (err.status === 403 || err.code === 403) {
+      console.warn(`[lookupSpreadsheetId] 403 Insufficient Scopes for ${userEmail}. App likely only has drive.file access.`);
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function ensureTabsAndHeaders(spreadsheetId: string, sheets: sheets_v4.Sheets) {
@@ -192,11 +223,12 @@ export async function initAccountSpreadsheet(params: {
       values: [
         ["account_spreadsheet_id", spreadsheetId, now],
         ["schema_version", "cogos_v1", now],
+        ["TRIAL_START_AT", now, now],
       ],
     },
   });
 
-  setCache(params.userEmail, spreadsheetId);
+  await setCache(params.userEmail, spreadsheetId);
   return { spreadsheetId, fileName };
 }
 
@@ -205,14 +237,15 @@ export async function getAccountSpreadsheetId(params: {
   refreshToken?: string;
   userEmail: string;
 }) {
-  const cached = getCachedSpreadsheetId(params.userEmail);
+  const cached = await getCachedSpreadsheetId(params.userEmail);
   if (cached) return { spreadsheetId: cached };
 
   const { drive } = makeGoogleClient(params.accessToken, params.refreshToken);
   const spreadsheetId = await lookupSpreadsheetId(params.userEmail, drive);
+
   if (!spreadsheetId) {
     throw new AccountSpreadsheetNotFoundError();
   }
-  setCache(params.userEmail, spreadsheetId);
+  await setCache(params.userEmail, spreadsheetId);
   return { spreadsheetId };
 }

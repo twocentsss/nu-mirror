@@ -3,16 +3,17 @@
 import { useSession, signIn, signOut } from "next-auth/react";
 import { MirrorCard } from "@/ui/MirrorCard";
 import TaskRow from "@/ui/TaskRow";
+import PostgresSetupManager from "@/components/PostgresSetupManager";
 import OpenAiKeyManager from "@/components/OpenAiKeyManager";
 import { useTheme, Theme } from "@/hooks/useTheme";
-import { Moon, Sun, Cloud, Coffee } from "lucide-react";
+import { Moon, Sun, Cloud, Coffee, Database, Cpu } from "lucide-react";
 
 export default function MePage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-5 px-4 min-h-screen text-[var(--text-primary)] transition-colors duration-500">
+    <div className="space-y-5 px-4 pb-20 min-h-screen text-[var(--text-primary)] transition-colors duration-500">
       <div className="flex flex-col gap-1 mt-4">
         <h1 className="font-serif text-[40px] leading-[1.0] tracking-[-0.02em] text-[var(--text-primary)]">
           Me
@@ -87,6 +88,8 @@ export default function MePage() {
         </div>
       </MirrorCard>
 
+      <PostgresSetupManager />
+
       <MirrorCard className="overflow-hidden">
         <div className="px-4 pt-4 pb-2 text-[13px] font-semibold text-[var(--text-secondary)]">
           Settings
@@ -95,6 +98,40 @@ export default function MePage() {
           <TaskRow title="Profile" note="Avatar, preferences (later)" onClick={() => { }} />
           <TaskRow title="Export" note="Share cards + backups (later)" onClick={() => { }} />
           <TaskRow title="Integrations" note="Google, Sheets, Vercel (later)" onClick={() => { }} />
+        </div>
+      </MirrorCard>
+
+      <MirrorCard className="overflow-hidden">
+        <div className="px-4 pt-4 pb-2 text-[13px] font-semibold text-[var(--text-secondary)]">
+          Platform & Compute
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] opacity-60">
+            <div className="flex items-center gap-3">
+              <Cpu size={18} className="text-[var(--text-secondary)]" />
+              <div>
+                <div className="text-[13px] font-medium">Remote Workers</div>
+                <div className="text-[11px] text-[var(--text-secondary)]">Connect your own Vercel/Fly.io instances</div>
+              </div>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Add-on</span>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] opacity-60">
+            <div className="flex items-center gap-3">
+              <Cloud size={18} className="text-[var(--text-secondary)]" />
+              <div>
+                <div className="text-[13px] font-medium">Custom CDN / S3</div>
+                <div className="text-[11px] text-[var(--text-secondary)]">Direct media storage billing</div>
+              </div>
+            </div>
+            <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)]">Add-on</span>
+          </div>
+        </div>
+        <div className="bg-[var(--glass-bg)]/50 p-3 border-t border-[var(--glass-border)]">
+          <p className="text-[11px] italic text-[var(--text-secondary)] text-center">
+            Scale to 10k users by bringing your own production infra.
+          </p>
         </div>
       </MirrorCard>
 
@@ -108,8 +145,8 @@ function ThemeButton({ active, onClick, label, icon, bg }: { active: boolean; on
     <button
       onClick={onClick}
       className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${active
-          ? "border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/20"
-          : "border-transparent hover:bg-[var(--glass-bg)]"
+        ? "border-[var(--accent-color)] ring-2 ring-[var(--accent-color)]/20"
+        : "border-transparent hover:bg-[var(--glass-bg)]"
         }`}
     >
       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bg} shadow-sm`}>

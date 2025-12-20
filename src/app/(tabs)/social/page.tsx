@@ -29,7 +29,7 @@ export default async function SocialPage() {
   }
 
   if (!spreadsheetId) {
-    throw new Error("Spreadsheet not initialized; sign in with Google to create it.");
+    throw new Error("Unable to find or initialize your NuMirror Spreadsheet. Please try signing out and signing back in to grant required permissions.");
   }
 
   const userEmail = session?.user?.email ?? undefined;
