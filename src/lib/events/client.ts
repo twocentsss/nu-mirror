@@ -93,6 +93,7 @@ export async function ensureGlobalSchema(sql: postgres.Sql) {
           due_ts timestamptz,
           priority smallint,
           tags text[],
+          step smallint default 1 check (step >= 1 and step <= 10),
           updated_at timestamptz not null default now(),
           fields jsonb,
           primary key (tenant_id, task_id)

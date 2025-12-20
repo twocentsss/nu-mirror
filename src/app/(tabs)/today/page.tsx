@@ -15,6 +15,8 @@ import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
 import { motion, AnimatePresence, useMotionValue, PanInfo } from "framer-motion";
 import { useUIStore } from "@/lib/store/ui-store";
+import ViewSelector, { TaskViewMode } from "@/components/today/ViewSelector";
+import SingleLineTaskView from "@/components/today/SingleLineTaskView";
 
 type ViewMode = "DAY" | "WEEK" | "SPRINT" | "MONTH" | "QUARTER";
 
@@ -87,6 +89,12 @@ export default function TodayPage() {
   const [showWaterfall, setShowWaterfall] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [showPersonalization, setShowPersonalization] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<TaskViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('today-view-mode') as TaskViewMode) || 'compact';
+    }
+    return 'compact';
+  });
 
   const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
 
@@ -154,6 +162,26 @@ export default function TodayPage() {
 
     alert(`🎯 SCORED: ${result.sps.toFixed(2)} SPS\n\nAccount: ${result.accountCode}\nBPS: ${result.bps.toFixed(2)} (Base)\n\n(See Console for Journal Entry)`);
   };
+
+  const handleStepChange = useCallback(async (taskId: string, step: number) => {
+    try {
+      const res = await fetch("/api/cogos/task/update", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: taskId, step }),
+      });
+      if (res.ok) {
+        await fetchTasks(dateRange);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [fetchTasks, dateRange]);
+
+  const handleViewChange = useCallback((view: TaskViewMode) => {
+    setTaskViewMode(view);
+    localStorage.setItem('today-view-mode', view);
+  }, []);
 
   const filteredTasks = useMemo(() => {
     let res = tasks;
@@ -289,7 +317,8 @@ export default function TodayPage() {
                 ))}
               </div>
 
-              <div className="flex gap-1">
+              <div className="flex gap-2">
+                <ViewSelector view={taskViewMode} onChange={handleViewChange} />
                 <button
                   onClick={() => setLfFilter(lfFilter === null ? 1 : null)}
                   className={`h-8 px-3 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1 ${lfFilter !== null
@@ -331,19 +360,29 @@ export default function TodayPage() {
         )}
 
         <div className="px-4 flex flex-col gap-4 relative mt-2">
-          <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
-          <AnimatePresence>
-            {filteredTasks.map((task, i) => (
-              <TodayTaskRow
-                key={task.id ?? `task-${i}`}
-                task={task}
-                index={i}
-                markDone={markDone}
-                handleScore={handleScore}
-                openEditor={openEditor}
-              />
-            ))}
-          </AnimatePresence>
+          {taskViewMode === 'single-line' ? (
+            <SingleLineTaskView
+              tasks={filteredTasks}
+              onTaskClick={(task) => openEditor(task)}
+              onStepChange={handleStepChange}
+            />
+          ) : (
+            <>
+              <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
+              <AnimatePresence>
+                {filteredTasks.map((task, i) => (
+                  <TodayTaskRow
+                    key={task.id ?? `task-${i}`}
+                    task={task}
+                    index={i}
+                    markDone={markDone}
+                    handleScore={handleScore}
+                    openEditor={openEditor}
+                  />
+                ))}
+              </AnimatePresence>
+            </>
+          )}
 
           {loadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
           {!loadingTasks && filteredTasks.length === 0 && (

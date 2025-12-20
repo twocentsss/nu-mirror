@@ -56,6 +56,7 @@ create table if not exists nu.projection_tasks (
   due_ts timestamptz,
   priority smallint,
   tags text[],
+  step smallint default 1 check (step >= 1 and step <= 10),
   updated_at timestamptz not null default now(),
   fields jsonb,
 
