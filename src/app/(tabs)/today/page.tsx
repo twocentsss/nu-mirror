@@ -3,9 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info, Check } from "lucide-react"; // Icons
+import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info, Check, Map, Activity, FileText, Fingerprint } from "lucide-react"; // Icons
 import AboutModal from "@/components/AboutModal";
 import TaskEditorModal, { TaskRecord } from "@/components/TaskEditorModal";
+import { WorldGraphView } from "@/components/WorldGraphView";
+import { DayWaterfallView } from "@/components/DayWaterfallView";
+import { EndOfDayReport } from "@/components/EndOfDayReport";
+import { PersonalizationView } from "@/components/PersonalizationView";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
@@ -79,6 +83,10 @@ export default function TodayPage() {
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [showAbout, setShowAbout] = useState(false);
+  const [showGraph, setShowGraph] = useState(false);
+  const [showWaterfall, setShowWaterfall] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showPersonalization, setShowPersonalization] = useState(false);
 
   const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
 
@@ -174,7 +182,7 @@ export default function TodayPage() {
           initial={false}
           animate={{ y: isNavVisible ? 0 : -200, opacity: isNavVisible ? 1 : 0 }}
           transition={{ type: "spring", damping: 20, stiffness: 100 }}
-          className="sticky top-0 z-20 pt-4 px-4 pb-4 bg-transparent pointer-events-none"
+          className="sticky top-0 z-50 pt-4 px-4 pb-4 bg-transparent pointer-events-none"
         >
           <div className="glass-panel rounded-3xl p-4 flex flex-col gap-4 pointer-events-auto shadow-2xl backdrop-blur-md">
             <div className="flex items-center justify-between">
@@ -226,11 +234,23 @@ export default function TodayPage() {
                 </div>
 
                 <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
+                  <button onClick={() => setShowPersonalization(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Nu Flow Protocol">
+                    <Fingerprint size={16} />
+                  </button>
                   <button onClick={() => alert("Search")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Search size={16} />
                   </button>
                   <button onClick={() => alert("Settings")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Settings size={16} />
+                  </button>
+                  <button onClick={() => setShowGraph(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Mental Map">
+                    <Map size={16} />
+                  </button>
+                  <button onClick={() => setShowWaterfall(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Day Waterfall">
+                    <Activity size={16} />
+                  </button>
+                  <button onClick={() => setShowReport(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="End of Day Report">
+                    <FileText size={16} />
                   </button>
                   <button onClick={() => setShowAbout(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                     <Info size={16} />
@@ -344,6 +364,12 @@ export default function TodayPage() {
           onChanged={handleSave}
         />
         <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+        <AnimatePresence>
+          {showGraph && <WorldGraphView key="graph" tasks={tasks} onClose={() => setShowGraph(false)} />}
+          {showWaterfall && <DayWaterfallView key="waterfall" tasks={tasks} onClose={() => setShowWaterfall(false)} />}
+          {showReport && <EndOfDayReport key="report" tasks={tasks} date={selectedDate} onClose={() => setShowReport(false)} />}
+          {showPersonalization && <PersonalizationView key="personalization" onClose={() => setShowPersonalization(false)} />}
+        </AnimatePresence>
       </div>
     </SwipeToCreate >
   );

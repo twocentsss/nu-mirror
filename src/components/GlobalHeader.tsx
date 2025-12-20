@@ -40,9 +40,9 @@ export default function GlobalHeader() {
                     </div>
 
                     {/* Right: Actions */}
-                        <div className="flex gap-2">
-                            <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
-                                <button
+                    <div className="flex gap-2">
+                        <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
+                            <button
                                 onClick={() => alert("Search")}
                                 className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                             >
@@ -57,17 +57,17 @@ export default function GlobalHeader() {
                             <button
                                 onClick={() => setShowAbout(true)}
                                 className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                                >
-                                    <Info size={16} />
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => router.push("/today?openTask=1")}
-                                className="p-1.5 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                             >
-                                <Plus size={16} />
+                                <Info size={16} />
                             </button>
                         </div>
+                        <button
+                            onClick={() => router.push("/today?openTask=1")}
+                            className="p-1.5 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                        >
+                            <Plus size={16} />
+                        </button>
+                    </div>
                 </div>
             </motion.div>
 

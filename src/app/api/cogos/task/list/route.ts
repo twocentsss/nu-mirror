@@ -84,11 +84,26 @@ export async function GET(req: Request) {
       const sql = getSqlClient(storageUrl);
       const schema = getTenantSchema(session.user.email);
 
-      const projectionResults = await sql.unsafe(`
-            SELECT * FROM ${schema}.projection_tasks 
-            WHERE tenant_id = $1
-            ORDER BY updated_at DESC
-        `, [session.user.email]).catch(() => []);
+      let query = `SELECT * FROM ${schema}.projection_tasks WHERE tenant_id = $1`;
+      const params: any[] = [session.user.email];
+
+      if (start) {
+        query += ` AND due_ts >= $${params.length + 1}`;
+        params.push(start);
+      }
+      if (end) {
+        // End date from frontend is usually YYYY-MM-DD, so we set it to end of day for safety if no time component
+        // But if it's strictly YYYY-MM-DD comparison, casting via date might vary.
+        // Assuming simple string comparison or standard timestamp behavior.
+        // Let's add ' 23:59:59' if it looks like a plain date, or rely on client sending full ISO.
+        // Actually, start/end from TodayPage are formatted as YYYY-MM-DD.
+        query += ` AND due_ts <= $${params.length + 1}`;
+        params.push(end + ' 23:59:59');
+      }
+
+      query += ` ORDER BY updated_at DESC`;
+
+      const projectionResults = await sql.unsafe(query, params).catch(() => []);
 
       if (projectionResults.length > 0) {
         const tasks = projectionResults.map((row: any) => ({
@@ -96,6 +111,10 @@ export async function GET(req: Request) {
           title: row.title,
           status: row.status,
           time: { due_date: row.due_ts ? new Date(row.due_ts).toISOString().split('T')[0] : null },
+          // Flatten field JSON tasks for compatibility
+          duration_min: row.fields?.duration_min,
+          priority: row.fields?.priority,
+          lf: row.fields?.lf,
           ...(row.fields || {})
         }));
         return NextResponse.json({ spreadsheetId, tasks, source: 'postgres' });

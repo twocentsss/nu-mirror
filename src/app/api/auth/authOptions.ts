@@ -138,17 +138,26 @@ export const authOptions: NextAuthOptions = {
           refreshToken,
           userEmail: user.email,
         });
+      } catch (error) {
+        console.warn("Spreadsheet Init Warning:", error);
+      }
 
-        // Initialize Postgres Trial Schema on SSO
+      // Initialize Postgres Trial Schema on SSO (Self-healing DB)
+      try {
         const storageUrl = process.env.DATABASE_URL;
         if (storageUrl) {
-          const { getSqlClient, getTenantSchema, ensureTenantSchema } = await import("@/lib/events/client");
+          const { getSqlClient, getTenantSchema, ensureTenantSchema, ensureGlobalSchema } = await import("@/lib/events/client");
           const sql = getSqlClient(storageUrl);
+
+          // 1. Ensure Global Protocol Tables (Goals, Projects)
+          await ensureGlobalSchema(sql);
+
+          // 2. Ensure Tenant Schema (Event Log, Goals, Projects)
           const schema = getTenantSchema(user.email);
           await ensureTenantSchema(sql, schema);
         }
       } catch (error) {
-        console.error("initAccountSpreadsheet or Postgres setup failed during sign in", error);
+        console.error("Postgres Schema Setup Critical Error:", error);
       }
     },
   },
