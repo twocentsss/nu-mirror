@@ -217,7 +217,7 @@ export default function TaskEditorModal(props: {
             time_of_day: timeOfDay,
             notes: notes + (notes ? "\n\n" : "") + `[Quantum Energy: ${finalEnergy}/100]`,
             duration_min: finalDuration,
-            lf: finalLf === "" ? undefined : Number(finalLf),
+            lf: finalLf,
             priority,
           }),
         });
