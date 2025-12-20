@@ -34,8 +34,8 @@ export async function createProblem(title: string, hypothesis: string): Promise<
 
 export async function solveProblem(id: string, rca: string): Promise<void> {
     const { rows } = await readAllRows({ tab: SHEET_TABS.PROBLEMS });
-    const row = rows.find(r => r[0] === id);
-    
+    const row = rows.find((r: any) => r[0] === id);
+
     if (!row) throw new Error(`Problem ${id} not found`);
 
     const updatedRow = [...row];

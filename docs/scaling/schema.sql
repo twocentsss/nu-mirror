@@ -169,5 +169,17 @@ create table if not exists nu.projects (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists projects_by_goal
-  on nu.projects (tenant_id, goal_id);
+
+-- 6. Daily Metrics (Telemetry & Analytics)
+create table if not exists nu.daily_metrics (
+  day date not null,
+  metric_key text not null,
+  value numeric not null default 0,
+  metadata jsonb,
+  updated_at timestamptz not null default now(),
+
+  primary key (day, metric_key)
+);
+
+create index if not exists daily_metrics_by_range
+  on nu.daily_metrics (day, metric_key);

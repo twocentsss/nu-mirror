@@ -46,7 +46,7 @@ export async function GET(req: Request) {
     refreshToken,
   });
 
-  const prompts = rows.map((r) => ({
+  const prompts = rows.map((r: any[]) => ({
     id: String(r?.[0] ?? ""),
     title: String(r?.[1] ?? ""),
     template: String(r?.[2] ?? ""),
@@ -57,7 +57,7 @@ export async function GET(req: Request) {
     created_at: String(r?.[7] ?? ""),
     updated_at: String(r?.[8] ?? ""),
     json: String(r?.[9] ?? "{}"),
-  })).filter(p => p.id);
+  })).filter((p: any) => p.id);
 
   return NextResponse.json({ prompts });
 }

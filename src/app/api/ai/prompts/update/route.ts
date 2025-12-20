@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     refreshToken,
   });
 
-  const row = rows.find((r) => String(r?.[0] ?? "") === id);
+  const row = rows.find((r: any[]) => String(r?.[0] ?? "") === id);
   if (!row) {
     return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
   }

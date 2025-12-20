@@ -133,7 +133,7 @@ export async function GET(req: Request) {
   });
 
   const tasks = rows
-    .map((row, idx) => {
+    .map((row: any[], idx: number) => {
       const jsonStr = String(row?.[8] ?? "{}");
       try {
         const parsed = JSON.parse(jsonStr) as StoredTask;
@@ -143,8 +143,8 @@ export async function GET(req: Request) {
         return null;
       }
     })
-    .filter((task): task is StoredTask => Boolean(task))
-    .filter((task) => {
+    .filter((task: StoredTask | null): task is StoredTask => Boolean(task))
+    .filter((task: StoredTask) => {
       if (!start && !end) return true;
       const due = typeof task.time?.due_date === "string" ? task.time?.due_date ?? "" : "";
       return inRange(due, start, end);

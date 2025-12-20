@@ -14,7 +14,7 @@ type KeyRow = {
     preferred?: boolean | string | number;
 };
 
-const PROVIDER_ORDER: LlmProvider[] = ["openai", "openrouter", "gemini"];
+const PROVIDER_ORDER: LlmProvider[] = ["openai", "openrouter", "anthropic", "gemini"];
 
 const PROVIDER_META: Record<LlmProvider, { label: string; border: string; text: string; bg: string }> = {
     openai: {
@@ -34,6 +34,12 @@ const PROVIDER_META: Record<LlmProvider, { label: string; border: string; text: 
         border: "border-sky-400/70",
         text: "text-sky-400",
         bg: "bg-sky-500/10",
+    },
+    anthropic: {
+        label: "Anthropic",
+        border: "border-orange-400/70",
+        text: "text-orange-400",
+        bg: "bg-orange-500/10",
     },
 };
 
@@ -96,7 +102,7 @@ export default function OpenAiKeyManager() {
                 body: JSON.stringify({
                     label: newLabel,
                     apiKey: newKey.trim(),
-                    provider: newKey.startsWith("sk-or-") ? "openrouter" : (newKey.startsWith("AIza") ? "gemini" : "openai"),
+                    provider: newKey.startsWith("sk-or-") ? "openrouter" : (newKey.startsWith("AIza") ? "gemini" : (newKey.startsWith("sk-ant-") ? "anthropic" : "openai")),
                     daily_limit: newDailyLimit ? Number(newDailyLimit) : 0
                 }),
             });
@@ -172,8 +178,8 @@ export default function OpenAiKeyManager() {
 
     return (
         <MirrorCard className="overflow-hidden p-0" tilt={false}>
-        <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
-            <div className="flex flex-col gap-1">
+            <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
+                <div className="flex flex-col gap-1">
                     <span className="text-[var(--text-primary)]">LLM Keys</span>
                     <span className="text-[10px] text-[var(--text-secondary)] font-normal">
                         {activeKey
@@ -298,13 +304,14 @@ export default function OpenAiKeyManager() {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <span
-                                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${
-                                                    k.provider === "openrouter"
+                                                className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded-md ${k.provider === "openrouter"
                                                         ? "bg-purple-500/20 text-purple-400"
                                                         : k.provider === "gemini"
                                                             ? "bg-blue-500/20 text-blue-400"
-                                                            : "bg-green-500/20 text-green-400"
-                                                }`}
+                                                            : k.provider === "anthropic"
+                                                                ? "bg-orange-500/20 text-orange-400"
+                                                                : "bg-green-500/20 text-green-400"
+                                                    }`}
                                             >
                                                 {k.provider}
                                             </span>
@@ -316,39 +323,39 @@ export default function OpenAiKeyManager() {
                                         </div>
                                     </div>
 
-                <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
-                    <span className={isOverLimit ? "text-red-400 font-bold" : ""}>
-                        {limitText} tokens used
-                    </span>
-                    <span className="opacity-50">•</span>
-                    <span className="font-mono opacity-70">
-                        {new Date(k.created_at).toLocaleDateString()}
-                    </span>
-                    {!k.disabled && (
-                        <>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    disableKey(k.id);
-                                }}
-                                className="text-red-400 hover:text-red-300 hover:underline transition-opacity"
-                            >
-                                Disable
-                            </button>
-                            {!isPreferredRow && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreferred(k.id);
-                                }}
-                                type="button"
-                                className="px-3 py-1 ml-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold shadow-lg shadow-purple-400/40"
-                            >
-                                    Set Default
-                                </button>
-                            )}
-                        </>
-                    )}
+                                    <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
+                                        <span className={isOverLimit ? "text-red-400 font-bold" : ""}>
+                                            {limitText} tokens used
+                                        </span>
+                                        <span className="opacity-50">•</span>
+                                        <span className="font-mono opacity-70">
+                                            {new Date(k.created_at).toLocaleDateString()}
+                                        </span>
+                                        {!k.disabled && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        disableKey(k.id);
+                                                    }}
+                                                    className="text-red-400 hover:text-red-300 hover:underline transition-opacity"
+                                                >
+                                                    Disable
+                                                </button>
+                                                {!isPreferredRow && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPreferred(k.id);
+                                                        }}
+                                                        type="button"
+                                                        className="px-3 py-1 ml-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-semibold shadow-lg shadow-purple-400/40"
+                                                    >
+                                                        Set Default
+                                                    </button>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 

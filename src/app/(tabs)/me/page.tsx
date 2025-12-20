@@ -22,7 +22,7 @@ export default function MePage() {
           {session ? (
             <>
               <div className="text-sm font-medium text-[var(--text-secondary)]">
-                {session.user?.name || session.user?.email}
+                {session.user?.name} {session.user?.name && session.user?.email ? `(${session.user.email})` : session.user?.email}
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: "/today" })}

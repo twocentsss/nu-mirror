@@ -145,19 +145,75 @@ export async function ensureGlobalSchema(sql: postgres.Sql) {
           updated_at timestamptz not null default now()
         );
         CREATE INDEX IF NOT EXISTS projects_by_goal ON nu.projects (tenant_id, goal_id);
+
+        -- Daily Metrics
+        CREATE TABLE IF NOT EXISTS nu.daily_metrics (
+          day date not null,
+          metric_key text not null,
+          value numeric not null default 0,
+          metadata jsonb,
+          updated_at timestamptz not null default now(),
+          primary key (day, metric_key)
+        );
+        CREATE INDEX IF NOT EXISTS daily_metrics_by_range ON nu.daily_metrics (day, metric_key);
+
+        -- User LLM Keys
+        CREATE TABLE IF NOT EXISTS nu.user_llm_keys (
+          key_id text primary key,
+          user_email text not null,
+          provider text not null,
+          label text,
+          encrypted_key text not null,
+          is_active boolean not null default true,
+          is_preferred boolean not null default false,
+          daily_limit_tokens bigint default 0,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+        CREATE INDEX IF NOT EXISTS user_llm_keys_by_user ON nu.user_llm_keys (user_email, provider);
+
+        -- System LLM Keys (Uber Pool)
+        CREATE TABLE IF NOT EXISTS nu.system_llm_keys (
+          key_id text primary key,
+          provider text not null,
+          label text,
+          encrypted_key text not null,
+          is_active boolean not null default true,
+          global_daily_limit_tokens bigint default 0,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+
+        CREATE TABLE IF NOT EXISTS nu.system_key_usage (
+          user_email text not null,
+          day date not null,
+          tokens_used bigint default 0,
+          updated_at timestamptz not null default now(),
+          primary key (user_email, day)
+        );
+
+        -- Super Admins
+        CREATE TABLE IF NOT EXISTS nu.super_admins (
+          email text primary key,
+          created_at timestamptz not null default now()
+        );
     `);
 }
 
-export function getSqlClient(url: string): postgres.Sql {
-    if (sqlPool.has(url)) return sqlPool.get(url)!;
+export function getSqlClient(url?: string): postgres.Sql {
+    const connectionUrl = url || process.env.DATABASE_URL;
+    if (!connectionUrl) {
+        throw new Error("DATABASE_URL is not defined");
+    }
+    if (sqlPool.has(connectionUrl)) return sqlPool.get(connectionUrl)!;
 
-    const sql = postgres(url, {
+    const sql = postgres(connectionUrl, {
         max: 10,
         idle_timeout: 20,
         connect_timeout: 10,
         prepare: false,
     });
-    sqlPool.set(url, sql);
+    sqlPool.set(connectionUrl, sql);
     return sql;
 }
 

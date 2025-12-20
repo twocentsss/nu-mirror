@@ -65,38 +65,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
 
+  const { rows, startRow } = await readAllRows({
+    spreadsheetId,
+    tab: "Tasks",
+    accessToken,
+    refreshToken,
+  });
+
+  const base = startRow ?? 2;
   let targetRow: number | null = Number.isFinite(body._row) ? Number(body._row) : null;
   let rowData: any[] | undefined;
 
   if (targetRow) {
-    const { rows, startRow } = await readAllRows({
-      spreadsheetId,
-      tab: "Tasks",
-      accessToken,
-      refreshToken,
-    });
-    const base = startRow ?? 2;
     const idx = targetRow - base;
-    if (idx < 0 || idx >= rows.length) {
-      targetRow = null;
-    } else {
+    if (idx >= 0 && idx < rows.length) {
       rowData = rows[idx];
+      // Final ID check to be sure
+      if (rowData && String(rowData[0] ?? "") !== taskId) {
+        rowData = undefined;
+        targetRow = null;
+      }
+    } else {
+      targetRow = null;
     }
   }
 
   if (!rowData) {
-    const { rows } = await readAllRows({
-      spreadsheetId,
-      tab: "Tasks",
-      accessToken,
-      refreshToken,
-    });
-    rowData = rows.find((r) => String(r?.[0] ?? "") === taskId);
-    if (!rowData) {
+    const idx = rows.findIndex((r: any[]) => String(r?.[0] ?? "") === taskId);
+    if (idx !== -1) {
+      rowData = rows[idx];
+      targetRow = base + idx;
+    } else {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
   }
-
+  if (!rowData) return NextResponse.json({ error: "Task not found" }, { status: 404 });
   const jsonStr = String(rowData[8] ?? "{}");
   const task = JSON.parse(jsonStr);
 

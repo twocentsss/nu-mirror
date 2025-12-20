@@ -11,7 +11,7 @@ import { ulid } from 'ulid';
 export async function closeTask(taskId: string, userId: string = 'system'): Promise<void> {
     // 1. Fetch current task to preserve other fields
     const { rows } = await readAllRows({ tab: SHEET_TABS.TASKS });
-    const taskRow = rows.find(r => r[0] === taskId);
+    const taskRow = rows.find((r: any) => r[0] === taskId);
 
     if (!taskRow) throw new Error(`Task ${taskId} not found`);
 
@@ -37,7 +37,7 @@ export async function closeTask(taskId: string, userId: string = 'system'): Prom
  */
 export async function archiveTask(taskId: string, userId: string = 'system'): Promise<void> {
     const { rows } = await readAllRows({ tab: SHEET_TABS.TASKS });
-    const taskRow = rows.find(r => r[0] === taskId);
+    const taskRow = rows.find((r: any) => r[0] === taskId);
 
     if (!taskRow) throw new Error(`Task ${taskId} not found`);
 
@@ -65,7 +65,7 @@ export async function archiveTask(taskId: string, userId: string = 'system'): Pr
 export async function reopenTask(taskId: string, userId: string = 'system'): Promise<void> {
     // Check Active first
     const { rows: activeRows } = await readAllRows({ tab: SHEET_TABS.TASKS });
-    const activeTask = activeRows.find(r => r[0] === taskId);
+    const activeTask = activeRows.find((r: any) => r[0] === taskId);
 
     if (activeTask) {
         // Just update status
@@ -80,7 +80,7 @@ export async function reopenTask(taskId: string, userId: string = 'system'): Pro
 
     // Check Archive
     const { rows: archiveRows } = await readAllRows({ tab: SHEET_TABS.TASKS_ARCHIVE });
-    const archiveTask = archiveRows.find(r => r[0] === taskId);
+    const archiveTask = archiveRows.find((r: any) => r[0] === taskId);
 
     if (archiveTask) {
         // Move back to Active

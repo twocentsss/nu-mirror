@@ -25,29 +25,33 @@ export default function SingleLineTaskView({ tasks, onTaskClick, onStepChange }:
 
     return (
         <div className="space-y-1">
-            {tasks.map((task) => (
+            {tasks.map((task, index) => (
                 <div
-                    key={task.id}
-                    onClick={() => onTaskClick(task)}
+                    key={task.id || `task-${index}`}
+                    onClick={(e) => {
+                        // Only open editor if not clicking on button elements
+                        if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                        onTaskClick(task);
+                    }}
                     className="group flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-[var(--glass-bg)] border border-transparent hover:border-[var(--glass-border)] cursor-pointer transition-all"
                 >
                     {/* Goal */}
-                    <div className="w-20 flex-shrink-0 text-xs font-medium text-[var(--text-secondary)] truncate">
+                    <div className="w-20 flex-shrink-0 text-xs font-medium text-[var(--text-secondary)] truncate pointer-events-none">
                         {task.goal || "—"}
                     </div>
 
                     {/* Project */}
-                    <div className="w-24 flex-shrink-0 text-xs font-medium text-[var(--text-secondary)] truncate">
+                    <div className="w-24 flex-shrink-0 text-xs font-medium text-[var(--text-secondary)] truncate pointer-events-none">
                         {task.project || "—"}
                     </div>
 
                     {/* Task Title */}
-                    <div className="flex-1 text-sm font-medium text-[var(--text-primary)] truncate min-w-0">
+                    <div className="flex-1 text-sm font-medium text-[var(--text-primary)] truncate min-w-0 pointer-events-none">
                         {task.title}
                     </div>
 
                     {/* Step Selector */}
-                    <div className="relative flex-shrink-0">
+                    <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         {editingStep === task.id ? (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
@@ -63,8 +67,8 @@ export default function SingleLineTaskView({ tasks, onTaskClick, onStepChange }:
                                             handleStepSelect(task.id!, step);
                                         }}
                                         className={`w-8 h-8 rounded-md text-xs font-bold transition-all ${task.step === step
-                                                ? "bg-[var(--accent-color)] text-white"
-                                                : "bg-white/5 text-[var(--text-secondary)] hover:bg-white/10"
+                                            ? "bg-[var(--accent-color)] text-white"
+                                            : "bg-white/5 text-[var(--text-secondary)] hover:bg-white/10"
                                             }`}
                                     >
                                         {step}
@@ -82,13 +86,13 @@ export default function SingleLineTaskView({ tasks, onTaskClick, onStepChange }:
                     </div>
 
                     {/* Status Indicator */}
-                    <div className="w-16 flex-shrink-0 text-right">
+                    <div className="w-16 flex-shrink-0 text-right pointer-events-none">
                         <span
                             className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${task.status === "done"
-                                    ? "bg-green-500/20 text-green-400"
-                                    : task.status === "doing"
-                                        ? "bg-blue-500/20 text-blue-400"
-                                        : "bg-gray-500/20 text-gray-400"
+                                ? "bg-green-500/20 text-green-400"
+                                : task.status === "doing"
+                                    ? "bg-blue-500/20 text-blue-400"
+                                    : "bg-gray-500/20 text-gray-400"
                                 }`}
                         >
                             {task.status}

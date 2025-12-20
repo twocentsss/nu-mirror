@@ -1,6 +1,3 @@
-import { readAllRows } from "../google/sheetStore";
-import { getAccountSpreadsheetId } from "../google/accountSpreadsheet";
-import { decryptSecret } from "../crypto/secrets";
 import { LlmProvider } from "../llm/keyStore";
 import { redis } from "../kv/redis";
 
@@ -42,44 +39,31 @@ export async function resolveAiConfig(params: {
         }
     }
 
-    // 3. Fallback to Sheets (Discovery)
+    // 3. Check DB
     try {
-        const { spreadsheetId } = await getAccountSpreadsheetId({
-            userEmail: params.userEmail,
-            accessToken: params.accessToken,
-            refreshToken: params.refreshToken
-        });
+        const { listKeysForUser } = await import("../llm/keyStore");
+        const { decryptSecret } = await import("../crypto/secrets");
 
-        const { rows } = await readAllRows({
-            spreadsheetId,
-            tab: "LLM_KEYS",
-            accessToken: params.accessToken,
-            refreshToken: params.refreshToken
-        });
+        const userKeys = await listKeysForUser(params.userEmail);
+        if (userKeys && userKeys.length > 0) {
+            // Find preferred or just use the first one
+            const chosen = userKeys.find(k => k.preferred) || userKeys[0];
+            const config = {
+                provider: chosen.provider,
+                apiKey: decryptSecret(chosen.encrypted_key_b64)
+            };
 
-        const preferredRow = rows.find(r => r[9] === "1" && r[7] !== "1");
-
-        if (preferredRow) {
-            const provider = String(preferredRow[2]) as LlmProvider;
-            const encryptedKey = String(preferredRow[4]);
-
-            try {
-                const apiKey = decryptSecret(encryptedKey);
-                const config = { provider, apiKey };
-
-                // Populate Caches
-                AI_KEY_CACHE.set(params.userEmail, { ...config, ts: Date.now() });
-                if (redis) {
-                    await redis.set(`nu:ai_config:${params.userEmail}`, config, { ex: REDIS_TTL });
-                }
-
-                return config;
-            } catch (decErr) {
-                console.error(`[resolveAiConfig] Decryption failed for ${params.userEmail}`, decErr);
+            // Update Caches
+            AI_KEY_CACHE.set(params.userEmail, { ...config, ts: Date.now() });
+            if (redis) {
+                const redisKey = `nu:ai_config:${params.userEmail}`;
+                await redis.set(redisKey, config, { ex: REDIS_TTL });
             }
+
+            return config;
         }
     } catch (err) {
-        console.warn(`[resolveAiConfig] Failed to fetch from Sheet for ${params.userEmail}`, err);
+        console.error("[resolveAiConfig] Postgres lookup failed", err);
     }
 
     // System Fallback

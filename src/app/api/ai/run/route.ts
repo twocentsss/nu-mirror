@@ -7,8 +7,11 @@ import {
 } from "@/lib/google/accountSpreadsheet";
 import { readAllRows } from "@/lib/google/sheetStore";
 import { leaseKey, releaseOpenAiKey } from "@/lib/llm/router";
+import { incrementUserSystemUsage } from "@/lib/admin/adminStore";
+
 import { openAiResponses } from "@/lib/llm/openai";
 import { geminiResponses } from "@/lib/llm/gemini";
+import { anthropicResponses } from "@/lib/llm/anthropic";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
       accessToken,
       refreshToken,
     });
-    const row = rows.find((r) => String(r?.[0] ?? "") === promptId);
+    const row = rows.find((r: any[]) => String(r?.[0] ?? "") === promptId);
     if (!row) {
       return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
     }
@@ -81,25 +84,38 @@ export async function POST(req: Request) {
 
   try {
     let result;
-    if (provider === "gemini") {
+    if (provider === "gemini" || (leased.apiKey.startsWith("AIza"))) {
       result = await geminiResponses({
         apiKey: leased.apiKey,
         model: model || "gemini-1.5-flash",
         input: promptText,
         jsonMode: jsonMode ?? false,
       });
+    } else if (provider === "anthropic" || leased.apiKey.startsWith("sk-ant-")) {
+      result = await anthropicResponses({
+        apiKey: leased.apiKey,
+        model: model || "claude-3-5-sonnet-20240620",
+        input: promptText,
+        jsonMode: jsonMode ?? false,
+      });
     } else {
       let baseURL: string | undefined;
-      if (provider === "openrouter") baseURL = "https://openrouter.ai/api/v1";
+      const isOR = provider === "openrouter" || leased.apiKey.startsWith("sk-or-");
+      if (isOR) baseURL = "https://openrouter.ai/api/v1";
       // OpenAI uses default
 
       result = await openAiResponses({
         apiKey: leased.apiKey,
-        model: model || "gpt-3.5-turbo", // Default fallback
+        model: model || (isOR ? "openai/gpt-3.5-turbo" : "gpt-3.5-turbo"),
         input: promptText,
         baseURL,
         jsonMode: jsonMode ?? false,
       });
+    }
+
+    if (leased.isSystem && result.usage?.total_tokens) {
+      // Fire and forget usage update
+      incrementUserSystemUsage(session.user.email, result.usage.total_tokens).catch(console.error);
     }
 
     return NextResponse.json({ ok: true, result });

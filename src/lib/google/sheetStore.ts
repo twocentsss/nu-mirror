@@ -4,7 +4,20 @@ type RowValue = string | number | boolean | null | undefined;
 
 function isQuotaError(error: unknown) {
   const code = (error as { code?: number })?.code;
+  // Google Sheets often returns 429 for rate limiting
   return code === 429;
+}
+
+// Simple in-memory cache to prevent redundant reads during bursty activity
+const READ_CACHE = new Map<string, { data: any; ts: number }>();
+const CACHE_TTL_MS = 30 * 1000; // 30 seconds should be enough for rapid navigation/re-renders
+
+function getCacheKey(spreadsheetId: string, tab: string) {
+  return `${spreadsheetId}:${tab}`;
+}
+
+function clearCache(spreadsheetId: string, tab: string) {
+  READ_CACHE.delete(getCacheKey(spreadsheetId, tab));
 }
 
 async function withBackoff<T>(fn: () => Promise<T>, attempts = 5): Promise<T> {
@@ -42,6 +55,7 @@ export async function appendRow(params: {
       requestBody: { values: [params.values] },
     }),
   );
+  clearCache(spreadsheetId, params.tab);
 }
 
 type ReadAllParams = {
@@ -55,6 +69,12 @@ export async function readAllRows(params: ReadAllParams) {
   const spreadsheetId = params.spreadsheetId ?? process.env.SHEETS_ID;
   if (!spreadsheetId) throw new Error("Missing SHEETS_ID or spreadsheetId");
 
+  const cacheKey = getCacheKey(spreadsheetId, params.tab);
+  const cached = READ_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const { sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
   const res = await withBackoff(() =>
     sheets.spreadsheets.values.get({
@@ -63,12 +83,17 @@ export async function readAllRows(params: ReadAllParams) {
     }),
   );
   const rows = res.data.values ?? [];
+  let result;
   if (rows.length === 0) {
-    return { header: [], rows: [], startRow: 2 };
+    result = { header: [], rows: [], startRow: 2 };
+  } else {
+    const headerRow = rows[0] ?? [];
+    const data = rows.slice(1);
+    result = { header: headerRow, rows: data, startRow: 2 };
   }
-  const headerRow = rows[0] ?? [];
-  const data = rows.slice(1);
-  return { header: headerRow, rows: data, startRow: 2 };
+
+  READ_CACHE.set(cacheKey, { data: result, ts: Date.now() });
+  return result;
 }
 
 type UpdateByIdParams = {
@@ -162,6 +187,7 @@ export async function deleteRowById(params: {
       },
     }),
   );
+  clearCache(spreadsheetId, params.tab);
 }
 
 type UpdateByRowParams = {
@@ -186,4 +212,5 @@ export async function updateRowByRowNumber(params: UpdateByRowParams) {
       requestBody: { values: [params.values] },
     }),
   );
+  clearCache(spreadsheetId, params.tab);
 }

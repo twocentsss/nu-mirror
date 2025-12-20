@@ -58,7 +58,7 @@ export async function resolveStorageUrl(params: {
             refreshToken: params.refreshToken
         });
 
-        const dbUrlRow = rows.find(r => r[0] === "DATABASE_URL");
+        const dbUrlRow = rows.find((r: any) => r[0] === "DATABASE_URL");
         if (dbUrlRow?.[1]) {
             const url = String(dbUrlRow[1]);
 
@@ -102,8 +102,8 @@ export async function getStorageStatus(params: {
             refreshToken: params.refreshToken
         });
 
-        const isByo = rows.some(r => r[0] === "DATABASE_URL" && r[1]);
-        const trialStartRow = rows.find(r => r[0] === "TRIAL_START_AT");
+        const isByo = rows.some((r: any) => r[0] === "DATABASE_URL" && r[1]);
+        const trialStartRow = rows.find((r: any) => r[0] === "TRIAL_START_AT");
 
         const status: StorageStatus = { isByo };
 

@@ -54,7 +54,7 @@ export async function adjustFlowEvent(
 ): Promise<void> {
     // 1. Find original event (inefficient scan, but fine for v1)
     const { rows } = await readAllRows({ tab: SHEET_TABS.FLOW_EVENTS });
-    const originalRow = rows.find(r => r[0] === originalEventId);
+    const originalRow = rows.find((r: any) => r[0] === originalEventId);
 
     if (!originalRow) {
         throw new Error(`FlowEvent ${originalEventId} not found.`);
@@ -108,7 +108,7 @@ export async function getFlowEvents(
         });
 
         return rows
-            .map(row => ({
+            .map((row: any) => ({
                 id: String(row[0]),
                 timestamp: String(row[1]),
                 account_code: String(row[2]),
@@ -117,7 +117,7 @@ export async function getFlowEvents(
                 description: String(row[5]),
                 segments: JSON.parse(String(row[6] || "{}")),
             }))
-            .filter(e => e.timestamp >= startDate && e.timestamp <= endDate);
+            .filter((e: any) => e.timestamp >= startDate && e.timestamp <= endDate);
     } catch (error: any) {
         const message = String(error?.message ?? "");
         if (!retry && userEmail && message.includes("Unable to parse range")) {
@@ -130,5 +130,5 @@ export async function getFlowEvents(
         }
         throw error;
     }
-    
+
 }

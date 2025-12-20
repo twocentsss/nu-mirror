@@ -1,15 +1,24 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Plus, Target, SlidersHorizontal, PartyPopper, Settings, Search, Info, Check, Map, Activity, FileText, Fingerprint } from "lucide-react"; // Icons
-import AboutModal from "@/components/AboutModal";
-import TaskEditorModal, { TaskRecord } from "@/components/TaskEditorModal";
-import { WorldGraphView } from "@/components/WorldGraphView";
-import { DayWaterfallView } from "@/components/DayWaterfallView";
-import { EndOfDayReport } from "@/components/EndOfDayReport";
-import { PersonalizationView } from "@/components/PersonalizationView";
+import {
+  Plus,
+  Target,
+  SlidersHorizontal,
+  PartyPopper,
+  Settings,
+  Search,
+  Info,
+  Check,
+  Map,
+  Activity,
+  FileText,
+  Fingerprint
+} from "lucide-react";
+import { usePlatformStore } from "@/lib/store/platform-store";
+import { TaskRecord } from "@/components/TaskEditorModal";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
@@ -17,111 +26,38 @@ import { motion, AnimatePresence, useMotionValue, PanInfo } from "framer-motion"
 import { useUIStore } from "@/lib/store/ui-store";
 import ViewSelector, { TaskViewMode } from "@/components/today/ViewSelector";
 import SingleLineTaskView from "@/components/today/SingleLineTaskView";
+import { computeRange } from "@/lib/utils/date";
 
-type ViewMode = "DAY" | "WEEK" | "SPRINT" | "MONTH" | "QUARTER";
-
-const VIEW_MODE_LABELS: Record<ViewMode, string> = {
-  DAY: "Day",
-  WEEK: "Week",
-  SPRINT: "Sprint",
-  MONTH: "Month",
-  QUARTER: "Quarter",
-};
-
-function formatISODate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function computeRange(mode: ViewMode, baseDate: Date) {
-  const start = new Date(baseDate);
-  const end = new Date(baseDate);
-
-  start.setHours(0, 0, 0, 0);
-  end.setHours(23, 59, 59, 999);
-
-  switch (mode) {
-    case "DAY":
-      break;
-    case "WEEK":
-      const dayOfWeek = start.getDay();
-      start.setDate(start.getDate() - dayOfWeek);
-      end.setDate(start.getDate() + 6);
-      break;
-    case "SPRINT":
-      const currentDay = start.getDay();
-      const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-      start.setDate(start.getDate() + daysToMonday);
-      end.setDate(start.getDate() + 13);
-      break;
-    case "MONTH":
-      start.setDate(1);
-      end.setMonth(end.getMonth() + 1);
-      end.setDate(0);
-      break;
-    case "QUARTER":
-      const month = start.getMonth();
-      const quarterStart = Math.floor(month / 3) * 3;
-      start.setMonth(quarterStart);
-      start.setDate(1);
-      end.setMonth(quarterStart + 3);
-      end.setDate(0);
-      break;
-  }
-
-  return { start: formatISODate(start), end: formatISODate(end) };
-}
 
 export default function TodayPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.email);
-  const { isNavVisible, setClickOrigin } = useUIStore();
+  const {
+    selectedDate, viewMode,
+    lfFilter, taskViewMode,
+    tasks, refreshTasks, isLoadingTasks,
+    setSelectedDate, setViewMode
+  } = usePlatformStore();
+  const dateObj = new Date(selectedDate);
+  const { setClickOrigin, openTaskEditor } = useUIStore();
 
-  const [loadingTasks, setLoadingTasks] = useState(false);
+  // Reset to today/DAY on mount as requested
+  useEffect(() => {
+    setSelectedDate(new Date());
+    setViewMode("DAY");
+  }, [setSelectedDate, setViewMode]);
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>("DAY");
-  const [lfFilter, setLfFilter] = useState<number | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
-  const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [showAbout, setShowAbout] = useState(false);
-  const [showGraph, setShowGraph] = useState(false);
-  const [showWaterfall, setShowWaterfall] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [showPersonalization, setShowPersonalization] = useState(false);
-  const [taskViewMode, setTaskViewMode] = useState<TaskViewMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('today-view-mode') as TaskViewMode) || 'compact';
-    }
-    return 'compact';
-  });
-
-  const dateRange = useMemo(() => computeRange(viewMode, selectedDate), [viewMode, selectedDate]);
-
-  const fetchTasks = useCallback(async (range: { start: string; end: string }) => {
-    if (!signedIn) return;
-    setLoadingTasks(true);
-    try {
-      const qs = new URLSearchParams({ start: range.start, end: range.end });
-      const res = await fetch(`/api/cogos/task/list?${qs}`);
-      const j = await res.json();
-      if (j.tasks) setTasks(j.tasks);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoadingTasks(false);
-    }
-  }, [signedIn]);
+  const dateRange = useMemo(() => computeRange(viewMode, dateObj), [viewMode, dateObj]);
 
   useEffect(() => {
-    fetchTasks(dateRange);
-  }, [fetchTasks, dateRange]);
+    if (signedIn) {
+      refreshTasks(dateRange);
+    }
+  }, [signedIn, dateRange, refreshTasks]);
 
   const handleSave = useCallback(async () => {
-    await fetchTasks(dateRange);
-    setIsEditorOpen(false);
-    setEditingTask(null);
-  }, [fetchTasks, dateRange]);
+    await refreshTasks();
+  }, [refreshTasks]);
 
   const openEditor = useCallback((task?: TaskRecord, e?: MouseEvent) => {
     if (e) {
@@ -129,9 +65,8 @@ export default function TodayPage() {
     } else {
       setClickOrigin(null);
     }
-    setEditingTask(task ?? {});
-    setIsEditorOpen(true);
-  }, [setClickOrigin]);
+    openTaskEditor(task ?? {});
+  }, [setClickOrigin, openTaskEditor]);
 
   const markDone = useCallback(
     async (task: TaskRecord): Promise<{ status: string; progress: number } | null> => {
@@ -149,21 +84,23 @@ export default function TodayPage() {
         return { status: nextStatus, progress: payload.progress as number };
       }
       return null;
-    }, [handleSave]);
+    },
+    [handleSave]
+  );
 
   const handleScore = async (task: TaskRecord) => {
+    if (!task.id) return;
     const result = await scoreSingleTask({
-      id: task.id || `temp-${Date.now()}`,
+      id: task.id,
       title: task.title || "Untitled",
       status: task.status,
       duration_min: task.duration_min,
       lf: task.lf
     });
-
-    alert(`🎯 SCORED: ${result.sps.toFixed(2)} SPS\n\nAccount: ${result.accountCode}\nBPS: ${result.bps.toFixed(2)} (Base)\n\n(See Console for Journal Entry)`);
+    alert(`🎯 SCORED: ${result.sps.toFixed(2)} SPS`);
   };
 
-  const handleStepChange = useCallback(async (taskId: string, step: number) => {
+  const handleStepChange = async (taskId: string, step: number) => {
     try {
       const res = await fetch("/api/cogos/task/update", {
         method: "POST",
@@ -171,17 +108,12 @@ export default function TodayPage() {
         body: JSON.stringify({ id: taskId, step }),
       });
       if (res.ok) {
-        await fetchTasks(dateRange);
+        await refreshTasks(dateRange);
       }
     } catch (e) {
       console.error(e);
     }
-  }, [fetchTasks, dateRange]);
-
-  const handleViewChange = useCallback((view: TaskViewMode) => {
-    setTaskViewMode(view);
-    localStorage.setItem('today-view-mode', view);
-  }, []);
+  };
 
   const filteredTasks = useMemo(() => {
     let res = tasks;
@@ -198,167 +130,9 @@ export default function TodayPage() {
     });
   }, [tasks, lfFilter]);
 
-  const completedCount = tasks.filter(t => t.status === 'done').length;
-  const totalTasks = tasks.length;
-  const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(selectedDate);
-
   return (
     <SwipeToCreate onTrigger={() => openEditor()}>
-      <div className="min-h-screen pb-32 relative text-[var(--text-primary)] transition-colors duration-500">
-
-        <motion.div
-          initial={false}
-          animate={{ y: isNavVisible ? 0 : -200, opacity: isNavVisible ? 1 : 0 }}
-          transition={{ type: "spring", damping: 20, stiffness: 100 }}
-          className="sticky top-0 z-50 pt-4 px-4 pb-4 bg-transparent pointer-events-none"
-        >
-          <div className="glass-panel rounded-3xl p-4 flex flex-col gap-4 pointer-events-auto shadow-2xl backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => {
-                        const newDate = new Date(selectedDate);
-                        newDate.setMonth(newDate.getMonth() - 1);
-                        setSelectedDate(newDate);
-                      }}
-                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)]"
-                    >
-                      ←
-                    </button>
-                    <label className="text-2xl font-bold tracking-tight text-[var(--text-primary)] cursor-pointer flex items-center gap-1 hover:opacity-80 transition">
-                      {dayName}, {selectedDate.getDate()}
-                      <input
-                        type="date"
-                        className="opacity-0 absolute w-0 h-0"
-                        value={selectedDate.toISOString().slice(0, 10)}
-                        onChange={(e) => {
-                          if (e.target.valueAsDate) setSelectedDate(e.target.valueAsDate);
-                        }}
-                      />
-                    </label>
-                    <button
-                      onClick={() => {
-                        const newDate = new Date(selectedDate);
-                        newDate.setMonth(newDate.getMonth() + 1);
-                        setSelectedDate(newDate);
-                      }}
-                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-[var(--glass-bg)] text-[var(--text-secondary)]"
-                    >
-                      →
-                    </button>
-                  </div>
-                  <p className="text-[var(--text-secondary)] text-xs font-medium uppercase tracking-wider ml-8">
-                    {selectedDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <div className="bg-[var(--glass-bg)] rounded-full px-3 py-1 flex items-center gap-2 border border-[var(--glass-border)]">
-                  <PartyPopper size={14} className="text-[var(--accent-color)]" />
-                  <span className="text-xs font-bold text-[var(--text-secondary)]">{completedCount}/{totalTasks}</span>
-                </div>
-
-                <div className="flex bg-[var(--glass-bg)] rounded-full border border-[var(--glass-border)] p-1 gap-1">
-                  <button onClick={() => setShowPersonalization(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Nu Flow Protocol">
-                    <Fingerprint size={16} />
-                  </button>
-                  <button onClick={() => alert("Search")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    <Search size={16} />
-                  </button>
-                  <button onClick={() => alert("Settings")} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    <Settings size={16} />
-                  </button>
-                  <button onClick={() => setShowGraph(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Mental Map">
-                    <Map size={16} />
-                  </button>
-                  <button onClick={() => setShowWaterfall(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="Day Waterfall">
-                    <Activity size={16} />
-                  </button>
-                  <button onClick={() => setShowReport(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="End of Day Report">
-                    <FileText size={16} />
-                  </button>
-                  <button onClick={() => setShowAbout(true)} className="p-1.5 rounded-full hover:bg-black/5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    <Info size={16} />
-                  </button>
-                </div>
-
-                <button
-                  className="h-9 w-9 rounded-full bg-black hover:opacity-90 flex items-center justify-center shadow-lg transition-all text-white"
-                  onClick={(e) => openEditor(undefined, e)}
-                >
-                  <Plus size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="-mx-2">
-              <CircularDatePicker
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-2 overflow-x-auto scrollbar-hide">
-              <div className="flex bg-[var(--glass-bg)] rounded-full p-1 border border-[var(--glass-border)]">
-                {(["DAY", "WEEK", "SPRINT", "MONTH", "QUARTER"] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all ${viewMode === mode
-                      ? "bg-black text-white shadow-md"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5"
-                      }`}
-                  >
-                    {VIEW_MODE_LABELS[mode]}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <ViewSelector view={taskViewMode} onChange={handleViewChange} />
-                <button
-                  onClick={() => setLfFilter(lfFilter === null ? 1 : null)}
-                  className={`h-8 px-3 rounded-full border text-[10px] font-bold transition-all flex items-center gap-1 ${lfFilter !== null
-                    ? "bg-[var(--accent-color)]/20 border-[var(--accent-color)]/50 text-[var(--accent-color)]"
-                    : "bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:bg-[var(--glass-bg)]/80"
-                    }`}
-                >
-                  <SlidersHorizontal size={12} />
-                  {lfFilter ? `LF${lfFilter}` : "Filter"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {lfFilter !== null && (
-          <div className="px-4 mb-4">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2">
-              <button
-                onClick={() => setLfFilter(null)}
-                className="px-3 py-1 rounded-full bg-[var(--glass-bg)] text-[var(--text-secondary)] text-xs font-bold whitespace-nowrap"
-              >
-                Clear
-              </button>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(lf => (
-                <button
-                  key={lf}
-                  onClick={() => setLfFilter(lf)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${lfFilter === lf
-                    ? "bg-[var(--accent-color)] text-white shadow-lg"
-                    : "bg-[var(--glass-bg)] text-[var(--text-secondary)]"
-                    }`}
-                >
-                  LF {lf}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
+      <div className="min-h-screen pb-32 pt-2 relative text-[var(--text-primary)] transition-colors duration-500">
         <div className="px-4 flex flex-col gap-4 relative mt-2">
           {taskViewMode === 'single-line' ? (
             <SingleLineTaskView
@@ -384,8 +158,8 @@ export default function TodayPage() {
             </>
           )}
 
-          {loadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
-          {!loadingTasks && filteredTasks.length === 0 && (
+          {isLoadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
+          {!isLoadingTasks && filteredTasks.length === 0 && (
             <div className="py-20 text-center">
               <div className="w-16 h-16 rounded-full bg-[var(--glass-bg)] mx-auto mb-4 flex items-center justify-center"><PartyPopper className="text-[var(--text-secondary)]" /></div>
               <p className="text-[var(--text-secondary)] text-sm">No tasks for this period.</p>
@@ -395,20 +169,6 @@ export default function TodayPage() {
         </div>
 
         <Suspense fallback={null}><TaskEditorLauncher openEditor={openEditor} /></Suspense>
-        <TaskEditorModal
-          task={editingTask}
-          allTasks={tasks}
-          open={isEditorOpen}
-          onClose={() => { setIsEditorOpen(false); setEditingTask(null); }}
-          onChanged={handleSave}
-        />
-        <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
-        <AnimatePresence>
-          {showGraph && <WorldGraphView key="graph" tasks={tasks} onClose={() => setShowGraph(false)} />}
-          {showWaterfall && <DayWaterfallView key="waterfall" tasks={tasks} onClose={() => setShowWaterfall(false)} />}
-          {showReport && <EndOfDayReport key="report" tasks={tasks} date={selectedDate} onClose={() => setShowReport(false)} />}
-          {showPersonalization && <PersonalizationView key="personalization" onClose={() => setShowPersonalization(false)} />}
-        </AnimatePresence>
       </div>
     </SwipeToCreate >
   );

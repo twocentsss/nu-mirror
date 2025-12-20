@@ -136,7 +136,7 @@ export const taskProjector = {
 
         // 2. Sheets logic
         const { rows } = await readAllRows({ ...opts, tab: SHEET_TABS.TASKS });
-        const rowIndex = rows.findIndex(r => r[0] === taskId);
+        const rowIndex = rows.findIndex((r: any) => r[0] === taskId);
 
         if (rowIndex !== -1) {
             const row = rows[rowIndex];
@@ -169,7 +169,7 @@ export const taskProjector = {
         const taskId = event.agg.id;
         // Move from TASKS to TASKS_ARCHIVE
         const { rows } = await readAllRows({ ...opts, tab: SHEET_TABS.TASKS });
-        const taskRow = rows.find(r => r[0] === taskId);
+        const taskRow = rows.find((r: any) => r[0] === taskId);
 
         if (taskRow) {
             // Add archived_at
@@ -185,7 +185,7 @@ export const taskProjector = {
         const taskId = event.agg.id;
         // Move from TASKS_ARCHIVE to TASKS
         const { rows } = await readAllRows({ ...opts, tab: SHEET_TABS.TASKS_ARCHIVE });
-        const archiveRow = rows.find(r => r[0] === taskId);
+        const archiveRow = rows.find((r: any) => r[0] === taskId);
 
         if (archiveRow) {
             // Remove archived_at (last element)

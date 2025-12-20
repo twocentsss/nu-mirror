@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, useEffect } from "react";
+import CrosswordGame from "@/components/games/CrosswordGame";
 
 type TileStatus = "correct" | "present" | "absent";
 type GuessRecord = {
@@ -157,6 +158,27 @@ function WordleGame({ target }: { target: string }) {
     const finished = history.some((entry) => entry.statuses.every((status) => status === "correct"));
     const attemptsLeft = MAX_ATTEMPTS - history.length;
 
+    // Load from localStorage on mount
+    useEffect(() => {
+        const dailyKey = `wordle_${target}`;
+        const saved = localStorage.getItem(dailyKey);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                setHistory(data.history || []);
+                setMessage(data.message || null);
+            } catch (err) {
+                console.error("Failed to load saved game:", err);
+            }
+        }
+    }, [target]);
+
+    // Save to localStorage whenever state changes
+    useEffect(() => {
+        const dailyKey = `wordle_${target}`;
+        localStorage.setItem(dailyKey, JSON.stringify({ history, message }));
+    }, [history, message, target]);
+
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (finished || history.length >= MAX_ATTEMPTS) return;
@@ -193,8 +215,8 @@ function WordleGame({ target }: { target: string }) {
     return (
         <div className="space-y-4">
             <p className="text-xs uppercase tracking-[0.5em] text-slate-400">5-letter Wordle</p>
-            <GameGrid length={target.length} history={history} />
 
+            {/* Input moved to top */}
             <div className="flex flex-col gap-2">
                 <form onSubmit={handleSubmit} className="flex gap-2">
                     <input
@@ -204,6 +226,7 @@ function WordleGame({ target }: { target: string }) {
                         maxLength={target.length}
                         className="flex-1 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-lg font-bold tracking-[0.3em] text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
                         placeholder="GUESS"
+                        autoFocus
                     />
                     <button
                         type="submit"
@@ -218,6 +241,8 @@ function WordleGame({ target }: { target: string }) {
                 </p>
                 {message && <p className="text-sm font-semibold text-cyan-300">{message}</p>}
             </div>
+
+            <GameGrid length={target.length} history={history} />
         </div>
     );
 }
@@ -230,6 +255,27 @@ function PolygonleGame({ target }: { target: string }) {
 
     const finished = history.some((entry) => entry.statuses.every((status) => status === "correct"));
     const attemptsLeft = MAX_ATTEMPTS - history.length;
+
+    // Load from localStorage on mount
+    useEffect(() => {
+        const dailyKey = `polygonle_${target}`;
+        const saved = localStorage.getItem(dailyKey);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                setHistory(data.history || []);
+                setMessage(data.message || null);
+            } catch (err) {
+                console.error("Failed to load saved game:", err);
+            }
+        }
+    }, [target]);
+
+    // Save to localStorage whenever state changes
+    useEffect(() => {
+        const dailyKey = `polygonle_${target}`;
+        localStorage.setItem(dailyKey, JSON.stringify({ history, message }));
+    }, [history, message, target]);
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -267,6 +313,33 @@ function PolygonleGame({ target }: { target: string }) {
     return (
         <div className="space-y-4">
             <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Polygonle schema</p>
+
+            {/* Input moved to top */}
+            <div className="flex flex-col gap-2">
+                <form onSubmit={handleSubmit} className="flex gap-2">
+                    <input
+                        value={guess}
+                        onChange={(event) => setGuess(event.target.value.toUpperCase())}
+                        disabled={finished || history.length >= MAX_ATTEMPTS}
+                        maxLength={target.length}
+                        className="flex-1 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-lg font-bold tracking-[0.3em] text-white outline-none placeholder:text-slate-500 focus:border-fuchsia-500"
+                        placeholder={`${target.length}-letter guess`}
+                        autoFocus
+                    />
+                    <button
+                        type="submit"
+                        disabled={finished || history.length >= MAX_ATTEMPTS}
+                        className="rounded-2xl bg-fuchsia-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white disabled:opacity-60"
+                    >
+                        Guess
+                    </button>
+                </form>
+                <p className="text-xs text-slate-400">
+                    Attempts left: {attemptsLeft} / {MAX_ATTEMPTS}
+                </p>
+                {message && <p className="text-sm font-semibold text-fuchsia-200">{message}</p>}
+            </div>
+
             <div className="flex flex-wrap gap-3">
                 {blueprint.sequence.map((shape, index) => (
                     <div key={`shape-${index}`} className="flex flex-col items-center gap-1 rounded-2xl bg-slate-900/60 px-3 py-2 text-xs uppercase tracking-[0.2em]">
@@ -286,30 +359,6 @@ function PolygonleGame({ target }: { target: string }) {
             </div>
 
             <GameGrid length={target.length} history={history} />
-
-            <div className="flex flex-col gap-2">
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                    <input
-                        value={guess}
-                        onChange={(event) => setGuess(event.target.value.toUpperCase())}
-                        disabled={finished || history.length >= MAX_ATTEMPTS}
-                        maxLength={target.length}
-                        className="flex-1 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-lg font-bold tracking-[0.3em] text-white outline-none placeholder:text-slate-500 focus:border-fuchsia-500"
-                        placeholder={`${target.length}-letter guess`}
-                    />
-                    <button
-                        type="submit"
-                        disabled={finished || history.length >= MAX_ATTEMPTS}
-                        className="rounded-2xl bg-fuchsia-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white disabled:opacity-60"
-                    >
-                        Guess
-                    </button>
-                </form>
-                <p className="text-xs text-slate-400">
-                    Attempts left: {attemptsLeft} / {MAX_ATTEMPTS}
-                </p>
-                {message && <p className="text-sm font-semibold text-fuchsia-200">{message}</p>}
-            </div>
         </div>
     );
 }
@@ -376,6 +425,10 @@ export default function GamesPage() {
     const polygonleTarget = useMemo(() => pickWordForDate(todayKey, POLYGONLE_WORDS), [todayKey]);
     const wordleTarget = useMemo(() => pickWordForDate(todayKey, WORDLE_WORDS), [todayKey]);
 
+    // Crossword configuration
+    const [crosswordTopic, setCrosswordTopic] = useState("general knowledge");
+    const [crosswordDifficulty, setCrosswordDifficulty] = useState("medium");
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950/80 text-white px-6 py-12">
             <div className="max-w-5xl mx-auto space-y-8">
@@ -438,6 +491,41 @@ export default function GamesPage() {
                     <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
                         <WordleGame target={wordleTarget} />
                     </section>
+                )}
+
+                {selectedGame === "crossword" && (
+                    <>
+                        <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-4 space-y-4">
+                            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Configure Puzzle</p>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs text-slate-400 mb-2">Topic</label>
+                                    <input
+                                        type="text"
+                                        value={crosswordTopic}
+                                        onChange={(e) => setCrosswordTopic(e.target.value)}
+                                        placeholder="e.g., Science, Movies, Sports"
+                                        className="w-full px-3 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white focus:border-sky-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-slate-400 mb-2">Difficulty</label>
+                                    <select
+                                        value={crosswordDifficulty}
+                                        onChange={(e) => setCrosswordDifficulty(e.target.value)}
+                                        className="w-full px-3 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white focus:border-sky-500 outline-none"
+                                    >
+                                        <option value="easy">Easy</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="hard">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+                        <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+                            <CrosswordGame topic={crosswordTopic} difficulty={crosswordDifficulty} />
+                        </section>
+                    </>
                 )}
 
                 <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 space-y-2 text-sm text-slate-300">

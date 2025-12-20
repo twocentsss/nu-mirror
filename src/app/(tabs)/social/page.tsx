@@ -1,9 +1,11 @@
 import { MirrorCard } from "@/ui/MirrorCard";
 import { buildFlowSummary } from "@/lib/flow/summary";
-import { Activity, Users } from "lucide-react";
+import { Activity, Users, Plus, ArrowRight } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { getAccountSpreadsheetId } from "@/lib/google/accountSpreadsheet";
+import { listUserGroups } from "@/lib/groups/groupStore";
+import Link from "next/link";
 
 const formatMinutes = (value: number) => `${Math.round(value)} min`;
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -28,17 +30,27 @@ export default async function SocialPage() {
     }
   }
 
-  if (!spreadsheetId) {
-    throw new Error("Unable to find or initialize your NuMirror Spreadsheet. Please try signing out and signing back in to grant required permissions.");
-  }
-
   const userEmail = session?.user?.email ?? undefined;
-  const summary = await buildFlowSummary({
-    spreadsheetId,
-    accessToken,
-    refreshToken,
-    userEmail,
+
+  // Parallel fetch: Summary + Groups
+  const [summary, groups] = await Promise.all([
+    spreadsheetId ? buildFlowSummary({
+      spreadsheetId,
+      accessToken,
+      refreshToken,
+      userEmail,
+    }) : Promise.reject("No spreadsheet"),
+    userEmail ? listUserGroups(userEmail) : []
+  ]).catch(e => {
+    console.error("Data fetch failed", e);
+    return [{
+      periodDays: 0, totalMinutes: 0, eventCount: 0,
+      trend: { label: "-", percent: 0 },
+      totalsByComponentGroup: {}, totalsByActivity: {},
+      topEvents: [], dateRange: { start: "", end: "" }
+    }, []] as const;
   });
+
   const topGroups = Object.entries(summary.totalsByComponentGroup)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3);
@@ -58,7 +70,7 @@ export default async function SocialPage() {
               </h1>
             </div>
             <div className="rounded-2xl bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              {summary.periodDays} day view
+              {summary.periodDays || 7} day view
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-6">
@@ -80,7 +92,47 @@ export default async function SocialPage() {
           </div>
         </MirrorCard>
 
+        {/* GROUPS CARD */}
+        <MirrorCard className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+              <Users className="h-4 w-4 text-white" />
+              My Groups
+            </div>
+            <Link href="/groups" className="text-xs flex items-center gap-1 text-[var(--accent-color)] hover:underline">
+              Manage Groups <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          {groups.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-[var(--text-secondary)] mb-3">You typically haven't joined any groups yet.</p>
+              <Link href="/groups" className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                <Plus size={16} /> Create or Join a Group
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.slice(0, 3).map(g => (
+                <Link key={g.id} href={`/groups/${g.id}`} className="block p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors">
+                  <h3 className="font-bold text-[var(--text-primary)] mb-1">{g.name}</h3>
+                  <div className="text-xs text-[var(--text-secondary)] line-clamp-1">{g.description || "No description"}</div>
+                  <div className="mt-2 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] opacity-70">
+                    {g.role}
+                  </div>
+                </Link>
+              ))}
+              {groups.length > 3 && (
+                <Link href="/groups" className="flex items-center justify-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-sm text-[var(--text-secondary)]">
+                  +{groups.length - 3} more
+                </Link>
+              )}
+            </div>
+          )}
+        </MirrorCard>
+
         <div className="grid gap-5 md:grid-cols-2">
+
           <MirrorCard className="p-5 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
               <Users className="h-4 w-4 text-white" />

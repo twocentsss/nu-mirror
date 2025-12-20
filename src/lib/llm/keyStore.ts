@@ -1,8 +1,10 @@
-import { readAllRows, updateRowById, appendRow } from "@/lib/google/sheetStore";
+import { getSqlClient } from "@/lib/events/client";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { newUlid } from "@/lib/id";
 
-export type LlmProvider = "openai" | "openrouter" | "gemini";
+const DB_URL = process.env.DATABASE_URL;
+
+export type LlmProvider = "openai" | "openrouter" | "gemini" | "anthropic";
 export type StoredKeyRow = {
     id: string;
     user_email: string;
@@ -10,35 +12,39 @@ export type StoredKeyRow = {
     label: string;
     encrypted_key_b64: string;
     disabled: boolean;
-    daily_limit?: number; // Max tokens per day (0 = unlimited)
-    preferred?: boolean; // Prefer this key when routing
+    daily_limit?: number;
+    preferred?: boolean;
 };
 
 export async function listKeysForUser(
     userEmail: string,
-    provider: LlmProvider,
-    spreadsheetId: string,
-    tokens?: { accessToken?: string; refreshToken?: string },
+    provider?: LlmProvider,
 ): Promise<StoredKeyRow[]> {
-    const { rows } = await readAllRows({
-        spreadsheetId,
-        tab: "LLM_KEYS",
-        accessToken: tokens?.accessToken,
-        refreshToken: tokens?.refreshToken,
-    });
+    if (!DB_URL) return [];
+    const sql = getSqlClient(DB_URL);
+    try {
+        const rows = await sql`
+            select key_id, user_email, provider, label, encrypted_key, is_active, daily_limit_tokens, is_preferred
+            from nu.user_llm_keys
+            where user_email = ${userEmail} 
+            ${provider ? sql`and provider = ${provider}` : sql``}
+            and is_active = true
+        `;
 
-    return rows
-        .map((r) => ({
-            id: String(r?.[0] ?? ""),
-            user_email: String(r?.[1] ?? ""),
-            provider: String(r?.[2] ?? "openai") as LlmProvider,
-            label: String(r?.[3] ?? ""),
-            encrypted_key_b64: String(r?.[4] ?? ""),
-            disabled: String(r?.[7] ?? "0") === "1",
-            daily_limit: Number(r?.[8] ?? 0) || 0,
-            preferred: String(r?.[9] ?? "0") === "1",
-        }))
-        .filter((k) => k.id && k.user_email.toLowerCase() === userEmail.toLowerCase() && k.provider === provider && !k.disabled);
+        return rows.map((r: any) => ({
+            id: r.key_id,
+            user_email: r.user_email,
+            provider: r.provider as LlmProvider,
+            label: r.label || "",
+            encrypted_key_b64: r.encrypted_key,
+            disabled: !r.is_active,
+            daily_limit: Number(r.daily_limit_tokens || 0),
+            preferred: r.is_preferred
+        }));
+    } catch (e) {
+        console.warn("[KeyStore] listKeysForUser failed", e);
+        return [];
+    }
 }
 
 export async function addKeyForUser(params: {
@@ -46,33 +52,34 @@ export async function addKeyForUser(params: {
     provider: LlmProvider;
     label?: string;
     apiKey: string;
-    spreadsheetId: string;
-    accessToken?: string;
-    refreshToken?: string;
     daily_limit?: number;
     preferred?: boolean;
 }) {
+    if (!DB_URL) throw new Error("Missing DATABASE_URL");
     const id = newUlid();
-    const now = new Date().toISOString();
     const encrypted = encryptSecret(params.apiKey);
+    const sql = getSqlClient(DB_URL);
 
-    await appendRow({
-        spreadsheetId: params.spreadsheetId,
-        tab: "LLM_KEYS",
-        accessToken: params.accessToken,
-        refreshToken: params.refreshToken,
-        values: [
-            id,
-            params.userEmail,
-            params.provider,
-            params.label ?? "",
-            encrypted,
-            now,
-            now,
-            "0", // disabled
-            String(params.daily_limit ?? 0), // daily_limit
-            params.preferred ? "1" : "0" // preferred
-        ],
+    await sql.begin(async (sql: any) => {
+        // If this is set as preferred, unset other preferred keys for this user
+        if (params.preferred) {
+            await sql`
+                update nu.user_llm_keys
+                set is_preferred = false, updated_at = now()
+                where user_email = ${params.userEmail}
+            `;
+        }
+
+        await sql`
+            insert into nu.user_llm_keys (
+                key_id, user_email, provider, label, encrypted_key, 
+                is_active, is_preferred, daily_limit_tokens
+            )
+            values (
+                ${id}, ${params.userEmail}, ${params.provider}, ${params.label || ""}, ${encrypted},
+                true, ${!!params.preferred}, ${params.daily_limit || 0}
+            )
+        `;
     });
 
     return { id };
@@ -80,88 +87,51 @@ export async function addKeyForUser(params: {
 
 export async function disableKey(params: {
     keyId: string;
-    spreadsheetId: string;
-    accessToken?: string;
-    refreshToken?: string;
 }) {
-    // row format: [id, user_email, provider, label, encrypted, created_at, updated_at, disabled]
-    // We'll read and rewrite the row by id (using your sheetStore updateRowById).
-    const { rows } = await readAllRows({
-        spreadsheetId: params.spreadsheetId,
-        tab: "LLM_KEYS",
-        accessToken: params.accessToken,
-        refreshToken: params.refreshToken,
-    });
-    const row = rows.find((r) => String(r?.[0] ?? "") === params.keyId);
-    if (!row) return { ok: false };
-
-    const updated = [...row];
-    updated[6] = new Date().toISOString();
-    updated[7] = "1";
-
-    await updateRowById({
-        spreadsheetId: params.spreadsheetId,
-        tab: "LLM_KEYS",
-        id: params.keyId,
-        accessToken: params.accessToken,
-        refreshToken: params.refreshToken,
-        values: updated,
-    });
-
-    return { ok: true };
+    if (!DB_URL) return { ok: false };
+    const sql = getSqlClient(DB_URL);
+    try {
+        await sql`
+            update nu.user_llm_keys
+            set is_active = false, updated_at = now()
+            where key_id = ${params.keyId}
+        `;
+        return { ok: true };
+    } catch (e) {
+        return { ok: false };
+    }
 }
 
 export async function setKeyPreference(params: {
     keyId: string;
-    spreadsheetId: string;
-    accessToken?: string;
-    refreshToken?: string;
 }) {
-    const { rows } = await readAllRows({
-        spreadsheetId: params.spreadsheetId,
-        tab: "LLM_KEYS",
-        accessToken: params.accessToken,
-        refreshToken: params.refreshToken,
-    });
+    if (!DB_URL) return { ok: false };
+    const sql = getSqlClient(DB_URL);
+    try {
+        const [target] = await sql`
+            select user_email, provider from nu.user_llm_keys where key_id = ${params.keyId}
+        `;
+        if (!target) return { ok: false, error: "Key not found" };
 
-    const targetRow = rows.find((r) => String(r?.[0] ?? "") === params.keyId);
-    if (!targetRow) return { ok: false, error: "Key not found" };
+        const { user_email, provider } = target;
 
-    const provider = String(targetRow[2] ?? "");
-    const userEmail = String(targetRow[1] ?? "");
-
-    // We need to update all keys for this user (GLOBAL preference, not just per provider)
-    // Set target to 1, others to 0
-    const updates = [];
-    for (const row of rows) {
-        const rId = String(row?.[0] ?? "");
-        const rEmail = String(row?.[1] ?? "");
-        // const rProvider = String(row?.[2] ?? "");
-
-        if (rEmail === userEmail) {
-            const isTarget = rId === params.keyId;
-            const currentPref = String(row?.[9] ?? "0");
-            const newPref = isTarget ? "1" : "0";
-
-            if (currentPref !== newPref) {
-                const updated = [...row];
-                updated[6] = new Date().toISOString(); // updated_at
-                updated[9] = newPref;
-                updates.push({ id: rId, values: updated });
-            }
-        }
-    }
-
-    for (const update of updates) {
-        await updateRowById({
-            spreadsheetId: params.spreadsheetId,
-            tab: "LLM_KEYS",
-            id: update.id,
-            accessToken: params.accessToken,
-            refreshToken: params.refreshToken,
-            values: update.values,
+        await sql.begin(async (sql: any) => {
+            // Unset all for this user
+            await sql`
+            update nu.user_llm_keys
+            set is_preferred = false, updated_at = now()
+            where user_email = ${user_email}
+        `;
+            // Set target
+            await sql`
+            update nu.user_llm_keys
+            set is_preferred = true, updated_at = now()
+            where key_id = ${params.keyId}
+        `;
         });
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: "Failed to update preference" };
     }
-
-    return { ok: true };
 }
+

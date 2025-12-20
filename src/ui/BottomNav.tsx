@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion, useMotionValue, useTransform, animate, useMotionValueEvent } from "framer-motion";
-import { useUIStore } from "@/lib/store/ui-store";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 
 type DockItem = {
     id: string;
@@ -12,15 +11,11 @@ type DockItem = {
     available: boolean;
 };
 
-// Expanded item list based on user request
 const ITEMS: DockItem[] = [
-    // Active
     { id: "todo", label: "To-do", href: "/todo", available: true, icon: <IconCheckSquare /> },
     { id: "today", label: "Today", href: "/today", available: true, icon: <IconCalendar /> },
     { id: "focus", label: "Focus", href: "/focus", available: true, icon: <IconFocus /> },
     { id: "me", label: "Me", href: "/me", available: true, icon: <IconFace /> },
-
-    // Future/Apps (now available)
     { id: "protocol", label: "Protocol", href: "/protocol", available: true, icon: <IconFingerprint /> },
     { id: "stories", label: "Stories", href: "/stories", available: true, icon: <IconBookOpen /> },
     { id: "comics", label: "Comics", href: "/comics", available: true, icon: <IconImage /> },
@@ -38,7 +33,6 @@ const ITEMS: DockItem[] = [
     { id: "chat", label: "Chat", href: "/chat", available: true, icon: <IconMessageCircle /> },
 ];
 
-// Icons (unchanged)
 function IconCheckSquare() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 12l2 2 4-4" /></svg>; }
 function IconCalendar() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>; }
 function IconFocus() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M12 1v6m0 6v6M1 12h6m6 0h6" /></svg>; }
@@ -59,8 +53,6 @@ function IconStore() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill=
 function IconMessageCircle() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>; }
 function IconFingerprint() { return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12a10 10 0 0 1 10-10 10 10 0 0 1 10 10" /><path d="M12 2v20" /><path d="M7 12a5 5 0 0 1 10 0" /><path d="M16 12a4 4 0 0 1-8 0" /><path d="M2 12h20" /></svg>; }
 
-
-
 export default function BottomNav({
     active,
     onNavigate,
@@ -68,162 +60,97 @@ export default function BottomNav({
     active: string;
     onNavigate: (to: string) => void;
 }) {
-    // Infinite Scroll: Visual Wrapping
-    const displayedItems = ITEMS; // Single set
     const ITEM_WIDTH = 80;
-    const HALF_WIDTH = ITEM_WIDTH / 2;
     const TOTAL_WIDTH = ITEMS.length * ITEM_WIDTH;
 
-    // Initialize x to the active item's position
     const activeIndex = ITEMS.findIndex(item => item.id === active);
     const x = useMotionValue(activeIndex !== -1 ? -(activeIndex * ITEM_WIDTH) : 0);
-
     const scrollRef = useRef<HTMLDivElement>(null);
-
     const [isDragging, setIsDragging] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
-
-    const { isNavVisible } = useUIStore();
-
-    // Track previous active state to strictly prevent unnecessary snaps
     const prevActive = useRef(active);
 
     useEffect(() => {
-        // Check if active actually changed from what we last handled
         const hasChanged = prevActive.current !== active;
         prevActive.current = active;
-
         if (hasChanged && !isDragging) {
-            // Find the closest "virtual" index in the infinite space to minimize travel
             const currentX = x.get();
             const targetIndex = ITEMS.findIndex(item => item.id === active);
-
             if (targetIndex !== -1) {
-                // Calculate the ideal position for this index in the "canonical" set
-                // But we want the version of this index closest to currentX
-                // canonical pos = -(targetIndex * 80)
-                // We know positions repeat every TOTAL_WIDTH
-
-                // Actually, for simplicity on Nav changes, strictly snapping to the canonical is safer 
-                // unless we want really fancy shortest-path logic. 
-                // Let's just snap to canonical for now or current window.
-                // Shortest path:
                 const canonical = -(targetIndex * ITEM_WIDTH);
                 const diff = canonical - currentX;
                 const rounds = Math.round(diff / TOTAL_WIDTH);
                 const targetX = canonical - (rounds * TOTAL_WIDTH);
-
                 animate(x, targetX, { type: "spring", stiffness: 300, damping: 30 });
             }
         }
-    }, [active]);
-
-    const handleDragEnd = () => {
-        setIsDragging(false);
-    };
+    }, [active, isDragging, ITEM_WIDTH, TOTAL_WIDTH, x]);
 
     const handleItemClick = (item: DockItem) => {
         if (!item.available) return;
         onNavigate(item.href);
     };
 
-    // Visibility logic
-    const isHidden = isCollapsed || !isNavVisible;
-
     return (
-        <>
+        <div className="w-full pt-1 pb-6 overflow-hidden">
             <motion.div
-                initial={false}
-                animate={{
-                    y: isHidden ? "calc(100% - 24px)" : "0%",
+                ref={scrollRef}
+                drag="x"
+                dragConstraints={{ left: -100000, right: 100000 }}
+                dragElastic={0.05}
+                dragTransition={{
+                    power: 0.8,
+                    timeConstant: 300,
+                    modifyTarget: (target) => Math.round(target / ITEM_WIDTH) * ITEM_WIDTH
                 }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="bottom-nav fixed bottom-0 left-0 right-0 bg-[var(--dock-bg)] backdrop-blur-xl border-t border-[var(--glass-border)] safe-bottom z-50 text-[var(--text-primary)] transition-colors duration-500 rounded-t-3xl shadow-2xl"
+                onDragStart={() => setIsDragging(true)}
+                onDragEnd={() => setIsDragging(false)}
+                style={{ x }}
+                className="flex cursor-grab active:cursor-grabbing px-[calc(50vw-40px)]"
             >
-                {/* Drag Handle / Collapse Toggle */}
-                <div
-                    className="flex justify-center items-center h-6 cursor-pointer hover:bg-black/5 active:bg-black/10 transition-colors rounded-t-3xl"
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                >
-                    <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-                </div>
+                {ITEMS.map((item, i) => {
+                    const isActive = item.id === active;
+                    const layoutPos = i * ITEM_WIDTH;
 
-                <motion.div
-                    ref={scrollRef}
-                    drag="x"
-                    dragConstraints={{ left: -100000, right: 100000 }} // Infinite drag
-                    dragElastic={0.05}
-                    dragTransition={{
-                        power: 0.8,
-                        timeConstant: 300,
-                        modifyTarget: (target) => {
-                            // Snap to nearest 80px
-                            return Math.round(target / ITEM_WIDTH) * ITEM_WIDTH;
-                        }
-                    }}
-                    onDragStart={() => setIsDragging(true)}
-                    onDragEnd={handleDragEnd}
-                    style={{ x }}
-                    className="flex cursor-grab active:cursor-grabbing pb-6 pt-2 px-[calc(50vw-40px)]"
-                >
-                    {displayedItems.map((item, i) => {
-                        const isActive = item.id === active;
-                        const layoutPos = i * ITEM_WIDTH;
+                    const childX = useTransform(x, (latest) => {
+                        const placeValue = latest + layoutPos;
+                        const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
+                        return offset - placeValue;
+                    });
 
-                        // Visual Wrapping Logic
-                        // The item shifts itself to stay within [-TOTAL_WIDTH/2, TOTAL_WIDTH/2] of the center
-                        const childX = useTransform(x, (latest) => {
-                            const placeValue = latest + layoutPos;
-                            // Wrap into [-TOTAL_WIDTH/2, TOTAL_WIDTH/2] range
-                            const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
-                            // Cancel out both the parent's 'latest' movement and the child's 'layoutPos'
-                            // leaving only the 'offset' (centered relative position)
-                            return offset - placeValue;
-                        });
+                    const distance = useTransform(x, (latest) => {
+                        const placeValue = latest + layoutPos;
+                        const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
+                        return Math.abs(offset);
+                    });
 
-                        // Distance for scaling (calculated from the wrapped centered position)
-                        const distance = useTransform(x, (latest) => {
-                            const placeValue = latest + layoutPos;
-                            const offset = ((placeValue + TOTAL_WIDTH / 2) % TOTAL_WIDTH + TOTAL_WIDTH) % TOTAL_WIDTH - TOTAL_WIDTH / 2;
-                            return Math.abs(offset);
-                        });
-
-                        return (
-                            <motion.div
-                                key={item.id}
-                                onTap={() => {
-                                    if (!isDragging) handleItemClick(item);
-                                }}
-                                className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                                style={{
-                                    width: "80px",
-                                    // Apply wrapping translation
-                                    x: childX,
-                                    opacity: item.available ? (isActive ? 1 : 0.6) : 0.3,
-                                    scale: useTransform(distance, [0, 80, 160], [1.2, 0.9, 0.75]),
-                                    y: useTransform(distance, [0, 80], [0, 10]),
-                                }}
-                            >
-                                <div
-                                    className={`p-3 rounded-2xl transition-all duration-300 ${isActive
-                                        ? 'bg-[var(--accent-color)] text-white shadow-lg scale-110'
-                                        : item.available
-                                            ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]'
-                                            : 'text-[var(--text-secondary)]'
-                                        }`}
-                                >
-                                    {item.icon}
-                                </div>
-                                {!isCollapsed && (
-                                    <div className={`text-[10px] font-medium mt-1.5 text-center tracking-wide ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                                        {item.label}
-                                    </div>
-                                )}
-                            </motion.div>
-                        );
-                    })}
-                </motion.div>
+                    return (
+                        <motion.div
+                            key={item.id}
+                            onTap={() => { if (!isDragging) handleItemClick(item); }}
+                            className={`flex-shrink-0 flex flex-col items-center justify-center px-2 ${item.available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                            style={{
+                                width: "80px",
+                                x: childX,
+                                opacity: item.available ? (isActive ? 1 : 0.6) : 0.3,
+                                scale: useTransform(distance, [0, 80, 160], [1.2, 0.9, 0.75]),
+                                y: useTransform(distance, [0, 80], [0, 10]),
+                            }}
+                        >
+                            <div className={`p-3 rounded-2xl transition-all duration-300 ${isActive
+                                ? 'bg-[var(--accent-color)] text-white shadow-lg scale-110'
+                                : item.available
+                                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5'
+                                    : 'text-[var(--text-secondary)]'
+                                }`}>
+                                {item.icon}
+                            </div>
+                            <div className={`text-[10px] font-bold mt-1.5 text-center tracking-wide uppercase ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
+                                {item.label}
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </motion.div>
-        </>
+        </div>
     );
 }
