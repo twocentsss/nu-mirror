@@ -8,6 +8,11 @@ This catalog defines the `type` and `body` shapes for the Nu Event Log. All even
 - **`task.status_set`**: Transition (todo -> doing -> done).
 - **`task.archived`**: Move to cold storage.
 
+## 1.5 Quantum Domain (New)
+- **`intent.captured`**: Raw thought storage (IntentAtom).
+- **`option.generated`**: Superposition of choices (OptionSet).
+- **`option.collapsed`**: Commitment event (Triggers `task.created`).
+
 ## 2. Activity & Narrative Domain
 - **`activity.created`**: Canonical root for all user input.
 - **`activity.updated`**: Refinement of semantics/metadata.

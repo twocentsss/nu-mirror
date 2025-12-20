@@ -3,6 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useUIStore } from "@/lib/store/ui-store";
+import { generateQuantumState } from "@/lib/quantum/generator";
+import { collapseOption } from "@/lib/quantum/collapser";
+import { emitIntentCaptured, emitTaskCommitted } from "@/lib/events/emitters";
+import { Option } from "@/lib/quantum/types";
 
 export type TaskRecord = {
   id?: string;
@@ -113,7 +117,30 @@ export default function TaskEditorModal(props: {
     setPriority(task.priority ?? "medium");
   }, [task]);
 
+  /* ... inside the component ... */
   const detectedWorld = useMemo(() => classifyTask(title), [title]);
+
+  // Quantum Generation State
+  const [quantumOptions, setQuantumOptions] = useState<Option[]>([]);
+
+  useEffect(() => {
+    if (!title.trim()) {
+      setQuantumOptions([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const { optionSet } = generateQuantumState(title, "user-session-temp");
+      setQuantumOptions(optionSet.options);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [title]);
+
+  function applyQuantumOption(opt: Option) {
+    setDurationMin(opt.duration_min);
+    // setEnergy(opt.energy_cost); // If we had energy state
+    // setLf(opt.task_def.lf_id);
+    // Optionally create immediately? No, let user confirm.
+  }
 
   useEffect(() => {
     if (!task?.id && detectedWorld) {
@@ -155,7 +182,30 @@ export default function TaskEditorModal(props: {
           return;
         }
       } else {
-        // CREATE new
+        // CREATE new (Quantum Capture)
+        // 1. Generate Quantum State (Superposition)
+        const { atom, optionSet } = generateQuantumState(title, "user-session-id");
+
+        // FIRE EVENT: Intent Captured
+        emitIntentCaptured(atom).catch(console.error);
+
+        // 2. Collapse Strategy (Simple Default for now)
+        // Use the generated option that matches user's manual duration, or default to the first one
+        const bestOption = optionSet.options.find(o => Math.abs(o.duration_min - durationMin) < 5) || optionSet.options[0];
+
+        // 3. Enrich Payload if user hasn't overridden defaults
+        const finalDuration = durationMin !== 15 ? durationMin : bestOption.duration_min;
+        const finalLf = typeof lf === "number" ? lf : (bestOption.task_def.lf_id || 9);
+        const finalEnergy = bestOption.energy_cost; // We can save this to notes or metadata later
+
+        console.log("[Quantum] Captured:", { atom, optionSet, selected: bestOption });
+
+        // FIRE EVENT: Task Committed (Simulated Collapse)
+        // In a full event-driven system, the 'collapse' event would TRIGGER the task creation via a projector.
+        // Here we do both: fire the event for the log, and make the direct API call for the UI.
+        const { charges } = collapseOption(bestOption);
+        emitTaskCommitted("temp-id", bestOption.id, charges).catch(console.error);
+
         const res = await fetch("/api/cogos/task/create", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -165,9 +215,9 @@ export default function TaskEditorModal(props: {
             status,
             due_date: dueDate,
             time_of_day: timeOfDay,
-            notes,
-            duration_min: durationMin,
-            lf: lf === "" ? undefined : Number(lf),
+            notes: notes + (notes ? "\n\n" : "") + `[Quantum Energy: ${finalEnergy}/100]`,
+            duration_min: finalDuration,
+            lf: finalLf === "" ? undefined : Number(finalLf),
             priority,
           }),
         });
@@ -323,30 +373,53 @@ export default function TaskEditorModal(props: {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="What's on your mind?"
               />
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AnimatePresence mode="wait">
-                    {detectedWorld && (
-                      <motion.div
-                        key={detectedWorld.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.2em] bg-gradient-to-r ${detectedWorld.color} text-white shadow-lg flex items-center gap-1.5`}
+              <div className="mt-4 flex flex-col gap-3">
+                {/* Quantum Options (Superposition) */}
+                {quantumOptions.length > 0 && !task.id && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
+                    {quantumOptions.map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => applyQuantumOption(opt)}
+                        className={`flex-shrink-0 snap-start px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${durationMin === opt.duration_min
+                          ? "bg-white text-black border-white shadow-lg scale-105"
+                          : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10"
+                          }`}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
-                        {detectedWorld.name}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  {title && !detectedWorld && (
-                    <span className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-bold animate-pulse">Analyzing context...</span>
-                  )}
-                </div>
+                        <span className="opacity-50 mr-1">⚡</span>
+                        {opt.title.replace(title, "").trim() || opt.title}
+                        <span className="ml-1 opacity-40">({opt.duration_min}m)</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2 opacity-40 pointer-events-none hidden lg:flex">
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">⌘</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">ENTER</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AnimatePresence mode="wait">
+                      {detectedWorld && (
+                        <motion.div
+                          key={detectedWorld.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 10 }}
+                          className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.2em] bg-gradient-to-r ${detectedWorld.color} text-white shadow-lg flex items-center gap-1.5`}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />
+                          {detectedWorld.name}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {title && !detectedWorld && (
+                      <span className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-bold animate-pulse">Analyzing context...</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 opacity-40 pointer-events-none hidden lg:flex">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">⌘</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-white/30">ENTER</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -411,8 +484,8 @@ export default function TaskEditorModal(props: {
                               type="button"
                               onClick={() => setLf(w.id)}
                               className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
-                                  ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
-                                  : 'text-white/20 hover:text-white/40'
+                                ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
+                                : 'text-white/20 hover:text-white/40'
                                 }`}
                             >
                               <div className="flex flex-col items-start text-left">

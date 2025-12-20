@@ -17,11 +17,133 @@ export async function ensureTenantSchema(sql: postgres.Sql, schema: string) {
     // For trial simplicity, we inherit them or clone them.
     // Alternatively, we use the 'nu' schema tables with RLS.
     // User requested "dynamic sql schema" per user, so cloning tables to their schema is best.
+    // ... existing ensureTenantSchema ...
     await sql.unsafe(`
         CREATE TABLE IF NOT EXISTS ${schema}.event_log (LIKE nu.event_log INCLUDING ALL);
         CREATE TABLE IF NOT EXISTS ${schema}.projection_tasks (LIKE nu.projection_tasks INCLUDING ALL);
         CREATE TABLE IF NOT EXISTS ${schema}.projection_today (LIKE nu.projection_today INCLUDING ALL);
         CREATE TABLE IF NOT EXISTS ${schema}.projector_cursor (LIKE nu.projector_cursor INCLUDING ALL);
+
+        -- Goals & Projects
+        CREATE TABLE IF NOT EXISTS ${schema}.goals (
+          tenant_id text not null,
+          goal_id text primary key,
+          lf_id int not null,
+          title text not null,
+          status text not null,
+          rationale text,
+          due_date timestamptz,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+        CREATE INDEX IF NOT EXISTS goals_by_lf_${schema} ON ${schema}.goals (tenant_id, lf_id);
+
+        CREATE TABLE IF NOT EXISTS ${schema}.projects (
+          tenant_id text not null,
+          project_id text primary key,
+          goal_id text not null references ${schema}.goals(goal_id),
+          title text not null,
+          status text not null,
+          description text,
+          due_date timestamptz,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+        CREATE INDEX IF NOT EXISTS projects_by_goal_${schema} ON ${schema}.projects (tenant_id, goal_id);
+
+        -- Migration: Ensure columns exist for existing tables
+        ALTER TABLE ${schema}.goals ADD COLUMN IF NOT EXISTS due_date timestamptz;
+        ALTER TABLE ${schema}.projects ADD COLUMN IF NOT EXISTS due_date timestamptz;
+    `);
+}
+
+export async function ensureGlobalSchema(sql: postgres.Sql) {
+    await sql.unsafe(`
+        CREATE SCHEMA IF NOT EXISTS nu;
+        
+        -- Event Log
+        CREATE TABLE IF NOT EXISTS nu.event_log (
+          event_id text primary key,
+          tenant_id text not null,
+          actor_id text,
+          device_id text,
+          trace_id text,
+          span_id text,
+          parent_span_id text,
+          type text not null,
+          agg_kind text not null,
+          agg_id text not null,
+          seq bigint not null,
+          ts timestamptz not null,
+          ingested_at timestamptz not null default now(),
+          idempotency_key text,
+          body jsonb not null,
+          prev_hash text,
+          hash text
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS event_log_uniq_agg_seq ON nu.event_log (tenant_id, agg_kind, agg_id, seq);
+
+        -- Projections
+        CREATE TABLE IF NOT EXISTS nu.projection_tasks (
+          tenant_id text not null,
+          task_id text not null,
+          activity_id text,
+          title text not null,
+          status text not null,
+          due_ts timestamptz,
+          priority smallint,
+          tags text[],
+          updated_at timestamptz not null default now(),
+          fields jsonb,
+          primary key (tenant_id, task_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS nu.projection_today (
+          tenant_id text not null,
+          day date not null,
+          task_id text not null,
+          status text not null,
+          title text not null,
+          due_ts timestamptz,
+          priority smallint,
+          tags text[],
+          updated_at timestamptz not null default now(),
+          primary key (tenant_id, day, task_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS nu.projector_cursor (
+           tenant_id text not null,
+           projector text not null, 
+           last_ingested_at timestamptz not null default '1970-01-01',
+           last_event_id text,
+           updated_at timestamptz not null default now(),
+           primary key (tenant_id, projector)
+        );
+
+        -- Goals & Projects
+        CREATE TABLE IF NOT EXISTS nu.goals (
+          tenant_id text not null,
+          goal_id text primary key,
+          lf_id int not null,
+          title text not null,
+          status text not null,
+          rationale text,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+        CREATE INDEX IF NOT EXISTS goals_by_lf ON nu.goals (tenant_id, lf_id);
+
+        CREATE TABLE IF NOT EXISTS nu.projects (
+          tenant_id text not null,
+          project_id text primary key,
+          goal_id text not null references nu.goals(goal_id),
+          title text not null,
+          status text not null,
+          description text,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now()
+        );
+        CREATE INDEX IF NOT EXISTS projects_by_goal ON nu.projects (tenant_id, goal_id);
     `);
 }
 

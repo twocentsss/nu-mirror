@@ -92,3 +92,82 @@ create table if not exists nu.projector_cursor (
   updated_at timestamptz not null default now(),
   primary key (tenant_id, projector)
 );
+
+-- ====== QUANTUM TABLES (New) ======
+
+-- 1. Intent Atoms (Raw Thoughts)
+create table if not exists nu.intent_atoms (
+  tenant_id text not null,
+  atom_id text not null,
+  text text not null,
+  status text not null,         -- 'floating', 'proposed', 'committed', 'discarded'
+  created_at timestamptz not null default now(),
+  metadata jsonb,               -- signals, detected words
+  
+  primary key (tenant_id, atom_id)
+);
+
+-- 2. Options (Superposition Candidates)
+create table if not exists nu.options (
+  tenant_id text not null,
+  option_id text not null,
+  intent_id text not null,      -- Link to Atom
+  title text not null,
+  duration_min int,
+  energy_cost int,
+  value_score int,
+  is_selected boolean default false,
+  
+  primary key (tenant_id, option_id)
+);
+
+create index if not exists options_by_intent
+  on nu.options (tenant_id, intent_id);
+
+-- 3. Ledger Entries (Accounting)
+create table if not exists nu.ledger_entries (
+  tenant_id text not null,
+  entry_id text primary key,
+  related_entity_type text,     -- 'task', 'manual'
+  related_entity_id text,
+  
+  account text not null,        -- 'time', 'energy', 'focus'
+  segment text not null,        -- 'work', 'self', 'family', etc.
+  direction text not null,      -- 'debit', 'credit'
+  amount numeric not null,
+  
+  occurred_at timestamptz not null default now()
+);
+
+create index if not exists ledger_by_day
+  on nu.ledger_entries (tenant_id, occurred_at);
+
+-- 4. Abstract Goals (Life Focus Targets)
+create table if not exists nu.goals (
+  tenant_id text not null,
+  goal_id text primary key,
+  lf_id int not null,           -- 1-9
+  title text not null,
+  status text not null,         -- 'active', 'completed', 'archived'
+  rationale text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists goals_by_lf
+  on nu.goals (tenant_id, lf_id);
+
+-- 5. Projects (Concrete Undertakings)
+create table if not exists nu.projects (
+  tenant_id text not null,
+  project_id text primary key,
+  goal_id text not null references nu.goals(goal_id),
+  title text not null,
+  status text not null,         -- 'active', 'completed', 'archived'
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists projects_by_goal
+  on nu.projects (tenant_id, goal_id);

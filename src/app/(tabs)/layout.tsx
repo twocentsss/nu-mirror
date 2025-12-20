@@ -33,6 +33,7 @@ export default function TabsLayout({ children }: { children: ReactNode }) {
     if (pathname.includes("/buying")) return "buying";
     if (pathname.includes("/stores")) return "stores";
     if (pathname.includes("/assistance")) return "assist";
+    if (pathname.includes("/protocol")) return "protocol";
 
     // Fallback or specific sub-routes
     return "today";
