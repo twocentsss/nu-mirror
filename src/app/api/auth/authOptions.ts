@@ -132,38 +132,46 @@ export const authOptions: NextAuthOptions = {
       const refreshToken = account.refresh_token as string | undefined;
       if (!user?.email) return;
 
-      try {
-        await initAccountSpreadsheet({
-          accessToken,
-          refreshToken,
-          userEmail: user.email,
-        });
-      } catch (error) {
-        console.warn("Spreadsheet Init Warning:", error);
-      }
+      if (!user?.email) return;
 
-      // Initialize Postgres Trial Schema on SSO (Self-healing DB)
-      try {
-        const storageUrl = process.env.DATABASE_URL;
-        if (storageUrl) {
-          const { getSqlClient, getTenantSchema, ensureTenantSchema, ensureGlobalSchema } = await import("@/lib/events/client");
-          const sql = getSqlClient(storageUrl);
-
-          // 1. Ensure Global Protocol Tables (Goals, Projects)
-          await ensureGlobalSchema(sql);
-
-          // 2. Ensure Tenant Schema (Event Log, Goals, Projects)
-          const schema = getTenantSchema(user.email);
-          await ensureTenantSchema(sql, schema);
-
-          // 3. Seed Default Goals & Projects (Quarterly/Monthly)
-          const { seedDefaultsForUser } = await import("@/lib/cogos/seed");
-          await seedDefaultsForUser(user.email);
-
+      // BACKGROUND INITIALIZATION
+      // We do not await this to prevent blocking the sign-in flow if external APIs (Google/DB) are slow or failing.
+      // This ensures the user gets into the app immediately. Resources will hydrate in parallel.
+      (async () => {
+        try {
+          await initAccountSpreadsheet({
+            accessToken,
+            refreshToken,
+            userEmail: user.email!,
+          });
+        } catch (error) {
+          console.warn("Spreadsheet Init Warning (Async):", error);
         }
-      } catch (error) {
-        console.error("Postgres Schema/Seed Critical Error:", error);
-      }
+
+        // Initialize Postgres Trial Schema on SSO (Self-healing DB)
+        try {
+          const storageUrl = process.env.DATABASE_URL;
+          if (storageUrl) {
+            const { getSqlClient, getTenantSchema, ensureTenantSchema, ensureGlobalSchema } = await import("@/lib/events/client");
+            const sql = getSqlClient(storageUrl);
+
+            // 1. Ensure Global Protocol Tables (Goals, Projects)
+            await ensureGlobalSchema(sql);
+
+            // 2. Ensure Tenant Schema (Event Log, Goals, Projects)
+            const schema = getTenantSchema(user.email!);
+            await ensureTenantSchema(sql, schema);
+
+            // 3. Seed Default Goals & Projects (Quarterly/Monthly)
+            const { seedDefaultsForUser } = await import("@/lib/cogos/seed");
+            await seedDefaultsForUser(user.email!);
+          }
+        } catch (error) {
+          console.error("Postgres Schema/Seed Critical Error (Async):", error);
+        }
+      })();
+
+      return;
     },
   },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET!,
