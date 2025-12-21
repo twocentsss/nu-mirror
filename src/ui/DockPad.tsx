@@ -65,21 +65,21 @@ interface DockItem {
 
 const ITEMS_BY_SIDE: Record<Exclude<DockPosition, 'top'>, DockItem[]> = {
   left: [
-    { id: "capture", label: "Create Task", sub: "Quantum Capture", icon: <Plus size={18} /> },
-    { id: "rant", label: "Rant to Task", sub: "AI Generation", icon: <Zap size={18} /> },
-    { id: "chat", label: "Ask Nu", sub: "Quick chat", icon: <MessageCircle size={18} /> },
-    { id: "howto", label: "How-To", sub: "Protocol", icon: <HelpCircle size={18} /> },
+    { id: "capture", label: "New", sub: "Entry", icon: <Plus size={18} /> },
+    { id: "rant", label: "Voice", sub: "Dictate", icon: <Zap size={18} /> },
+    { id: "chat", label: "Ask", sub: "Assistant", icon: <MessageCircle size={18} /> },
+    { id: "howto", label: "Tips", sub: "Guide", icon: <HelpCircle size={18} /> },
   ],
   right: [
-    { id: "story", label: "Story", sub: "Narrative", icon: <BookOpen size={18} /> },
-    { id: "agents", label: "Agents", sub: "Automate", icon: <Cpu size={18} /> },
-    { id: "comics", label: "Comics", sub: "Visuals", icon: <ImageIcon size={18} /> },
-    { id: "reports", label: "Reports", sub: "Weekly", icon: <BarChart2 size={18} /> },
+    { id: "story", label: "Journal", sub: "Memoir", icon: <BookOpen size={18} /> },
+    { id: "agents", label: "Automate", sub: "Workflows", icon: <Cpu size={18} /> },
+    { id: "comics", label: "Gallery", sub: "Visuals", icon: <ImageIcon size={18} /> },
+    { id: "reports", label: "Trends", sub: "Analytics", icon: <BarChart2 size={18} /> },
   ],
   bottom: [
-    { id: "todo", label: "To-do", sub: "List", icon: <CheckSquare size={18} /> },
-    { id: "today", label: "Today", sub: "Focus", icon: <Calendar size={18} /> },
-    { id: "focus", label: "Focus", sub: "Flow", icon: <Target size={18} /> },
+    { id: "todo", label: "Reminders", sub: "Tasks", icon: <CheckSquare size={18} /> },
+    { id: "today", label: "Today", sub: "Schedule", icon: <Calendar size={18} /> },
+    { id: "focus", label: "Focus", sub: "Modes", icon: <Target size={18} /> },
     { id: "me", label: "Me", sub: "Profile", icon: <User size={18} /> },
   ],
 };
@@ -134,7 +134,7 @@ export default function DockPad({
                   <ChevronLeft size={20} />
                 </button>
                 <div className="relative">
-                  <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] cursor-pointer hover:opacity-80 transition flex items-center gap-2">
+                  <h2 className="text-3xl font-greeting font-bold tracking-tight text-[var(--text-primary)] cursor-pointer hover:opacity-80 transition flex items-center gap-2">
                     {dayName}, {dateObj.getDate()}
                     <input
                       type="date"
@@ -176,14 +176,14 @@ export default function DockPad({
 
             <div className="flex bg-black/5 rounded-full border border-black/5 p-1 gap-1 items-center">
               {[
-                { id: "protocol", icon: <Fingerprint size={16} />, title: "Identity", color: "hover:text-blue-400" },
-                { id: "search", icon: <Search size={16} />, title: "The Recall", color: "hover:text-zinc-400" },
-                { id: "settings", icon: <Settings size={16} />, title: "The Dial", color: "hover:text-zinc-400" },
-                { id: "graph", icon: <Map size={16} />, title: "The World", color: "hover:text-emerald-400" },
-                { id: "waterfall", icon: <Activity size={16} />, title: "The Momentum", color: "hover:text-amber-400" },
-                { id: "report", icon: <FileText size={16} />, title: "The Evidence", color: "hover:text-purple-400" },
-                { id: "howto", icon: <HelpCircle size={16} />, title: "The Protocol", color: "hover:text-blue-500" },
-                { id: "about", icon: <Info size={16} />, title: "About", color: "hover:text-zinc-400" },
+                { id: "protocol", icon: <Fingerprint size={16} />, title: "ID", color: "hover:text-blue-400" },
+                { id: "search", icon: <Search size={16} />, title: "Search", color: "hover:text-zinc-400" },
+                { id: "settings", icon: <Settings size={16} />, title: "Settings", color: "hover:text-zinc-400" },
+                { id: "graph", icon: <Map size={16} />, title: "Map", color: "hover:text-emerald-400" },
+                { id: "waterfall", icon: <Activity size={16} />, title: "Flow", color: "hover:text-amber-400" },
+                { id: "report", icon: <FileText size={16} />, title: "Files", color: "hover:text-purple-400" },
+                { id: "howto", icon: <HelpCircle size={16} />, title: "Tips", color: "hover:text-blue-500" },
+                { id: "about", icon: <Info size={16} />, title: "Unknown", color: "hover:text-zinc-400" },
               ].map(it => (
                 <button
                   key={it.id}

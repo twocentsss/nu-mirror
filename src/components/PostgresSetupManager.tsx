@@ -103,7 +103,7 @@ export default function PostgresSetupManager() {
             )}
             <div className="px-4 pt-4 pb-2 flex items-center gap-2 text-[13px] font-semibold text-[var(--text-secondary)]">
                 <Database size={14} />
-                Personal Postgres Storage (BYODB)
+                Database
             </div>
 
             <div className="p-4 space-y-4">

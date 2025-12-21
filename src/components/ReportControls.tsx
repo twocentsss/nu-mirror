@@ -51,7 +51,7 @@ export default function ReportControls() {
         disabled={storyState === "loading"}
         className="px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-pink-500 text-white text-sm font-semibold shadow-lg hover:opacity-90 transition disabled:opacity-60"
       >
-        {storyState === "loading" ? "Generating…" : "Generate Story"}
+        {storyState === "loading" ? "Generating…" : "Write Journal"}
       </button>
 
       <button
@@ -59,7 +59,7 @@ export default function ReportControls() {
         disabled={reportState === "loading"}
         className="px-4 py-2 rounded-2xl border border-white/40 text-sm font-semibold text-[var(--text-primary)] bg-white/10 hover:bg-white/20 disabled:opacity-60"
       >
-        {reportState === "loading" ? "Refreshing…" : "Refresh Reports"}
+        {reportState === "loading" ? "Refreshing…" : "Update Trends"}
       </button>
 
       {message && (

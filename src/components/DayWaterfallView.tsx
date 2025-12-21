@@ -52,12 +52,12 @@ export function DayWaterfallView({ tasks, onClose }: { tasks: TaskRecord[]; onCl
                     {/* Vision Header */}
                     <header className="flex items-start justify-between">
                         <div className="space-y-6">
-                            <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-amber-500">The Momentum</p>
+                            <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-amber-500">Flow</p>
                             <h1 className="text-6xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
-                                Your finite <br />capacity.
+                                Your daily <br />energy.
                             </h1>
                             <p className="text-2xl font-medium text-[var(--text-secondary)] italic">
-                                16 hours awake. Every minute is a trade.
+                                16 hours awake. Spend it well.
                             </p>
                         </div>
                         <button
@@ -81,7 +81,7 @@ export function DayWaterfallView({ tasks, onClose }: { tasks: TaskRecord[]; onCl
                                     <span className="text-4xl font-black text-blue-400 tracking-tighter">
                                         {Math.floor(metrics.freeMin / 60)}h {metrics.freeMin % 60}m
                                     </span>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400/60">Surplus</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400/60">Free</span>
                                 </motion.div>
 
                                 {/* The Allocation Stack (Committed Time) */}
@@ -120,19 +120,19 @@ export function DayWaterfallView({ tasks, onClose }: { tasks: TaskRecord[]; onCl
                         {/* Accounting Side Panel */}
                         <div className="space-y-12">
                             <div className="space-y-8">
-                                <h3 className="text-[14px] font-bold uppercase tracking-[0.5em] text-amber-500">The Balance Sheet</h3>
+                                <h3 className="text-[14px] font-bold uppercase tracking-[0.5em] text-amber-500">Summary</h3>
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Total Capacity</span>
+                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Total Energy</span>
                                         <span className="text-3xl font-black text-[var(--text-primary)] tracking-tighter">{AWAKE_HOURS}h 00m</span>
                                     </div>
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Committed</span>
+                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Busy</span>
                                         <span className="text-3xl font-black text-[var(--text-primary)] tracking-tighter">{Math.floor(metrics.committedMin / 60)}h {metrics.committedMin % 60}m</span>
                                     </div>
                                     <div className="h-px bg-[var(--glass-border)]" />
                                     <div className="flex justify-between items-end">
-                                        <span className="text-sm font-bold text-amber-500 uppercase tracking-widest">Net Momentum</span>
+                                        <span className="text-sm font-bold text-amber-500 uppercase tracking-widest">Net Flow</span>
                                         <span className={`text-4xl font-black tracking-tighter ${metrics.overload > 0 ? 'text-rose-500' : 'text-blue-400'}`}>
                                             {metrics.overload > 0 ? `-${metrics.overload}m` : `+${Math.floor(metrics.freeMin / 60)}h ${metrics.freeMin % 60}m`}
                                         </span>

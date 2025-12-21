@@ -225,13 +225,13 @@ export default function PromptEditorModal(props: {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/50 px-1">Template</label>
+                  <label className="text-[10px] uppercase tracking-[0.4em] text-white/50 px-1">Behavior</label>
                   <textarea
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none font-mono focus:border-cyan-500/50 transition"
                     rows={10}
                     value={template}
                     onChange={(e) => setTemplate(e.target.value)}
-                    placeholder="Prompt Template. Use {{context}} for dynamic data."
+                    placeholder="Describe how the System should behave. Use {{context}} for dynamic data."
                   />
                 </div>
 

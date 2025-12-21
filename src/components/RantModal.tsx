@@ -191,7 +191,7 @@ export default function RantModal(props: {
                                             <Zap size={14} className="text-white fill-current" />
                                         </div>
                                         <div>
-                                            <h2 className="text-sm font-bold tracking-tight text-white/90">Rant to Task</h2>
+                                            <h2 className="text-sm font-bold tracking-tight text-white/90">Thought Stream</h2>
                                         </div>
                                     </div>
                                     <textarea
@@ -199,7 +199,7 @@ export default function RantModal(props: {
                                         className="w-full bg-transparent text-xl lg:text-2xl font-medium outline-none placeholder:text-white/20 resize-none min-h-[120px] leading-relaxed"
                                         value={rant}
                                         onChange={(e) => setRant(e.target.value)}
-                                        placeholder="Just rant about what you need to do... 'I need to fix the production server by tonight, it keeps crashing during high load. Probably need to check the logs...'"
+                                        placeholder="Speak or type what's on your mind..."
                                         disabled={loading}
                                     />
 
@@ -241,13 +241,13 @@ export default function RantModal(props: {
                                         <div className="space-y-6">
                                             <div className="p-6 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.02] text-center">
                                                 <p className="text-xs text-white/30 leading-relaxed font-medium">
-                                                    AI will automatically extract subtasks, durations, focus areas, and goals from your rant for your approval.
+                                                    System will sort thoughts into actionable items.
                                                 </p>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="p-4 rounded-2xl bg-white/3 border border-white/5 flex flex-col gap-1">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Step 1</span>
-                                                    <span className="text-xs font-bold text-white/60">Voice/Text Rant</span>
+                                                    <span className="text-xs font-bold text-white/60">Voice</span>
                                                 </div>
                                                 <div className="p-4 rounded-2xl bg-white/3 border border-white/5 flex flex-col gap-1">
                                                     <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Step 2</span>
@@ -265,7 +265,7 @@ export default function RantModal(props: {
                                         disabled={!rant.trim() || loading}
                                         className="h-10 px-8 rounded-full bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 disabled:opacity-20 transition-all flex items-center gap-2 shadow-xl"
                                     >
-                                        Parse Thoughts <ArrowRight size={16} />
+                                        Process <ArrowRight size={16} />
                                     </button>
                                 </div>
                             </>
@@ -278,10 +278,10 @@ export default function RantModal(props: {
                                             <button onClick={() => setParsedTask(null)} className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors">
                                                 <ArrowRight size={14} className="text-white rotate-180" />
                                             </button>
-                                            <h2 className="text-sm font-bold tracking-tight text-white/90">Review Sequence</h2>
+                                            <h2 className="text-sm font-bold tracking-tight text-white/90">Review Draft</h2>
                                         </div>
                                         <div className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.2em] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                            STRUCTURED
+                                            ORGANIZED
                                         </div>
                                     </div>
                                     <input

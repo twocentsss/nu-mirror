@@ -7,21 +7,20 @@ export function PersonalizationContent({ onClose }: { onClose?: () => void }) {
         <div className="max-w-5xl mx-auto space-y-24 pb-40 px-6">
             {/* Hero / Stance */}
             <header className="space-y-8 max-w-4xl pt-12">
-                <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">The Nu Protocol</p>
+                <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">System ID</p>
                 <h1 className="text-6xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-[0.95]">
-                    Identity. <br />Decided by design.
+                    Your Profile.<br />Defined.
                 </h1>
                 <p className="text-2xl md:text-3xl font-medium text-[var(--text-secondary)] max-w-2xl leading-tight italic">
-                    "Track your life like money. Because time is the only thing you can't earn back."
+                    "Track your life like it matters. Because time is the only thing you can't earn back."
                 </p>
             </header>
 
-            {/* Vision Cards */}
             <section className="grid md:grid-cols-3 gap-12">
                 {[
-                    { value: "1440", label: "Daily Reconciliation", desc: "Every day ends with one question: Did your day reconcile?", color: "from-blue-600/20 to-indigo-600/20" },
-                    { value: "P&L", label: "Life Ledger", desc: "See your Scroll Tax and Asset Growth. No guilt, just accounting.", color: "from-purple-600/20 to-pink-600/20" },
-                    { value: "BYO", label: "Self-Sovereign", desc: "Bring your own keys, storage, and config. You own the system.", color: "from-emerald-600/20 to-teal-600/20" },
+                    { value: "1440", label: "Time", desc: "Every day ends with one question: Did your day reconcile?", color: "from-blue-600/20 to-indigo-600/20" },
+                    { value: "Log", label: "Journal", desc: "See your history and growth. No guilt, just clarity.", color: "from-purple-600/20 to-pink-600/20" },
+                    { value: "Keys", label: "Private", desc: "Bring your own keys, storage, and config. You own the system.", color: "from-emerald-600/20 to-teal-600/20" },
                 ].map((card) => (
                     <div key={card.label} className={`p-10 rounded-[2.5rem] bg-gradient-to-br ${card.color} border border-[var(--glass-border)] space-y-6 transition-transform hover:scale-[1.02] duration-500`}>
                         <div className="text-5xl font-black text-[var(--text-primary)]">{card.value}</div>
@@ -36,21 +35,21 @@ export function PersonalizationContent({ onClose }: { onClose?: () => void }) {
             {/* The 9 Worlds (The Grid) */}
             <section className="space-y-16">
                 <div className="space-y-4">
-                    <h2 className="text-[14px] font-bold uppercase tracking-[0.5em] text-blue-500">The 9 Worlds</h2>
-                    <h3 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter">Define the dimensions.</h3>
+                    <h2 className="text-[14px] font-bold uppercase tracking-[0.5em] text-blue-500">Focus Areas</h2>
+                    <h3 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter">Your life in focus.</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {[
                         ["1. Core", "Soul, purpose, being"],
-                        ["2. Self", "Body, mind, heart"],
-                        ["3. Circle", "Family, friends, love"],
-                        ["4. Grind", "Work, responsibilities"],
-                        ["5. Level Up", "Skills, growth, business"],
-                        ["6. Impact", "Giving back, community"],
-                        ["7. Play", "Joy, creativity, travel"],
-                        ["8. Insight", "Knowledge, wisdom"],
-                        ["9. Chaos", "The unexpected"]
+                        ["2. Body", "Health, mind, energy"],
+                        ["3. People", "Family, friends, love"],
+                        ["4. Work", "Career, responsibility"],
+                        ["5. Grow", "Skills, business, learning"],
+                        ["6. Give", "Community, impact"],
+                        ["7. Play", "Joy, travel, rest"],
+                        ["8. Learn", "Knowledge, wisdom"],
+                        ["9. Life", "The unexpected"]
                     ].map(([title, desc]) => (
                         <div key={title} className="group p-8 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] hover:bg-[var(--glass-bg)]/80 transition-all duration-500">
                             <span className="text-2xl font-black text-[var(--text-primary)] group-hover:text-[var(--accent-color)] transition-colors uppercase tracking-tight">{title}</span>
@@ -60,7 +59,7 @@ export function PersonalizationContent({ onClose }: { onClose?: () => void }) {
                 </div>
                 <div className="p-8 rounded-[2rem] bg-blue-500/5 border border-blue-500/10 text-center">
                     <p className="text-white/40 font-medium italic">
-                        "We provide the defaults. You provide the meaning. Rename, replace, or reconfigure via Config Vending (Coming Phase 5)."
+                        "We provide the defaults. You provide the meaning."
                     </p>
                 </div>
             </section>
@@ -70,13 +69,13 @@ export function PersonalizationContent({ onClose }: { onClose?: () => void }) {
                 <footer className="rounded-[4rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] p-20 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--accent-color)] to-transparent opacity-50" />
                     <div className="space-y-10 relative z-10">
-                        <h3 className="text-5xl font-black tracking-tighter italic text-[var(--text-primary)] md:text-6xl">"Identity is not a state, it's a protocol."</h3>
+                        <h3 className="text-5xl font-black tracking-tighter italic text-[var(--text-primary)] md:text-6xl">"Your identity is a practice."</h3>
                         <div className="flex justify-center">
                             <button
                                 onClick={onClose}
                                 className="px-16 py-6 rounded-full bg-[var(--text-primary)] text-[var(--app-bg)] text-2xl font-black tracking-tight transition-all hover:scale-105 shadow-2xl"
                             >
-                                Recalibrate Now
+                                Done
                             </button>
                         </div>
                     </div>

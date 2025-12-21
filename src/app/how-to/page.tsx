@@ -84,9 +84,9 @@ export default function HowToPage() {
 
         {/* Apple-esque Header */}
         <header className="mb-24 space-y-8 max-w-4xl">
-          <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">The Nu Protocol</p>
+          <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">The Guide</p>
           <h1 className="text-6xl font-extrabold leading-[1.05] tracking-tighter bg-gradient-to-br from-white via-white to-white/40 bg-clip-text text-transparent sm:text-7xl">
-            Choose your life stage. <br />Own your direction.
+            Choose your era. <br />Own your direction.
           </h1>
           <p className="text-2xl text-slate-400 font-medium max-w-2xl leading-relaxed">
             Nu decides what you already want but can’t articulate. Pick your current horizon to see exactly how Nu delivers your organized life.
@@ -100,14 +100,14 @@ export default function HowToPage() {
               <button
                 key={stage.age}
                 onClick={() => setActiveStage(stage)}
-                className={`group relative px-8 py-4 rounded-3xl transition-all duration-300 ${activeStage.age === stage.age
+                className={`group relative px-8 py-4 rounded-full transition-all duration-300 ${activeStage.age === stage.age
                   ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/20'
                   : 'bg-white/5 text-slate-400 hover:bg-white/10'
                   }`}
               >
-                <span className="text-xl font-black">Age {stage.age}</span>
+                <span className="text-xl font-bold">Age {stage.age}</span>
                 {activeStage.age === stage.age && (
-                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500" />
+                  <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-blue-500" />
                 )}
               </button>
             ))}
@@ -123,7 +123,7 @@ export default function HowToPage() {
               </div>
 
               <div className="rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-800 p-10 text-white shadow-2xl">
-                <p className="text-lg font-bold mb-4 uppercase tracking-widest opacity-70">The Protocol</p>
+                <p className="text-lg font-bold mb-4 uppercase tracking-widest opacity-70">The System</p>
                 <p className="text-2xl font-black leading-tight">
                   By organizing your days at {activeStage.age}, your life starts to compound. Nu handles the friction, you handle the results.
                 </p>
@@ -163,7 +163,7 @@ export default function HowToPage() {
             <div className="flex justify-center flex-col sm:flex-row gap-6">
               <Link href="/">
                 <button className="w-full px-12 py-5 rounded-full bg-white text-black text-xl font-black tracking-tight transition-transform hover:scale-105 shadow-xl">
-                  Start Your Protocol
+                  Start Now
                 </button>
               </Link>
               <Link href="/">

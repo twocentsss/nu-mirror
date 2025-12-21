@@ -187,7 +187,7 @@ export default function OpenAiKeyManager() {
         <MirrorCard className="overflow-hidden p-0" tilt={false}>
             <div className="bg-[var(--glass-bg)] px-4 py-3 text-[13px] font-semibold text-[var(--text-secondary)] flex justify-between items-center border-b border-[var(--glass-border)]">
                 <div className="flex flex-col gap-1">
-                    <span className="text-[var(--text-primary)]">LLM Keys</span>
+                    <span className="text-[var(--text-primary)]">Intelligence</span>
                     <span className="text-[10px] text-[var(--text-secondary)] font-normal">
                         {activeKey
                             ? `Active: ${activeKey.label || activeKey.provider}`

@@ -21,7 +21,7 @@ export default function TopNav() {
 
   return (
     <div className="flex w-full items-center justify-between border-b bg-white px-4 py-3">
-      <div className="font-extrabold text-indigo-700">NuMirror</div>
+      <div className="font-extrabold text-indigo-700">Nu</div>
 
       <div className="flex items-center gap-3">
         {status === "loading" ? (

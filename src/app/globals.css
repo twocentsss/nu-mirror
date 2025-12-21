@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
 :root {
+
   --bg-top: 255 255 255;
   --bg-bottom: 248 248 250;
   --app-bg: #f6f7fb;
@@ -86,11 +92,18 @@ body {
 body {
   color: var(--text-primary);
   background: var(--bg-gradient);
-  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
   transition: background 0.5s ease, color 0.5s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.font-greeting {
+  font-family: var(--font-serif);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+}
+
 
 /* iOS safe area helpers */
 .safe-bottom {
@@ -99,6 +112,22 @@ body {
 
 .safe-top {
   padding-top: max(10px, env(safe-area-inset-top));
+}
+
+/* Hardening for iOS Inputs (Prevent Zoom) */
+input,
+select,
+textarea,
+button {
+  font-size: 16px !important;
+  /* Forces iOS not to zoom */
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on app-like UI elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Subtle tap feedback */

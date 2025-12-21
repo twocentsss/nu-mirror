@@ -54,6 +54,7 @@ export default function TodayPage() {
   const [goalFilter, setGoalFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [sortKey, setSortKey] = useState<"lf" | "title">("lf");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Reset to today/DAY ONLY on initial mount/reload
   useEffect(() => {
@@ -370,112 +371,127 @@ export default function TodayPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          <div className="flex flex-col gap-1">
-            <div className="pt-6 border-t-[4px] border-black flex flex-wrap items-center gap-4 px-4 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] mb-1">
-              <button
-                onClick={handleSelectAll}
-                className={`px-4 py-2 rounded-full border-2 transition-all ${selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "bg-black text-white border-black" : "border-black/20 text-black/60 hover:border-black hover:text-black"}`}
+          {/* Calm Header & Filter Toggle */}
+          <div className="flex items-center justify-between px-4 pt-2">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+              Tasks
+              <span className="ml-2 text-sm font-normal text-[var(--text-secondary)] opacity-60">
+                {filteredTasks.length}
+              </span>
+            </h2>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-full transition-all ${showFilters ? "bg-[var(--text-primary)] text-[var(--app-bg)]" : "bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          </div>
+
+          {/* Progressive Disclosure: Filters & Controls */}
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
               >
-                {selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "DESELECT ALL" : "SELECT ALL"}
-              </button>
+                <div className="flex flex-col gap-3 px-4 py-4 bg-[var(--glass-bg)] border-y border-[var(--glass-border)] backdrop-blur-3xl">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={handleSelectAll}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "bg-[var(--text-primary)] text-[var(--app-bg)] border-[var(--text-primary)]" : "border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]"}`}
+                    >
+                      {selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "Deselect All" : "Select All"}
+                    </button>
+                    <ViewSelector view={taskViewMode} onChange={setTaskViewMode} />
+                  </div>
 
-              <div className="h-6 w-px bg-black/10 mx-2" />
+                  <div className="flex flex-wrap gap-2">
+                    <CustomSelect
+                      value={lfFilter ?? "all"}
+                      onChange={(val) => setLfFilter(val === "all" ? null : Number(val))}
+                      options={[
+                        { value: "all", label: "All Focus" },
+                        ...WORLDS.map(w => ({ value: w.id, label: w.name }))
+                      ]}
+                      icon={<Target size={12} />}
+                      className="w-32 text-xs"
+                    />
+                    <CustomSelect
+                      value={goalFilter}
+                      onChange={setGoalFilter}
+                      options={[
+                        { value: "all", label: "Goal: All" },
+                        ...uniqueGoals.map(g => ({ value: g, label: g }))
+                      ]}
+                      className="w-32 text-xs"
+                    />
+                    <CustomSelect
+                      value={projectFilter}
+                      onChange={setProjectFilter}
+                      options={[
+                        { value: "all", label: "Proj: All" },
+                        ...uniqueProjects.map(p => ({ value: p, label: p }))
+                      ]}
+                      className="w-32 text-xs"
+                    />
+                  </div>
 
-              {/* View & Filters Group */}
-              <div className="flex items-center gap-3">
-                <ViewSelector
-                  view={taskViewMode}
-                  onChange={setTaskViewMode}
-                />
-
-                {/* LF Filter */}
-                <CustomSelect
-                  value={lfFilter ?? "all"}
-                  onChange={(val) => setLfFilter(val === "all" ? null : Number(val))}
-                  options={[
-                    { value: "all", label: "ALL FOCUS" },
-                    ...WORLDS.map(w => ({ value: w.id, label: w.name.toUpperCase() }))
-                  ]}
-                  icon={<SlidersHorizontal size={12} />}
-                  className="w-32"
-                />
-
-                {/* Goal Filter */}
-                <CustomSelect
-                  value={goalFilter}
-                  onChange={setGoalFilter}
-                  options={[
-                    { value: "all", label: "GOAL: ALL" },
-                    ...uniqueGoals.map(g => ({ value: g, label: `GOAL: ${g.toUpperCase()}` }))
-                  ]}
-                  className="w-32"
-                />
-
-                {/* Project Filter */}
-                <CustomSelect
-                  value={projectFilter}
-                  onChange={setProjectFilter}
-                  options={[
-                    { value: "all", label: "PROJ: ALL" },
-                    ...uniqueProjects.map(p => ({ value: p, label: `PROJ: ${p.toUpperCase()}` }))
-                  ]}
-                  className="w-32"
-                />
-              </div>
-
-              <div className="flex items-center gap-3 ml-auto">
-                <div className="flex items-center gap-2">
-                  <span className="opacity-40">Sort</span>
-                  <div className="flex gap-1 bg-black/5 rounded-full p-1 border-2 border-black/10">
-                    {(["lf", "title"] as const).map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setSortKey(key)}
-                        className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${sortKey === key ? "bg-black text-white" : "text-black/40 hover:text-black"}`}
-                      >
-                        {key === "lf" ? "LF" : "TITLE"}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--glass-border)]">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">Sort Order</span>
+                    <div className="flex gap-1 bg-black/5 rounded-full p-1">
+                      {(["lf", "title"] as const).map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setSortKey(key)}
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${sortKey === key ? "bg-[var(--text-primary)] text-[var(--app-bg)] shadow-sm" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+                        >
+                          {key === "lf" ? "Focus" : "Name"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {taskViewMode === 'single-line' ? (
-              <SingleLineTaskView
-                tasks={filteredTasks}
-                selectedIds={selectedTaskIds}
-                onSelectionChange={setSelectedTaskIds}
-                onTaskClick={(task, e) => openEditor(task, e)}
-                onStepChange={handleStepChange}
-                onStatusToggle={async (task) => { await markDone(task); }}
-                onDelete={handleDeleteTask}
-              />
-            ) : (
-              <div className="flex flex-col gap-2 relative">
-                <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
-                <AnimatePresence>
-                  {filteredTasks.map((task, i) => (
-                    <TodayTaskRow
-                      key={task.id ?? `task-${i}`}
-                      task={task}
-                      index={i}
-                      isSelected={task.id ? selectedTaskIds.has(task.id) : false}
-                      onToggleSelection={(id) => {
-                        const next = new Set(selectedTaskIds);
-                        if (next.has(id)) next.delete(id); else next.add(id);
-                        setSelectedTaskIds(next);
-                      }}
-                      markDone={markDone}
-                      handleScore={handleScore}
-                      openEditor={openEditor}
-                    />
-                  ))}
-                </AnimatePresence>
-              </div>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
+
+          {taskViewMode === 'single-line' ? (
+            <SingleLineTaskView
+              tasks={filteredTasks}
+              selectedIds={selectedTaskIds}
+              onSelectionChange={setSelectedTaskIds}
+              onTaskClick={(task, e) => openEditor(task, e)}
+              onStepChange={handleStepChange}
+              onStatusToggle={async (task) => { await markDone(task); }}
+              onDelete={handleDeleteTask}
+            />
+          ) : (
+            <div className="flex flex-col gap-2 relative">
+              <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
+              <AnimatePresence>
+                {filteredTasks.map((task, i) => (
+                  <TodayTaskRow
+                    key={task.id ?? `task-${i}`}
+                    task={task}
+                    index={i}
+                    isSelected={task.id ? selectedTaskIds.has(task.id) : false}
+                    onToggleSelection={(id) => {
+                      const next = new Set(selectedTaskIds);
+                      if (next.has(id)) next.delete(id); else next.add(id);
+                      setSelectedTaskIds(next);
+                    }}
+                    markDone={markDone}
+                    handleScore={handleScore}
+                    openEditor={openEditor}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+
 
           {isLoadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
           {!isLoadingTasks && filteredTasks.length === 0 && (

@@ -17,9 +17,24 @@ export default function GlobalHeader() {
     // Don't show on Today page (it has its own custom header)
     if (pathname === "/today" || pathname === "/") return null;
 
-    // Infer title from pathname
-    const title = pathname?.split("/").pop() || "NuMirror";
-    const displayTitle = title.charAt(0).toUpperCase() + title.slice(1);
+    // Infer title from pathname with Apple-style overrides
+    const titleKey = pathname?.split("/").pop() || "NuMirror";
+    const TITLE_MAP: Record<string, string> = {
+        "today": "Today",
+        "protocol": "ID",
+        "search": "Search",
+        "settings": "Settings",
+        "graph": "Map",
+        "waterfall": "Flow",
+        "report": "Files",
+        "howto": "Tips",
+        "about": "About",
+        "me": "Me",
+        "games": "Arcade",
+        "social": "Social",
+        "story": "Journal"
+    };
+    const displayTitle = TITLE_MAP[titleKey] || titleKey.charAt(0).toUpperCase() + titleKey.slice(1);
 
     return (
         <>

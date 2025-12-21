@@ -25,9 +25,9 @@ export function EndOfDayReport({ tasks, date, onClose }: { tasks: TaskRecord[], 
                 <div className="max-w-4xl mx-auto space-y-16 pb-32">
                     {/* Vision Header */}
                     <header className="space-y-6">
-                        <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-purple-500">The Evidence</p>
+                        <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-purple-500">Summary</p>
                         <h1 className="text-6xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
-                            Did your day <br />reconcile?
+                            Day Review
                         </h1>
                         <p className="text-2xl font-medium text-[var(--text-secondary)] italic">
                             {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -38,7 +38,7 @@ export function EndOfDayReport({ tasks, date, onClose }: { tasks: TaskRecord[], 
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Net Float Card */}
                         <div className={`p-10 rounded-[3rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] space-y-6 ${isOverdraft ? 'border-red-500/30' : 'border-emerald-500/30'}`}>
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)]">Net Float</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)]">Net Balance</p>
                             <div className={`text-6xl font-black tracking-tighter ${deltaColor}`}>
                                 {isOverdraft ? '-' : '+'}{Math.floor((isOverdraft ? (ledger.resources.time_committed - (16 * 60)) : ledger.resources.time_available) / 60)}h
                                 {(isOverdraft ? (ledger.resources.time_committed - (16 * 60)) : ledger.resources.time_available) % 60}m
@@ -52,7 +52,7 @@ export function EndOfDayReport({ tasks, date, onClose }: { tasks: TaskRecord[], 
 
                         {/* Velocity Card */}
                         <div className="p-10 rounded-[3rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] space-y-6">
-                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)]">Daily Velocity</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)]">Completion</p>
                             <div className="text-6xl font-black tracking-tighter text-[var(--text-primary)]">
                                 {tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'done').length / tasks.length) * 100) : 0}%
                             </div>
@@ -65,8 +65,8 @@ export function EndOfDayReport({ tasks, date, onClose }: { tasks: TaskRecord[], 
                     {/* The Matrix (Breakdown) */}
                     <section className="space-y-12">
                         <div className="space-y-4">
-                            <h2 className="text-[14px] font-bold uppercase tracking-[0.5em] text-purple-500">The Allocation</h2>
-                            <h3 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter">Where your soul went.</h3>
+                            <h2 className="text-[14px] font-bold uppercase tracking-[0.5em] text-purple-500">Allocation</h2>
+                            <h3 className="text-5xl font-black text-[var(--text-primary)] tracking-tighter">Where your time went.</h3>
                         </div>
 
                         <div className="grid gap-4">
@@ -157,7 +157,7 @@ export function EndOfDayReport({ tasks, date, onClose }: { tasks: TaskRecord[], 
                             onClick={onClose}
                             className="px-16 py-6 rounded-full bg-[var(--text-primary)] text-[var(--app-bg)] text-2xl font-black tracking-tight transition-all hover:scale-105 shadow-2xl"
                         >
-                            Accept Reconcilliation
+                            Complete Review
                         </button>
                     </footer>
                 </div>

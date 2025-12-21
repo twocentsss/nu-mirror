@@ -32,12 +32,12 @@ export function WorldGraphView({ tasks, onClose }: { tasks: TaskRecord[]; onClos
                     {/* Vision Header */}
                     <header className="flex items-start justify-between">
                         <div className="space-y-6">
-                            <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-emerald-500">The World</p>
+                            <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-emerald-500">Map</p>
                             <h1 className="text-6xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
-                                Your mental <br />map.
+                                Your life <br />map.
                             </h1>
                             <p className="text-2xl font-medium text-[var(--text-secondary)] italic">
-                                9 worlds. Infinite intersections.
+                                9 areas. Infinite intersections.
                             </p>
                         </div>
                         <button
@@ -122,7 +122,7 @@ export function WorldGraphView({ tasks, onClose }: { tasks: TaskRecord[]; onClos
                     onClick={onClose}
                     className="px-16 py-6 rounded-full bg-[var(--text-primary)] text-[var(--app-bg)] text-2xl font-black tracking-tight transition-all hover:scale-105 shadow-2xl"
                 >
-                    Return to Origin
+                    Close
                 </button>
             </footer>
         </motion.div>

@@ -306,7 +306,7 @@ export default function TaskEditorModal(props: {
             body: JSON.stringify({
               goal_id: finalGoalId,
               title: project,
-              description: "Created from Task Editor"
+              description: "Created from Detail View"
             })
           });
         } catch (e) { console.error("Auto-create project failed", e); }
@@ -368,11 +368,10 @@ export default function TaskEditorModal(props: {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             title: title || "New Task",
-            raw_text: title || notes || "New Task",
             status,
             due_date: dueDate,
             time_of_day: timeOfDay,
-            notes: notes + (notes ? "\n\n" : "") + `[Quantum Energy: ${finalEnergy}/100]`,
+            notes: notes + (notes ? "\n\n" : "") + `[Impact: ${finalEnergy}/100]`,
             duration_min: finalDuration,
             lf: finalLf,
             priority,
@@ -535,7 +534,7 @@ export default function TaskEditorModal(props: {
                 placeholder="What's on your mind?"
               />
               <div className="mt-4 flex flex-col gap-3">
-                {/* Quantum Options (Superposition) */}
+                {/* Variations (Superposition) */}
                 {quantumOptions.length > 0 && !task.id && (
                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
                     {quantumOptions.map(opt => (
@@ -573,7 +572,7 @@ export default function TaskEditorModal(props: {
                       )}
                     </AnimatePresence>
                     {title && !detectedWorld && (
-                      <span className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-bold animate-pulse">Analyzing context...</span>
+                      <span className="text-[9px] text-white/10 uppercase tracking-[0.3em] font-bold animate-pulse">Thinking...</span>
                     )}
                   </div>
 
@@ -600,7 +599,7 @@ export default function TaskEditorModal(props: {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div className="flex flex-col gap-2">
-                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Status</label>
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">State</label>
                         <div className="flex flex-wrap gap-2">
                           {["intake", "doing", "done"].map((option) => (
                             <button
@@ -619,7 +618,7 @@ export default function TaskEditorModal(props: {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Deadline</label>
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Due</label>
                         <input
                           type="date"
                           className="w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition"
@@ -631,7 +630,7 @@ export default function TaskEditorModal(props: {
 
                     <div className="space-y-4">
                       <div className="flex flex-col gap-2">
-                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Sequence</label>
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Order</label>
                         <div className="flex gap-2">
                           {(["low", "high"] as const).map((p) => (
                             <button
@@ -705,7 +704,7 @@ export default function TaskEditorModal(props: {
 
                   {/* Notes */}
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Extra Context / Notes</label>
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Notes</label>
                     <textarea
                       className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none placeholder:text-white/10 focus:border-white/10 transition leading-relaxed"
                       rows={4}
@@ -717,7 +716,7 @@ export default function TaskEditorModal(props: {
 
                   {/* Progress Slider */}
                   <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Progress: {progress}%</label>
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Completed: {progress}%</label>
                     <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
                       <div className="absolute top-0 left-0 h-full bg-white transition-all duration-300" style={{ width: `${progress}%` }} />
                       <input

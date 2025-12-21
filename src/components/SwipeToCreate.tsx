@@ -30,7 +30,7 @@ export default function SwipeToCreate({
             >
                 <div className="bg-black/80 text-white rounded-full p-2 shadow-xl flex items-center gap-2">
                     <Plus size={24} />
-                    <span className="font-bold text-sm">Create Task</span>
+                    <span className="font-bold text-sm">New</span>
                 </div>
             </motion.div>
 
