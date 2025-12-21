@@ -125,6 +125,7 @@ export default function TaskEditorModal(props: {
 
   /* ... inside the component ... */
   const detectedWorld = useMemo(() => classifyTask(title), [title]);
+  const showDetails = Boolean(title.trim());
 
   // Quantum Generation State
   const [quantumOptions, setQuantumOptions] = useState<Option[]>([]);
@@ -432,8 +433,16 @@ export default function TaskEditorModal(props: {
               </div>
             </div>
 
-            {/* Scrollable Helpful Info */}
-            <div className="overflow-y-auto p-6 lg:p-8 space-y-8 flex-1">
+            <AnimatePresence mode="wait">
+              {showDetails ? (
+                <motion.div
+                  key="details"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-y-auto p-6 lg:p-8 space-y-8 flex-1"
+                >
 
               {/* Context Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -603,9 +612,20 @@ export default function TaskEditorModal(props: {
                   </div>
                 )}
               </div>
-
-            </div>
-
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="placeholder"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex-1 flex items-center justify-center p-6 text-sm text-white/40"
+                >
+                  Start typing to unlock the full task editor — deadlines, framing, and priority drop in once the intent is clear.
+                </motion.div>
+              )}
+            </AnimatePresence>
             {/* Toolbar / Actions */}
             <div className="p-4 bg-white/3 border-t border-white/5 flex items-center justify-between">
               <div className="flex gap-4">

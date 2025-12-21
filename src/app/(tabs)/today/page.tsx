@@ -44,6 +44,7 @@ export default function TodayPage() {
   const { setClickOrigin, openTaskEditor } = useUIStore();
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [batchStatus, setBatchStatus] = useState<"intake" | "doing" | "done">("done");
 
   // Reset to today/DAY ONLY on initial mount/reload
   useEffect(() => {
@@ -153,6 +154,31 @@ export default function TodayPage() {
     }
   };
 
+  const handleBatchStatusUpdate = async () => {
+    if (selectedTaskIds.size === 0 || isBatchProcessing) return;
+    setIsBatchProcessing(true);
+    try {
+      const ids = Array.from(selectedTaskIds);
+      await Promise.all(
+        ids.map(id => {
+          const payload: Record<string, string | number | undefined> = { id, status: batchStatus };
+          if (batchStatus === "done") payload.progress = 100;
+          return fetch("/api/cogos/task/update", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        })
+      );
+      setSelectedTaskIds(new Set());
+      await refreshTasks(dateRange);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
   const handleScore = async (task: TaskRecord) => {
     if (!task.id) return;
     const result = await scoreSingleTask({
@@ -215,6 +241,56 @@ export default function TodayPage() {
     <SwipeToCreate onTrigger={() => openEditor()}>
       <div className="min-h-screen pb-32 pt-12 relative text-[var(--text-primary)] transition-colors duration-500">
         <div className="px-4 flex flex-col gap-4 relative mt-4">
+          <AnimatePresence>
+            {selectedTaskIds.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="fixed top-20 left-1/2 -translate-x-1/2 z-[90] w-[90%] max-w-3xl bg-[#111111] border border-white/10 rounded-2xl shadow-2xl backdrop-blur-3xl p-4 flex flex-col gap-2"
+              >
+                <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.4em] text-white/40">
+                  <span>{selectedTaskIds.size} selected</span>
+                  <button onClick={() => setSelectedTaskIds(new Set())} className="text-white/60 hover:text-white transition">CLEAR</button>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/70">
+                    Update status:
+                    <select
+                      className="rounded-full bg-white/5 text-white/90 border border-white/10 px-3 py-1 text-xs"
+                      value={batchStatus}
+                      onChange={(e) => setBatchStatus(e.target.value as "intake" | "doing" | "done")}
+                    >
+                      {["intake", "doing", "done"].map((status) => (
+                        <option key={status} value={status}>{status.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleBatchStatusUpdate}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-white/20 bg-white/10 hover:bg-white/20 transition disabled:opacity-30"
+                  >
+                    Update
+                  </button>
+                  <button
+                    onClick={handleBatchDelete}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-red-500 text-red-400 hover:bg-red-500/10 transition disabled:opacity-30"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={handleBatchDone}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 transition disabled:opacity-30"
+                  >
+                    Mark Done
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {taskViewMode === 'single-line' ? (
             <SingleLineTaskView
               tasks={filteredTasks}
