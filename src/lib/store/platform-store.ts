@@ -21,6 +21,9 @@ interface PlatformState {
     refreshTasks: (range?: { start: string; end: string }) => Promise<void>;
 }
 
+let pendingTaskRefreshKey: string | null = null;
+let pendingTaskRefreshPromise: Promise<void> | null = null;
+
 export const usePlatformStore = create<PlatformState>()(
     persist(
         (set) => ({
@@ -39,29 +42,50 @@ export const usePlatformStore = create<PlatformState>()(
             refreshTasks: async (range?: { start: string; end: string }) => {
                 const state = usePlatformStore.getState();
                 const { selectedDate, viewMode } = state;
-
-                // If no range provided, compute it from current state
                 let targetRange = range;
                 if (!targetRange) {
                     const { computeRange } = await import("@/lib/utils/date");
                     targetRange = computeRange(viewMode, new Date(selectedDate));
                 }
 
-                set({ isLoadingTasks: true });
-                try {
-                    const qs = new URLSearchParams({ start: targetRange.start, end: targetRange.end });
-                    const res = await fetch(`/api/cogos/task/list?${qs}`);
-                    const j = await res.json();
-                    if (j.tasks) set({ tasks: j.tasks });
-                } catch (e) {
-                    console.error("refreshTasks failed", e);
-                } finally {
-                    set({ isLoadingTasks: false });
+                const { start, end } = targetRange;
+                const rangeKey = `${start}-${end}`;
+                if (pendingTaskRefreshPromise && pendingTaskRefreshKey === rangeKey) {
+                    // reuse the existing request for the same range while it is still inflight
+                    return pendingTaskRefreshPromise;
                 }
+
+                if (state.isLoadingTasks) {
+                    return pendingTaskRefreshPromise ?? Promise.resolve();
+                }
+
+                pendingTaskRefreshKey = rangeKey;
+                set({ isLoadingTasks: true });
+                pendingTaskRefreshPromise = (async () => {
+                    try {
+                        const qs = new URLSearchParams({ start, end });
+                        const res = await fetch(`/api/cogos/task/list?${qs}`);
+                        const j = await res.json();
+                        if (j.tasks) set({ tasks: j.tasks });
+                    } catch (e) {
+                        console.error("refreshTasks failed", e);
+                    } finally {
+                        set({ isLoadingTasks: false });
+                        pendingTaskRefreshPromise = null;
+                        pendingTaskRefreshKey = null;
+                    }
+                })();
+                return pendingTaskRefreshPromise;
             }
         }),
         {
             name: 'platform-state',
+            partialize: (state) => ({
+                selectedDate: state.selectedDate,
+                viewMode: state.viewMode,
+                lfFilter: state.lfFilter,
+                taskViewMode: state.taskViewMode,
+            }),
         }
     )
 );

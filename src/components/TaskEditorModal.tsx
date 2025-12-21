@@ -7,6 +7,7 @@ import { generateQuantumState } from "@/lib/quantum/generator";
 import { collapseOption } from "@/lib/quantum/collapser";
 import { emitIntentCaptured, emitTaskCommitted } from "@/lib/events/emitters";
 import { Option } from "@/lib/quantum/types";
+import { Check } from "lucide-react";
 
 export type TaskRecord = {
   id?: string;
@@ -82,6 +83,7 @@ export default function TaskEditorModal(props: {
   const [durationMin, setDurationMin] = useState<number>(15);
   const [lf, setLf] = useState<number | "">("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [step, setStep] = useState<number>(1);
 
   const [q1, setQ1] = useState("");
   const [q2, setQ2] = useState("");
@@ -111,6 +113,7 @@ export default function TaskEditorModal(props: {
     setDurationMin(Number(task.duration_min ?? 15) || 15);
 
     setLf(task.lf ?? (task.id ? "" : 9));
+    setStep(task.step ?? 1);
 
     setSuggested([]);
     setSelectedIdx(new Set());
@@ -177,6 +180,7 @@ export default function TaskEditorModal(props: {
             duration_min: durationMin,
             lf: lf === "" ? undefined : Number(lf),
             priority,
+            step,
           }),
         });
         if (!res.ok) {
@@ -222,6 +226,7 @@ export default function TaskEditorModal(props: {
             duration_min: finalDuration,
             lf: finalLf,
             priority,
+            step,
           }),
         });
         if (!res.ok) {
@@ -465,7 +470,7 @@ export default function TaskEditorModal(props: {
 
                 <div className="space-y-4">
                   <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Focus</label>
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Sequence</label>
                     <div className="flex gap-2">
                       {["low", "high"].map(p => (
                         <button
@@ -478,33 +483,60 @@ export default function TaskEditorModal(props: {
                         </button>
                       ))}
                     </div>
-                    <div className="mt-2 relative group-picker">
-                      <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
-                        <div className="py-10"> {/* Top/Bottom spacing for center snapping */}
-                          {WORLDS.map((w) => (
-                            <button
-                              key={w.id}
-                              type="button"
-                              onClick={() => setLf(w.id)}
-                              className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
-                                ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
-                                : 'text-white/20 hover:text-white/40'
-                                }`}
-                            >
-                              <div className="flex flex-col items-start text-left">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                  {w.name}
-                                </span>
-                                {lf === w.id && <span className="text-[8px] opacity-80 font-medium">{w.desc}</span>}
-                              </div>
-                              <span className="text-xs font-mono opacity-20">{w.id}</span>
-                            </button>
-                          ))}
+
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <div className="relative group-picker">
+                        <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
+                          <div className="py-10"> {/* Top/Bottom spacing for center snapping */}
+                            {WORLDS.map((w) => (
+                              <button
+                                key={w.id}
+                                type="button"
+                                onClick={() => setLf(w.id)}
+                                className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
+                                  ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
+                                  : 'text-white/20 hover:text-white/40'
+                                  }`}
+                              >
+                                <div className="flex flex-col items-start text-left">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                    {w.name}
+                                  </span>
+                                  {lf === w.id && <span className="text-[8px] opacity-80 font-medium">{w.desc}</span>}
+                                </div>
+                                <span className="text-xs font-mono opacity-20">{w.id}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
+                        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
+                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
                       </div>
-                      {/* Glassy Overlays for the Rolling Effect */}
-                      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
-                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
+
+                      <div className="relative group-picker">
+                        <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
+                          <div className="py-10">
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => setStep(s)}
+                                className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${step === s
+                                  ? 'bg-white text-black shadow-xl scale-[1.02] z-10'
+                                  : 'text-white/20 hover:text-white/40'
+                                  }`}
+                              >
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                  Step {s}
+                                </span>
+                                {step === s && <Check size={10} />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
+                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
+                      </div>
                     </div>
                   </div>
                 </div>

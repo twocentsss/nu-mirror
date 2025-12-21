@@ -51,7 +51,9 @@ RULES:
    5: Level Up (Skills/Growth), 6: Impact (Community), 7: Play (Joy/Travel), 
    8: Insight (Wisdom), 9: Chaos (Unexpected).
 5. Estimated Effort: Duration in minutes. Default to 30 if not specified.
-6. Subtasks: Breakdown the task into 3-7 actionable subtasks. Each subtask should have a title and duration_min.
+6. Goal: Identify a high-level goal this task serves (e.g. "Launch Product", "Health", "Social Growth").
+7. Project: Categorize this into a project name (e.g. "Work", "Home", "Side Project").
+8. Subtasks: Breakdown the task into 3-7 actionable subtasks. Each subtask should have a title and duration_min.
 
 RESPONSE FORMAT:
 Return ONLY a JSON object with this structure:
@@ -61,6 +63,8 @@ Return ONLY a JSON object with this structure:
   "due_date": "YYYY-MM-DD",
   "lf": number,
   "duration_min": number,
+  "goal": "Goal name",
+  "project": "Project name",
   "subtasks": [
     { "title": "Subtask title", "duration_min": number }
   ]

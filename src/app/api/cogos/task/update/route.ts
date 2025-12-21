@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
-import {
-  AccountSpreadsheetNotFoundError,
-  getAccountSpreadsheetId,
-} from "@/lib/google/accountSpreadsheet";
-import { readAllRows, updateRowById, updateRowByRowNumber } from "@/lib/google/sheetStore";
+import { resolveStorageUrl } from "@/lib/config/storage";
 
 type PatchBody = {
   id: string;
@@ -42,21 +38,14 @@ export async function POST(req: Request) {
     );
   }
 
-  let spreadsheetId: string;
-  try {
-    ({ spreadsheetId } = await getAccountSpreadsheetId({
-      accessToken,
-      refreshToken,
-      userEmail: session.user.email,
-    }));
-  } catch (error) {
-    if (error instanceof AccountSpreadsheetNotFoundError) {
-      return NextResponse.json(
-        { error: "Account spreadsheet not initialized. Run /api/google/account/init first." },
-        { status: 412 },
-      );
-    }
-    throw error;
+  const storageUrl = (await resolveStorageUrl({
+    userEmail: session.user.email,
+    accessToken,
+    refreshToken
+  })) ?? process.env.DATABASE_URL ?? null;
+
+  if (!storageUrl) {
+    return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
   }
 
   const body = (await req.json()) as PatchBody;
@@ -65,43 +54,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
   }
 
-  const { rows, startRow } = await readAllRows({
-    spreadsheetId,
-    tab: "Tasks",
-    accessToken,
-    refreshToken,
-  });
+  const { getSqlClient, getTenantSchema, ensureTenantSchema } = await import("@/lib/events/client");
+  const sql = getSqlClient(storageUrl);
+  const tenantId = session.user.email;
+  const schema = getTenantSchema(tenantId);
+  await ensureTenantSchema(sql, schema);
 
-  const base = startRow ?? 2;
-  let targetRow: number | null = Number.isFinite(body._row) ? Number(body._row) : null;
-  let rowData: any[] | undefined;
-
-  if (targetRow) {
-    const idx = targetRow - base;
-    if (idx >= 0 && idx < rows.length) {
-      rowData = rows[idx];
-      // Final ID check to be sure
-      if (rowData && String(rowData[0] ?? "") !== taskId) {
-        rowData = undefined;
-        targetRow = null;
-      }
-    } else {
-      targetRow = null;
-    }
+  const existingRows = await sql.unsafe(
+    `SELECT fields FROM ${schema}.projection_tasks WHERE tenant_id = $1 AND task_id = $2`,
+    [tenantId, taskId],
+  );
+  if (!existingRows || existingRows.length === 0) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
-
-  if (!rowData) {
-    const idx = rows.findIndex((r: any[]) => String(r?.[0] ?? "") === taskId);
-    if (idx !== -1) {
-      rowData = rows[idx];
-      targetRow = base + idx;
-    } else {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-  }
-  if (!rowData) return NextResponse.json({ error: "Task not found" }, { status: 404 });
-  const jsonStr = String(rowData[8] ?? "{}");
-  const task = JSON.parse(jsonStr);
+  const storedFields = existingRows[0].fields;
+  const task = typeof storedFields === "string" ? JSON.parse(storedFields) : { ...(storedFields ?? {}) };
 
   if (typeof body.title === "string") task.title = body.title;
   if (typeof body.raw_text === "string") task.raw_text = body.raw_text;
@@ -124,36 +91,28 @@ export async function POST(req: Request) {
 
   task.updated_at = new Date().toISOString();
 
-  const updatedRow = [
-    task.id,
-    task.episode_id ?? "",
-    task.parent_task_id ?? "",
-    task.title ?? "",
-    task.status ?? "",
-    task.time?.due_date ?? "",
-    task.created_at ?? "",
-    task.updated_at ?? "",
-    JSON.stringify(task),
-  ];
+  const priorityWeight = typeof task.priority === "object" && typeof task.priority?.weight === "number"
+    ? Number(task.priority.weight)
+    : Number(task.priority ?? 0);
 
-  if (targetRow) {
-    await updateRowByRowNumber({
-      spreadsheetId,
-      tab: "Tasks",
-      rowNumber: targetRow,
-      values: updatedRow,
-      accessToken,
-      refreshToken,
-    });
-  } else {
-    await updateRowById({
-      spreadsheetId,
-      tab: "Tasks",
-      id: taskId,
-      accessToken,
-      refreshToken,
-      values: updatedRow,
-    });
+  try {
+    await sql.unsafe(`
+      UPDATE ${schema}.projection_tasks 
+      SET title = $1, status = $2, due_ts = $3, priority = $4, updated_at = $5, fields = $6
+      WHERE task_id = $7 AND tenant_id = $8
+    `, [
+      task.title,
+      task.status,
+      task.time?.due_date ? new Date(task.time.due_date) : null,
+      priorityWeight,
+      new Date(task.updated_at),
+      task,
+      taskId,
+      tenantId
+    ]);
+  } catch (err) {
+    console.warn("[UpdateRoute] Postgres update failed", err);
+    return NextResponse.json({ error: "Unable to update task" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, task });

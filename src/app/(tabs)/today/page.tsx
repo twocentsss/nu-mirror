@@ -6,16 +6,11 @@ import { useSession } from "next-auth/react";
 import {
   Plus,
   Target,
-  SlidersHorizontal,
+  Trash2,
+  Calendar,
+  Clock,
   PartyPopper,
-  Settings,
-  Search,
-  Info,
   Check,
-  Map,
-  Activity,
-  FileText,
-  Fingerprint
 } from "lucide-react";
 import { usePlatformStore } from "@/lib/store/platform-store";
 import { TaskRecord } from "@/components/TaskEditorModal";
@@ -29,44 +24,72 @@ import SingleLineTaskView from "@/components/today/SingleLineTaskView";
 import { computeRange } from "@/lib/utils/date";
 
 
+let hasResetOnReload = false;
+
 export default function TodayPage() {
   const { data: session } = useSession();
   const signedIn = Boolean(session?.user?.email);
-  const {
-    selectedDate, viewMode,
-    lfFilter, taskViewMode,
-    tasks, refreshTasks, isLoadingTasks,
-    setSelectedDate, setViewMode
-  } = usePlatformStore();
-  const dateObj = new Date(selectedDate);
-  const { setClickOrigin, openTaskEditor } = useUIStore();
 
-  // Reset to today/DAY on mount as requested
+  const selectedDate = usePlatformStore(s => s.selectedDate);
+  const viewMode = usePlatformStore(s => s.viewMode);
+  const lfFilter = usePlatformStore(s => s.lfFilter);
+  const taskViewMode = usePlatformStore(s => s.taskViewMode);
+  const tasks = usePlatformStore(s => s.tasks);
+  const refreshTasks = usePlatformStore(s => s.refreshTasks);
+  const isLoadingTasks = usePlatformStore(s => s.isLoadingTasks);
+  const setSelectedDate = usePlatformStore(s => s.setSelectedDate);
+  const setViewMode = usePlatformStore(s => s.setViewMode);
+
+  const dateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
+  const { setClickOrigin, openTaskEditor } = useUIStore();
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
+  // Reset to today/DAY ONLY on initial mount/reload
   useEffect(() => {
-    setSelectedDate(new Date());
-    setViewMode("DAY");
-  }, [setSelectedDate, setViewMode]);
+    if (!hasResetOnReload) {
+      setSelectedDate(new Date());
+      setViewMode("DAY");
+      hasResetOnReload = true;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const dateRange = useMemo(() => computeRange(viewMode, dateObj), [viewMode, dateObj]);
+  
+  const dateRangeKey = useMemo(() => `${dateRange.start}-${dateRange.end}`, [dateRange.start, dateRange.end]);
+  const lastRefreshedKey = useRef<string>("");
 
   useEffect(() => {
-    if (signedIn) {
+    console.log('useEffect triggered', { signedIn, dateRangeKey, lastRefreshed: lastRefreshedKey.current });
+    if (signedIn && dateRangeKey !== lastRefreshedKey.current) {
+      console.log('Calling refreshTasks with', dateRange);
+      lastRefreshedKey.current = dateRangeKey;
       refreshTasks(dateRange);
     }
-  }, [signedIn, dateRange, refreshTasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, dateRangeKey]);
 
   const handleSave = useCallback(async () => {
-    await refreshTasks();
-  }, [refreshTasks]);
+    const state = usePlatformStore.getState();
+    const dateObj = new Date(state.selectedDate);
+    const range = computeRange(state.viewMode, dateObj);
+    await state.refreshTasks(range);
+  }, []);
 
-  const openEditor = useCallback((task?: TaskRecord, e?: MouseEvent) => {
+  const openEditor = useCallback((task?: TaskRecord, e?: React.MouseEvent | MouseEvent | null) => {
     if (e) {
       setClickOrigin({ x: e.clientX, y: e.clientY });
     } else {
       setClickOrigin(null);
     }
-    openTaskEditor(task ?? {});
-  }, [setClickOrigin, openTaskEditor]);
+
+    // For new tasks, default to the currently selected date
+    const record = task || {
+      time: { due_date: selectedDate.slice(0, 10) }
+    };
+    openTaskEditor(record);
+  }, [selectedDate, setClickOrigin, openTaskEditor]);
 
   const markDone = useCallback(
     async (task: TaskRecord): Promise<{ status: string; progress: number } | null> => {
@@ -87,6 +110,48 @@ export default function TodayPage() {
     },
     [handleSave]
   );
+
+  const handleBatchDelete = async () => {
+    if (selectedTaskIds.size === 0 || isBatchProcessing) return;
+    if (!confirm(`Are you sure you want to delete ${selectedTaskIds.size} tasks?`)) return;
+
+    setIsBatchProcessing(true);
+    try {
+      const ids = Array.from(selectedTaskIds);
+      // We'll loop for now as there's no deleteMany API yet, or I can create it.
+      // Actually let's just loop to be safe and quick for now.
+      await Promise.all(ids.map(id =>
+        fetch("/api/cogos/task/delete", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+      ));
+      setSelectedTaskIds(new Set());
+      await refreshTasks(dateRange);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
+  const handleBatchDone = async () => {
+    if (selectedTaskIds.size === 0 || isBatchProcessing) return;
+    setIsBatchProcessing(true);
+    try {
+      const ids = Array.from(selectedTaskIds);
+      await Promise.all(ids.map(id =>
+        fetch("/api/cogos/task/update", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id, status: "done", progress: 100 }),
+        })
+      ));
+      setSelectedTaskIds(new Set());
+      await refreshTasks(dateRange);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
 
   const handleScore = async (task: TaskRecord) => {
     if (!task.id) return;
@@ -115,6 +180,22 @@ export default function TodayPage() {
     }
   };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    try {
+      const res = await fetch("/api/cogos/task/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: taskId }),
+      });
+      if (res.ok) {
+        await refreshTasks(dateRange);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const filteredTasks = useMemo(() => {
     let res = tasks;
     if (lfFilter !== null) {
@@ -132,13 +213,17 @@ export default function TodayPage() {
 
   return (
     <SwipeToCreate onTrigger={() => openEditor()}>
-      <div className="min-h-screen pb-32 pt-2 relative text-[var(--text-primary)] transition-colors duration-500">
-        <div className="px-4 flex flex-col gap-4 relative mt-2">
+      <div className="min-h-screen pb-32 pt-12 relative text-[var(--text-primary)] transition-colors duration-500">
+        <div className="px-4 flex flex-col gap-4 relative mt-4">
           {taskViewMode === 'single-line' ? (
             <SingleLineTaskView
               tasks={filteredTasks}
-              onTaskClick={(task) => openEditor(task)}
+              selectedIds={selectedTaskIds}
+              onSelectionChange={setSelectedTaskIds}
+              onTaskClick={(task, e) => openEditor(task, e)}
               onStepChange={handleStepChange}
+              onStatusToggle={async (task) => { await markDone(task); }}
+              onDelete={handleDeleteTask}
             />
           ) : (
             <>
@@ -149,6 +234,12 @@ export default function TodayPage() {
                     key={task.id ?? `task-${i}`}
                     task={task}
                     index={i}
+                    isSelected={task.id ? selectedTaskIds.has(task.id) : false}
+                    onToggleSelection={(id) => {
+                      const next = new Set(selectedTaskIds);
+                      if (next.has(id)) next.delete(id); else next.add(id);
+                      setSelectedTaskIds(next);
+                    }}
                     markDone={markDone}
                     handleScore={handleScore}
                     openEditor={openEditor}
@@ -168,6 +259,48 @@ export default function TodayPage() {
           )}
         </div>
 
+        {/* Batch Action Bar */}
+        <AnimatePresence>
+          {selectedTaskIds.size > 0 && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[80] w-[90%] max-w-lg"
+            >
+              <div className="bg-[#1c1c1e] border border-white/10 rounded-2xl shadow-2xl p-4 flex items-center justify-between gap-4 backdrop-blur-2xl">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Batch Action</span>
+                  <span className="text-sm font-bold text-white">{selectedTaskIds.size} Selected</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedTaskIds(new Set())}
+                    className="px-3 py-2 rounded-xl text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                  >
+                    CLEAR
+                  </button>
+                  <button
+                    onClick={handleBatchDelete}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-xl bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all disabled:opacity-20"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={handleBatchDone}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-20"
+                  >
+                    Mark Done
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Suspense fallback={null}><TaskEditorLauncher openEditor={openEditor} /></Suspense>
       </div>
     </SwipeToCreate >
@@ -177,12 +310,14 @@ export default function TodayPage() {
 type TodayTaskRowProps = {
   task: TaskRecord;
   index: number;
+  isSelected: boolean;
+  onToggleSelection: (id: string) => void;
   markDone: (task: TaskRecord) => Promise<{ status: string; progress: number } | null>;
   handleScore: (task: TaskRecord) => void;
-  openEditor: (task?: TaskRecord, e?: MouseEvent) => void;
+  openEditor: (task: TaskRecord, e: MouseEvent | React.MouseEvent) => void;
 };
 
-function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayTaskRowProps) {
+function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, handleScore, openEditor }: TodayTaskRowProps) {
   const isDone = task.status === "done";
   const dragX = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -247,15 +382,25 @@ function TodayTaskRow({ task, index, markDone, handleScore, openEditor }: TodayT
       onDragEnd={handleDragEnd}
       className="relative pl-8 group cursor-pointer"
       onClick={(e) => {
-        if (dragLockRef.current || isDragging) return;
+        if (dragLockRef.current || isDragging || (e.target as HTMLElement).closest('.selection-area')) return;
         openEditor(task, e);
       }}
     >
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-8 flex justify-center">
-        <div className={`w-3 h-3 rounded-full border-2 transition-all ${isDone ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"}`} />
+      {/* Multi-select Indicator */}
+      <div
+        className="selection-area absolute left-0 top-0 bottom-0 w-8 flex flex-col items-center justify-center gap-1 z-10"
+        onClick={(e) => { e.stopPropagation(); if (task.id) onToggleSelection(task.id); }}
+      >
+        <div className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${isSelected
+          ? "bg-white border-white text-black"
+          : "border-white/10 group-hover:border-white/30"
+          }`}>
+          {isSelected && <Check size={10} strokeWidth={4} />}
+        </div>
+        <div className={`w-1 h-1 rounded-full border transition-all ${isDone ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"}`} />
       </div>
 
-      <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 ${isDone ? "opacity-60 grayscale" : ""}`}>
+      <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 transition-all ${isDone ? "opacity-60 grayscale" : ""} ${isSelected ? "border-white/30 bg-white/5 shadow-xl" : ""}`}>
         <div className="flex-shrink-0 pt-1">
           {startTime ? (
             <div className="text-center">

@@ -4,7 +4,6 @@ import { authOptions } from '../../auth/authOptions';
 import { eventClient } from "@/lib/events/client";
 import { taskProjector } from "@/lib/events/projector/taskProjector";
 import { id } from "@/lib/cogos/id";
-import { getAccountSpreadsheetId } from "@/lib/google/accountSpreadsheet";
 import { resolveStorageUrl } from "@/lib/config/storage";
 
 export async function POST(request: Request) {
@@ -23,17 +22,6 @@ export async function POST(request: Request) {
         const accessToken = (session as any).accessToken as string | undefined;
         const refreshToken = (session as any).refreshToken as string | undefined;
 
-        // Resolve spreadsheet for Phase 1 Projection
-        let spreadsheetId: string | undefined = process.env.SHEETS_ID;
-        if (!spreadsheetId) {
-            const account = await getAccountSpreadsheetId({
-                accessToken,
-                refreshToken,
-                userEmail: session.user.email,
-            });
-            spreadsheetId = account.spreadsheetId;
-        }
-
         const events = [{
             env: { id: id("evt"), ts: Date.now(), src: 'api', ver: '1', kind: 'evt', trace: { traceId: id("tr"), spanId: id("sp") } },
             type: 'task.restored' as const,
@@ -50,7 +38,7 @@ export async function POST(request: Request) {
         }) || undefined;
 
         await eventClient.append(events as any, { storageUrl });
-        await taskProjector.process(events as any, { spreadsheetId, accessToken, refreshToken });
+        await taskProjector.process(events as any, { storageUrl });
 
         return NextResponse.json({ success: true, taskId });
     } catch (error) {

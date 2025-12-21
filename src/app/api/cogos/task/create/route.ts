@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
-import {
-  AccountSpreadsheetNotFoundError,
-  getAccountSpreadsheetId,
-} from "@/lib/google/accountSpreadsheet";
-import { appendRow } from "@/lib/google/sheetStore";
 import { id } from "@/lib/cogos/id";
 import { eventClient } from "@/lib/events/client";
 import { taskProjector } from "@/lib/events/projector/taskProjector";
@@ -39,23 +34,10 @@ export async function POST(req: Request) {
   const startAt: string | undefined = body.start_at;
   const endAt: string | undefined = body.end_at;
   const lf: number | undefined = body.lf;
-
-  let spreadsheetId: string;
-  try {
-    ({ spreadsheetId } = await getAccountSpreadsheetId({
-      accessToken,
-      refreshToken,
-      userEmail: session.user.email,
-    }));
-  } catch (error) {
-    if (error instanceof AccountSpreadsheetNotFoundError) {
-      return NextResponse.json(
-        { error: "Account spreadsheet not initialized. Run /api/google/account/init first." },
-        { status: 412 },
-      );
-    }
-    throw error;
-  }
+  const durationMin: number | undefined = body.duration_min;
+  const goal: string | undefined = body.goal;
+  const project: string | undefined = body.project;
+  const notes: string | undefined = body.notes;
 
   const now = new Date().toISOString();
   const episodeId = id("ep");
@@ -67,7 +49,7 @@ export async function POST(req: Request) {
     dims: {
       entity: { type: "person", ref: session.user.email },
       action: { verb: "capture", class: "create" },
-      context: { domain: "work", constraints: [] },
+      context: { domain: "work", constraints: [], project, goal },
       intent: { goal_type: "complete", goal_text: "Capture & execute task" },
       outcome: { expected: "Task tracked in system" },
       time: {
@@ -88,6 +70,7 @@ export async function POST(req: Request) {
     parent_task_id: parentTaskId ?? undefined,
     title,
     raw_text: rawText,
+    notes,
     dims_snapshot: episode.dims,
     ownership: {
       dri: session.user.email,
@@ -97,6 +80,9 @@ export async function POST(req: Request) {
     },
     status: "intake",
     lf,
+    goal,
+    project,
+    duration_min: durationMin,
     time: {
       due_date: dueDate ?? (startAt ? startAt.slice(0, 10) : undefined),
       time_of_day: timeOfDay,
@@ -148,8 +134,8 @@ export async function POST(req: Request) {
   // 2. Append to Log
   await eventClient.append(events as any, { storageUrl });
 
-  // 3. Project to Sheets & SQL (Maintain Read Compatibility)
-  await taskProjector.process(events as any, { spreadsheetId, accessToken, refreshToken, storageUrl });
+  // 3. Project to SQL
+  await taskProjector.process(events as any, { storageUrl });
 
-  return NextResponse.json({ spreadsheetId, episode, task });
+  return NextResponse.json({ episode, task });
 }

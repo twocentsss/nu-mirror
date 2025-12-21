@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/authOptions";
-import {
-  AccountSpreadsheetNotFoundError,
-  getAccountSpreadsheetId,
-} from "@/lib/google/accountSpreadsheet";
-import { appendRow } from "@/lib/google/sheetStore";
 import { newUlid } from "@/lib/id";
 import { eventClient } from "@/lib/events/client";
 import { taskProjector } from "@/lib/events/projector/taskProjector";
 import { resolveStorageUrl } from "@/lib/config/storage";
 import { id } from "@/lib/cogos/id";
-import { SHEET_TABS } from "@/lib/google/schema";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -23,26 +17,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing Google OAuth tokens. Sign out/in again." }, { status: 401 });
   }
 
-  let spreadsheetId: string;
-  try {
-    ({ spreadsheetId } = await getAccountSpreadsheetId({
-      accessToken,
-      refreshToken,
-      userEmail: session.user.email,
-    }));
-  } catch (error) {
-    if (error instanceof AccountSpreadsheetNotFoundError) {
-      return NextResponse.json({ error: "Account spreadsheet not initialized." }, { status: 412 });
-    }
-    throw error;
-  }
-
   const body = await req.json();
   const parent_task_id = String(body.parent_task_id || "");
   const episode_id = String(body.episode_id || "");
   const due_date = String(body.due_date || "");
   const time_of_day = String(body.time_of_day || "ANYTIME");
   const lf = body.lf ? Number(body.lf) : undefined;
+  const goal = body.goal ? String(body.goal) : undefined;
+  const project = body.project ? String(body.project) : undefined;
   const items = Array.isArray(body.items) ? body.items : [];
 
   if (!parent_task_id) return NextResponse.json({ error: "parent_task_id required" }, { status: 400 });
@@ -77,6 +59,8 @@ export async function POST(req: Request) {
       raw_text: String(it.raw_text ?? title),
       status: "intake",
       lf,
+      goal,
+      project,
       time: { due_date, time_of_day },
       notes: String(it.notes ?? ""),
       duration_min: Number(it.duration_min ?? 0) || undefined,
@@ -106,13 +90,8 @@ export async function POST(req: Request) {
     // 2. Append to Log
     await eventClient.append(events as any, { storageUrl });
 
-    // 3. Project to Sheets & SQL
-    await taskProjector.process(events as any, {
-      spreadsheetId,
-      accessToken,
-      refreshToken,
-      storageUrl
-    });
+    // 3. Project to SQL
+    await taskProjector.process(events as any, { storageUrl });
   }
 
   return NextResponse.json({ ok: true, created });

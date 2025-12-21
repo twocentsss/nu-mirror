@@ -16,6 +16,7 @@ import { EndOfDayReport } from "@/components/EndOfDayReport";
 import { PersonalizationView } from "@/components/PersonalizationView";
 import { AnimatePresence } from "framer-motion";
 import RantModal from "@/components/RantModal";
+import { useSession } from "next-auth/react";
 
 export default function TabsLayout({
   children,
@@ -25,7 +26,13 @@ export default function TabsLayout({
   const pathname = usePathname();
   const router = useRouter();
   const active = pathname.split("/").pop() || "today";
-  const { selectedDate, viewMode, tasks, refreshTasks } = usePlatformStore();
+  const selectedDate = usePlatformStore(s => s.selectedDate);
+  const viewMode = usePlatformStore(s => s.viewMode);
+  const tasks = usePlatformStore(s => s.tasks);
+  const setTasks = usePlatformStore(s => s.setTasks);
+  const refreshTasks = usePlatformStore(s => s.refreshTasks);
+  const { status } = useSession();
+
   const {
     showAbout, setShowAbout,
     showGraph, setShowGraph,
@@ -36,12 +43,14 @@ export default function TabsLayout({
     showTaskEditor, editingTask, openTaskEditor, closeTaskEditor
   } = useUIStore();
 
-  // Real-time stats for labels
-
   useEffect(() => {
-    refreshTasks();
-  }, [selectedDate]);
+    if (status === "unauthenticated") {
+      setTasks([]);
+    }
+  }, [status, setTasks]);
 
+  // Data is managed by sub-pages (TodayPage etc) to avoid double-fetching
+  // but we still subscribe to tasks for the labels
   const completedCount = tasks.filter(t => t.status === 'done').length;
   const totalTasks = tasks.length;
 

@@ -52,7 +52,7 @@ export default function SwipeToCreate({
                     }
                     setPullY(0);
                 }}
-                className="absolute top-0 left-0 right-0 h-16 z-30 cursor-grab active:cursor-grabbing"
+                className="absolute top-0 left-0 right-0 h-8 z-30 cursor-grab active:cursor-grabbing"
             />
 
             {children}
