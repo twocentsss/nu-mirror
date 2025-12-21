@@ -45,6 +45,10 @@ export default function TodayPage() {
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const [batchStatus, setBatchStatus] = useState<"intake" | "doing" | "done">("done");
+  const [batchPreset, setBatchPreset] = useState<"next_day" | "next_week" | "next_sprint" | "next_month">("next_day");
+  const [goalFilter, setGoalFilter] = useState("all");
+  const [projectFilter, setProjectFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<"lf" | "title">("lf");
 
   // Reset to today/DAY ONLY on initial mount/reload
   useEffect(() => {
@@ -179,6 +183,47 @@ export default function TodayPage() {
     }
   };
 
+  const computePresetDate = (preset: "next_day" | "next_week" | "next_sprint" | "next_month") => {
+    const date = new Date();
+    switch (preset) {
+      case "next_day":
+        date.setDate(date.getDate() + 1);
+        break;
+      case "next_week":
+        date.setDate(date.getDate() + 7);
+        break;
+      case "next_sprint":
+        date.setDate(date.getDate() + 14);
+        break;
+      case "next_month":
+        date.setMonth(date.getMonth() + 1);
+        break;
+    }
+    return date.toISOString().slice(0, 10);
+  };
+
+  const handleBatchReschedule = async () => {
+    if (selectedTaskIds.size === 0 || isBatchProcessing) return;
+    setIsBatchProcessing(true);
+    try {
+      const due_date = computePresetDate(batchPreset);
+      const ids = Array.from(selectedTaskIds);
+      await Promise.all(ids.map(id =>
+        fetch("/api/cogos/task/update", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id, due_date }),
+        })
+      ));
+      setSelectedTaskIds(new Set());
+      await refreshTasks(dateRange);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
   const handleScore = async (task: TaskRecord) => {
     if (!task.id) return;
     const result = await scoreSingleTask({
@@ -222,20 +267,35 @@ export default function TodayPage() {
     }
   };
 
+  const uniqueGoals = useMemo(() => {
+    return Array.from(new Set(tasks.map(t => t.goal ?? "unassigned").sort()));
+  }, [tasks]);
+  const uniqueProjects = useMemo(() => {
+    return Array.from(new Set(tasks.map(t => t.project ?? "unassigned").sort()));
+  }, [tasks]);
+
   const filteredTasks = useMemo(() => {
     let res = tasks;
     if (lfFilter !== null) {
       res = res.filter((t) => t.lf === lfFilter);
     }
+    if (goalFilter !== "all") {
+      res = res.filter((t) => (t.goal ?? "unassigned") === goalFilter);
+    }
+    if (projectFilter !== "all") {
+      res = res.filter((t) => (t.project ?? "unassigned") === projectFilter);
+    }
+
     return res.sort((a: any, b: any) => {
-      const ta = a.time?.start_at ? new Date(a.time.start_at).getTime() : 0;
-      const tb = b.time?.start_at ? new Date(b.time.start_at).getTime() : 0;
-      if (ta && tb) return ta - tb;
-      if (ta) return -1;
-      if (tb) return 1;
-      return 0;
+      if (sortKey === "lf") {
+        const al = a.lf ?? 0;
+        const bl = b.lf ?? 0;
+        if (al === bl) return (a.title ?? "").localeCompare(b.title ?? "");
+        return al - bl;
+      }
+      return (a.title ?? "").localeCompare(b.title ?? "");
     });
-  }, [tasks, lfFilter]);
+  }, [tasks, lfFilter, goalFilter, projectFilter, sortKey]);
 
   return (
     <SwipeToCreate onTrigger={() => openEditor()}>
@@ -291,6 +351,47 @@ export default function TodayPage() {
               </motion.div>
             )}
           </AnimatePresence>
+          <div className="flex flex-wrap items-center gap-3 px-4 text-[10px] uppercase tracking-[0.3em] text-white/60">
+            <div className="flex items-center gap-2">
+              <span className="text-white/40">Goal</span>
+              <select
+                className="bg-black/30 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white"
+                value={goalFilter}
+                onChange={(e) => setGoalFilter(e.target.value)}
+              >
+                <option value="all">ALL</option>
+                {uniqueGoals.map(goal => (
+                  <option key={goal} value={goal}>{goal.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/40">Project</span>
+              <select
+                className="bg-black/30 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white"
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+              >
+                <option value="all">ALL</option>
+                {uniqueProjects.map(project => (
+                  <option key={project} value={project}>{project.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white/40">Sort</span>
+              {(["lf", "title"] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSortKey(key)}
+                  className={`px-3 py-1 rounded-full border text-[10px] ${sortKey === key ? "border-white text-white" : "border-white/10 text-white/40"}`}
+                >
+                  {key === "lf" ? "LF" : "TITLE"}
+                </button>
+              ))}
+            </div>
+          </div>
           {taskViewMode === 'single-line' ? (
             <SingleLineTaskView
               tasks={filteredTasks}
@@ -350,12 +451,51 @@ export default function TodayPage() {
                   <span className="text-sm font-bold text-white">{selectedTaskIds.size} Selected</span>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setSelectedTaskIds(new Set())}
                     className="px-3 py-2 rounded-xl text-[10px] font-bold text-white/40 hover:text-white transition-colors"
                   >
                     CLEAR
+                  </button>
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/70">
+                    Update status:
+                    <select
+                      className="rounded-full bg-white/5 text-white/90 border border-white/10 px-3 py-1 text-xs"
+                      value={batchStatus}
+                      onChange={(e) => setBatchStatus(e.target.value as "intake" | "doing" | "done")}
+                    >
+                      {["intake", "doing", "done"].map((status) => (
+                        <option key={status} value={status}>{status.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleBatchStatusUpdate}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] border border-white/20 bg-white/10 hover:bg-white/20 transition disabled:opacity-30"
+                  >
+                    Update
+                  </button>
+                  <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/70">
+                    Reschedule:
+                    <select
+                      className="rounded-full bg-white/5 text-white/90 border border-white/10 px-3 py-1 text-xs"
+                      value={batchPreset}
+                      onChange={(e) => setBatchPreset(e.target.value as "next_day" | "next_week" | "next_sprint" | "next_month")}
+                    >
+                      <option value="next_day">Next day</option>
+                      <option value="next_week">Next week</option>
+                      <option value="next_sprint">Next sprint</option>
+                      <option value="next_month">Next month</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleBatchReschedule}
+                    disabled={isBatchProcessing}
+                    className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.3em] border border-white/20 bg-white/10 hover:bg-white/20 transition disabled:opacity-30"
+                  >
+                    Reschedule
                   </button>
                   <button
                     onClick={handleBatchDelete}

@@ -1,7 +1,7 @@
 import { TaskRecord } from "@/components/TaskEditorModal";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, ChevronDown } from "lucide-react";
 
 interface SingleLineTaskViewProps {
     tasks: TaskRecord[];
@@ -48,9 +48,10 @@ export default function SingleLineTaskView({
         <div className="space-y-1">
             {/* Header Row */}
             {tasks.length > 0 && (
-                <div className="flex items-center gap-3 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/20 border-b border-white/5 mb-2">
+            <div className="relative flex items-center gap-3 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/20 border-b border-white/5 mb-2 group">
+              <ChevronDown className="absolute -top-3 right-2 text-[10px] opacity-0 transition-all duration-200 group-hover:opacity-100 text-white/40" />
                     <div
-                        className="w-6 h-6 flex items-center justify-center cursor-pointer hover:text-white/40 transition-colors"
+                        className="relative w-6 h-6 flex items-center justify-center cursor-pointer transition-all border border-white/10 rounded-md bg-white/5 hover:border-white/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
                         onClick={() => {
                             if (selectedIds.size === tasks.length) {
                                 onSelectionChange(new Set());
@@ -95,11 +96,12 @@ export default function SingleLineTaskView({
                             }`}
                     >
                         {/* Checkbox */}
-                        <div
-                            className="checkbox-area w-6 h-6 flex items-center justify-center flex-shrink-0"
-                            onClick={(e) => toggleSelection(e, task.id)}
-                        >
-                            <div className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${isSelected
+            <div
+                        className="checkbox-area relative w-6 h-6 flex items-center justify-center flex-shrink-0 border border-white/20 rounded-md bg-white/5 shadow-inner transition-all hover:border-white/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+                onClick={(e) => toggleSelection(e, task.id)}
+            >
+                <ChevronDown className="absolute -top-3 text-[8px] opacity-0 transition-all duration-200 group-hover:opacity-100 text-white/30" />
+                <div className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${isSelected
                                     ? "bg-white border-white text-black"
                                     : "border-white/20 group-hover:border-white/40"
                                 }`}>
