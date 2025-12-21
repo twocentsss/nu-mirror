@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { TaskRecord, WORLDS } from "./TaskEditorModal";
 import { useMemo } from "react";
 
@@ -24,7 +24,6 @@ export function DayWaterfallView({ tasks, onClose }: { tasks: TaskRecord[]; onCl
         const segments: Record<number, number> = {};
 
         tasks.forEach(t => {
-            // Only count tasks that are "todo" or "doing" or "done" today
             const duration = t.duration_min || 15;
             committedMin += duration;
 
@@ -43,118 +42,140 @@ export function DayWaterfallView({ tasks, onClose }: { tasks: TaskRecord[]; onCl
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-[#0a0a0a] overflow-hidden flex flex-col pt-32"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-40 bg-[var(--app-bg)] overflow-hidden flex flex-col pt-24"
         >
-            {/* Header */}
-            <div className="p-6 flex items-center justify-between border-b border-white/10 bg-black/50 backdrop-blur-md">
-                <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">Day Waterfall</h2>
-                    <p className="text-xs text-white/40 uppercase tracking-widest mt-1">Resource Ledger (Time)</p>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition"
-                >
-                    ✕
-                </button>
-            </div>
+            <div className="flex-1 overflow-y-auto p-6 md:p-12">
+                <div className="max-w-6xl mx-auto space-y-16 pb-32">
+                    {/* Vision Header */}
+                    <header className="flex items-start justify-between">
+                        <div className="space-y-6">
+                            <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-amber-500">The Momentum</p>
+                            <h1 className="text-6xl md:text-8xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
+                                Your finite <br />capacity.
+                            </h1>
+                            <p className="text-2xl font-medium text-[var(--text-secondary)] italic">
+                                16 hours awake. Every minute is a trade.
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-6 rounded-full bg-[var(--glass-bg)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg)]/80 transition-all"
+                        >
+                            ✕
+                        </button>
+                    </header>
 
-            <div className="flex-1 p-8 flex gap-8 items-center justify-center overflow-hidden relative">
-
-                {/* The Tank (Main Visual) */}
-                <div className="w-64 h-[600px] border-2 border-white/20 rounded-3xl relative overflow-hidden bg-white/5 backdrop-blur-sm shadow-2xl">
-
-                    {/* Water (Free Time) */}
-                    <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${Math.min(100, waterHeight)}%` }}
-                        transition={{ type: "spring", damping: 20 }}
-                        className="absolute top-0 left-0 right-0 bg-blue-500/20 backdrop-blur-md flex items-center justify-center border-b border-blue-400/30"
-                    >
-                        <span className="text-blue-200 font-bold text-lg drop-shadow-md">
-                            {Math.floor(metrics.freeMin / 60)}h {metrics.freeMin % 60}m
-                            <span className="block text-[10px] text-blue-300 uppercase tracking-wider text-center">Available</span>
-                        </span>
-                    </motion.div>
-
-                    {/* Sand (Tasks) - Stacked from bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 flex flex-col-reverse justify-start">
-                        {Object.entries(metrics.segments).map(([lf, mins]) => {
-                            const lfId = Number(lf);
-                            const world = WORLDS.find(w => w.id === lfId);
-                            const pct = (mins / CAPACITY_MINUTES) * 100;
-                            return (
+                    <div className="grid lg:grid-cols-[1fr_300px] gap-20 items-center">
+                        {/* The Instrument (The Tank) */}
+                        <div className="relative flex justify-center">
+                            <div className="w-full max-w-md h-[550px] bg-[var(--glass-bg)] rounded-[4rem] border border-[var(--glass-border)] relative overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl">
+                                {/* Water (Free Time / Surplus) */}
                                 <motion.div
-                                    key={lf}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: `${pct}%`, opacity: 1 }}
-                                    className={`w-full bg-gradient-to-r ${world?.color || 'from-gray-500 to-gray-600'} flex items-center justify-center relative border-t border-black/20`}
-                                    style={{ height: `${pct}%` }} // Fallback
+                                    initial={{ height: 0 }}
+                                    animate={{ height: `${Math.min(100, waterHeight)}%` }}
+                                    className="absolute top-0 left-0 right-0 bg-blue-500/10 border-b border-blue-500/20 flex flex-col items-center justify-center space-y-2"
                                 >
-                                    {mins > 20 && (
-                                        <span className="text-white font-bold text-xs drop-shadow-md">
-                                            {mins}m
-                                        </span>
-                                    )}
+                                    <span className="text-4xl font-black text-blue-400 tracking-tighter">
+                                        {Math.floor(metrics.freeMin / 60)}h {metrics.freeMin % 60}m
+                                    </span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-400/60">Surplus</span>
                                 </motion.div>
-                            )
-                        })}
+
+                                {/* The Allocation Stack (Committed Time) */}
+                                <div className="absolute bottom-0 left-0 right-0 flex flex-col-reverse">
+                                    {Object.entries(metrics.segments).map(([lf, mins]) => {
+                                        const world = WORLDS.find(w => w.id === Number(lf));
+                                        const pct = (mins / CAPACITY_MINUTES) * 100;
+                                        return (
+                                            <motion.div
+                                                key={lf}
+                                                initial={{ height: 0 }}
+                                                animate={{ height: `${pct}%` }}
+                                                className={`w-full bg-gradient-to-r ${world?.color || 'from-zinc-700 to-zinc-800'} border-t border-black/20 flex items-center justify-center overflow-hidden group`}
+                                            >
+                                                {pct > 5 && (
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {world?.name || 'Other'} ({mins}m)
+                                                    </span>
+                                                )}
+                                            </motion.div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Decorative Scales */}
+                            <div className="absolute -left-12 top-0 bottom-0 flex flex-col justify-between py-10 text-[10px] font-black text-white/20 uppercase tracking-widest">
+                                <span>100%</span>
+                                <span>75%</span>
+                                <span>50%</span>
+                                <span>25%</span>
+                                <span>0%</span>
+                            </div>
+                        </div>
+
+                        {/* Accounting Side Panel */}
+                        <div className="space-y-12">
+                            <div className="space-y-8">
+                                <h3 className="text-[14px] font-bold uppercase tracking-[0.5em] text-amber-500">The Balance Sheet</h3>
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Total Capacity</span>
+                                        <span className="text-3xl font-black text-[var(--text-primary)] tracking-tighter">{AWAKE_HOURS}h 00m</span>
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-widest">Committed</span>
+                                        <span className="text-3xl font-black text-[var(--text-primary)] tracking-tighter">{Math.floor(metrics.committedMin / 60)}h {metrics.committedMin % 60}m</span>
+                                    </div>
+                                    <div className="h-px bg-[var(--glass-border)]" />
+                                    <div className="flex justify-between items-end">
+                                        <span className="text-sm font-bold text-amber-500 uppercase tracking-widest">Net Momentum</span>
+                                        <span className={`text-4xl font-black tracking-tighter ${metrics.overload > 0 ? 'text-rose-500' : 'text-blue-400'}`}>
+                                            {metrics.overload > 0 ? `-${metrics.overload}m` : `+${Math.floor(metrics.freeMin / 60)}h ${metrics.freeMin % 60}m`}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Warnings / Insights */}
+                            <AnimatePresence>
+                                {metrics.overload > 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-8 rounded-[2.5rem] bg-rose-500/5 border border-rose-500/20 space-y-4"
+                                    >
+                                        <h4 className="text-rose-500 font-black uppercase tracking-widest text-[10px]">Overdraft Alert</h4>
+                                        <p className="text-lg font-medium text-rose-200/60 leading-tight italic">
+                                            "You have committed to more than human reality allows. Something will fail. Choose what it is now, before the day decides for you."
+                                        </p>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-8 rounded-[2.5rem] bg-blue-500/5 border border-blue-500/20 space-y-4"
+                                    >
+                                        <h4 className="text-blue-400 font-black uppercase tracking-widest text-[10px]">Flow Stability</h4>
+                                        <p className="text-lg font-medium text-blue-200/60 leading-tight italic">
+                                            "Your schedule has air. Spontaneity and deep work are possible. Protect this surplus."
+                                        </p>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <button
+                                onClick={onClose}
+                                className="w-full py-6 rounded-full bg-[var(--text-primary)] text-[var(--app-bg)] text-xl font-black tracking-tight transition-all hover:scale-[1.02] shadow-2xl mt-8"
+                            >
+                                Calibrate Schedule
+                            </button>
+                        </div>
                     </div>
-
                 </div>
-
-                {/* Legend / Stats */}
-                <div className="flex flex-col gap-6 w-64">
-                    <div className="space-y-2">
-                        <h3 className="text-sm font-bold text-white uppercase tracking-widest">Accounting</h3>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-white/40">Capacity</span>
-                            <span className="text-white font-mono">{AWAKE_HOURS}h 00m</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-white/40">Committed</span>
-                            <span className="text-white font-mono">{Math.floor(metrics.committedMin / 60)}h {metrics.committedMin % 60}m</span>
-                        </div>
-                        <div className="flex justify-between text-sm font-bold">
-                            <span className="text-blue-400">Net Float</span>
-                            <span className="text-blue-400 font-mono">{Math.floor(metrics.freeMin / 60)}h {metrics.freeMin % 60}m</span>
-                        </div>
-                    </div>
-
-                    <div className="h-px bg-white/10" />
-
-                    {/* Overdraft Alert */}
-                    {metrics.overload > 0 && (
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="p-4 rounded-xl bg-red-500/10 border border-red-500/50"
-                        >
-                            <h4 className="text-red-400 font-bold text-sm uppercase tracking-wider mb-1">Warning: Overdraft</h4>
-                            <p className="text-red-200/60 text-xs leading-relaxed">
-                                You have committed to <strong>{metrics.overload}m</strong> more than your daily capacity. Consider deferring tasks.
-                            </p>
-                        </motion.div>
-                    )}
-
-                    {metrics.freeMin > 180 && metrics.overload === 0 && (
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="p-4 rounded-xl bg-green-500/10 border border-green-500/50"
-                        >
-                            <h4 className="text-green-400 font-bold text-sm uppercase tracking-wider mb-1">Flow State</h4>
-                            <p className="text-green-200/60 text-xs leading-relaxed">
-                                Healthy buffer available. Good day for deep work or spontaneity.
-                            </p>
-                        </motion.div>
-                    )}
-
-                </div>
-
             </div>
         </motion.div>
     );

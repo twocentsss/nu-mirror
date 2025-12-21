@@ -91,9 +91,20 @@ export async function POST(req: Request) {
 
   task.updated_at = new Date().toISOString();
 
-  const priorityWeight = typeof task.priority === "object" && typeof task.priority?.weight === "number"
-    ? Number(task.priority.weight)
-    : Number(task.priority ?? 0);
+  // Map priority string to numeric weight for database
+  let priorityWeight = 0;
+  if (typeof task.priority === "object" && typeof task.priority?.weight === "number") {
+    priorityWeight = Number(task.priority.weight);
+  } else if (typeof task.priority === "string") {
+    // Map string priority to numeric weight
+    const priorityMap: Record<string, number> = { low: 1, medium: 5, high: 10 };
+    priorityWeight = priorityMap[task.priority] ?? 0;
+  } else if (typeof task.priority === "number") {
+    priorityWeight = task.priority;
+  }
+
+  // Safety check for NaN
+  if (isNaN(priorityWeight)) priorityWeight = 0;
 
   try {
     await sql.unsafe(`

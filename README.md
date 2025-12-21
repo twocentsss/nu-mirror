@@ -1,62 +1,47 @@
-# Project Nu: The Quantum OS for Human Potential
+# Project Nu: Organized life. Across time. Without friction.
 
-Welcome to **Project Nu** (nu-mirror).
+**"Nu organizes your days so your life can compound."**
 
-Nu is a calm, AI-native platform designed to help you capture your thoughts, organize your life, and achieve your potential without the traditional stress of "task management."
+We’ve all been there. Days blur together. Effort feels disconnected. Energy disappears without explanation. You’re busy, but you aren’t necessarily *directed*. 
 
-## Quick Links
-- 📖 **[Product Strategy & Guide](./PRODUCT.md)**: Features, Use Cases, and Philosophy.
-- 🛠️ **[Engineering Deep Dive](./ENGINEERING.md)**: Architecture, Tech Stack, and Innovation.
-- 📜 **[Zen Constitution](./docs/product/ZEN_CONSTITUTION.md)**: Our core product tenets.
+Project Nu is a hard stance on human behavior. We believe that if your days are organized, your life compounds. If they aren’t, nothing else matters. Nu is the system that turns your daily effort into visible, meaningful progress.
 
 ---
 
-## What is Nu?
-Nu is built on the belief that **"Life gets lighter when you have a calm place to put your thoughts."**
+## The Vision
+Nu isn't a task manager. It’s an operating system for your days. It’s designed to decide what you already want but can’t articulate: a way to stop falling behind silently and start building something that lasts.
 
-It goes beyond simple lists by using a **12D Assertion Layer** and **LLM-powered reasoning** to automatically classify, prioritize, and narrate your daily life.
+### One line in. Life gets lighter.
+- **Everything in one place**: Career, body, learning, and ambition finally stop competing.
+- **Effort that counts**: We show you day-by-day that your work is real.
+- **Calm continuity**: Replace mental overload with a system that remembers so you don't have to.
 
-### Key Pillars
-1. **Zen Capture**: One line in, zero decisions.
-2. **LF-9 Framework**: Balanced growth across 9 Life Focus areas.
-3. **Event-Sourced Brain**: Your life as an immutable log of progress.
-4. **Narrative Engine**: Your week transformed into stories and comics.
+## The Nu Protocol
+Nu provides a tailored structure for your specific life horizon. We’ve mapped **36 concrete human wants** across 9 life foci and 4 age stages to ensure your expansion is directed, not random.
+
+- **18: Stop falling behind. Start stacking wins.**
+- **24: Experiment boldly. Keep your life intact.**
+- **34: Protect your energy. Own your week.**
+- **44: Turn years of effort into clear influence.**
+
+Explore the dynamic **"Why Wait?"** reel and choose your stage at the link below.
+
+---
+
+## Strategy & Depth
+Explore the behavioral architecture behind the experience:
+- 📖 **[The Protocol Matrix](./PRODUCT.md)**: 36 concrete use-cases across 9 life foci.
+- 📜 **[The Dynamic Experience](./src/app/how-to/page.tsx)**: Choose your stage. See the reel. Own your direction.
+- 🛠️ **[The Immutable Spine](./ENGINEERING.md)**: The engineering of human stability.
 
 ---
 
 ## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- A Google Cloud Project (for SSO and optional Sheets integration)
-- LLM API Keys (OpenAI, Gemini, or OpenRouter)
-
-### Local Development
-1. Clone the repository.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up your environment:
-   ```bash
-   cp .env.example .env.local
-   ```
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-5. Open [http://localhost:3000](http://localhost:3000).
+1. `npm install`
+2. `cp .env.example .env.local`
+3. `npm run dev`
 
 ---
 
-## Technology Stack
-- **Framework**: Next.js 15
-- **Language**: TypeScript
-- **Database**: Postgres (Supabase) & Redis
-- **AI**: OpenAI, Gemini, Anthropic, OpenRouter
-- **Persistence**: Event Sourcing (EventLog)
-
----
-
-## License
-Confidential and Proprietary. All rights reserved.
+## The Promise
+**Nu organizes your days so your life can compound.**

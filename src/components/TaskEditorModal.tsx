@@ -84,6 +84,73 @@ export default function TaskEditorModal(props: {
   const [lf, setLf] = useState<number | "">("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [step, setStep] = useState<number>(1);
+  const [progress, setProgress] = useState<number>(0);
+  const [goal, setGoal] = useState<string>("");
+  const [project, setProject] = useState<string>("");
+
+  // Fetching state
+  const [availableGoals, setAvailableGoals] = useState<any[]>([]);
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [showGoalInput, setShowGoalInput] = useState(false);
+  const [showProjectInput, setShowProjectInput] = useState(false);
+
+  const fetchGoals = async (lfId: number | string) => {
+    if (!lfId) return;
+    setIsLoadingGoals(true);
+    try {
+      const res = await fetch(`/api/cogos/goals?lf_id=${lfId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableGoals(data.goals || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch goals", e);
+    } finally {
+      setIsLoadingGoals(false);
+    }
+  };
+
+  const fetchProjects = async (goalTitle: string) => {
+    const goalObj = availableGoals.find(g => g.title === goalTitle);
+    if (!goalObj) {
+      // If it's a custom goal (not in list), we can't fetch projects by ID directly unless we handle it differently.
+      // For now, if no goal ID found, just clear projects or fetch all active projects for user?
+      // Let's rely on finding the ID.
+      setAvailableProjects([]);
+      return;
+    }
+
+    setIsLoadingProjects(true);
+    try {
+      const res = await fetch(`/api/cogos/projects?goal_id=${goalObj.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableProjects(data.projects || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch projects", e);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  };
+
+  useEffect(() => {
+    if (lf) {
+      fetchGoals(lf);
+    } else {
+      setAvailableGoals([]);
+    }
+  }, [lf]);
+
+  useEffect(() => {
+    if (goal) {
+      fetchProjects(goal);
+    } else {
+      setAvailableProjects([]);
+    }
+  }, [goal, availableGoals]);
 
   const [q1, setQ1] = useState("");
   const [q2, setQ2] = useState("");
@@ -114,6 +181,25 @@ export default function TaskEditorModal(props: {
 
     setLf(task.lf ?? (task.id ? "" : 9));
     setStep(task.step ?? 1);
+    setProgress(task.progress ?? 0);
+
+    // Set default goal and project for new tasks
+    if (!task.id) {
+      const now = new Date();
+
+      // Default Goal: Current Quarter (e.g., "Q1 2025")
+      const quarter = Math.floor(now.getMonth() / 3) + 1;
+      const defaultGoal = `Q${quarter} ${now.getFullYear()}`;
+      setGoal(task.goal ?? defaultGoal);
+
+      // Default Project: Current Month (e.g., "December 2025")
+      const monthName = now.toLocaleDateString('en-US', { month: 'long' });
+      const defaultProject = `${monthName} ${now.getFullYear()}`;
+      setProject(task.project ?? defaultProject);
+    } else {
+      setGoal(task.goal ?? "");
+      setProject(task.project ?? "");
+    }
 
     setSuggested([]);
     setSelectedIdx(new Set());
@@ -155,17 +241,77 @@ export default function TaskEditorModal(props: {
     }
   }, [detectedWorld, task?.id]);
 
-  const subtasks = useMemo(() => {
-    if (!task?.id) return [];
-    return props.allTasks.filter((t) => t.parent_task_id === task.id);
-  }, [props.allTasks, task?.id]);
-
   if (!props.open || !task) return null;
 
   async function save() {
     if (!task) return;
     setSaving(true);
     try {
+      // 0. Auto-create Goal/Project if they are custom and don't exist
+      if (goal && lf && !availableGoals.find(g => g.title === goal)) {
+        // Create Goal
+        try {
+          await fetch("/api/cogos/goals", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              lf_id: Number(lf),
+              title: goal,
+              rationale: "Created from Task Editor"
+            })
+          });
+          // We don't need to wait for state update, the task save will store the string
+        } catch (e) { console.error("Auto-create goal failed", e); }
+      }
+
+      if (project && goal && !availableProjects.find(p => p.title === project)) {
+        // Find goal ID first. If we just created it, we might need to fetch it or just use the string.
+        // Since the projects API requires a goal_id, we need to try and find the goal object again.
+        // However, if we JUST created the goal above, we don't have its ID yet without parsing the result.
+        // Let's optimize: fetching availableGoals is async. 
+        // For now, let's try to find the goal in availableGoals. If not found, we check if we can fetch user's goals to find the new one?
+        // Actually, simpler approach: The backend projects creation needs a goal_id. 
+        // If the goal is new, we can't easily create the project linked to it in this one synchronous flow without refactoring.
+        // BUT valid implementation: 
+        //   const newGoalRes = await fetch...
+        //   const newGoal = await newGoalRes.json()
+        // Let's do that properly.
+      }
+
+      let finalGoalId = availableGoals.find(g => g.title === goal)?.id;
+      if (goal && lf && !finalGoalId) {
+        try {
+          const gRes = await fetch("/api/cogos/goals", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              lf_id: Number(lf),
+              title: goal,
+              rationale: "Created from Task Editor"
+            })
+          });
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            finalGoalId = gData.goal_id;
+          }
+        } catch (e) { console.error("Auto-create goal failed", e); }
+      }
+
+      // Create Project if needed
+      if (project && finalGoalId && !availableProjects.find(p => p.title === project)) {
+        try {
+          await fetch("/api/cogos/projects", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              goal_id: finalGoalId,
+              title: project,
+              description: "Created from Task Editor"
+            })
+          });
+        } catch (e) { console.error("Auto-create project failed", e); }
+      }
+
       if (task.id) {
         // UPDATE existing
         const res = await fetch("/api/cogos/task/update", {
@@ -182,6 +328,9 @@ export default function TaskEditorModal(props: {
             lf: lf === "" ? undefined : Number(lf),
             priority,
             step,
+            progress,
+            goal: goal.trim() || undefined,
+            project: project.trim() || undefined,
           }),
         });
         if (!res.ok) {
@@ -228,6 +377,9 @@ export default function TaskEditorModal(props: {
             lf: finalLf,
             priority,
             step,
+            progress,
+            goal: goal.trim() || undefined,
+            project: project.trim() || undefined,
           }),
         });
         if (!res.ok) {
@@ -444,174 +596,282 @@ export default function TaskEditorModal(props: {
                   className="overflow-y-auto p-6 lg:p-8 space-y-8 flex-1"
                 >
 
-              {/* Context Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Status</label>
-                    <div className="flex flex-wrap gap-2">
-                      {["intake", "doing", "done"].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => setStatus(option)}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${status === option
-                            ? "bg-white text-black border-white"
-                            : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
-                            }`}
-                        >
-                          {option.toUpperCase()}
-                        </button>
-                      ))}
+                  {/* Context Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Status</label>
+                        <div className="flex flex-wrap gap-2">
+                          {["intake", "doing", "done"].map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => setStatus(option)}
+                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${status === option
+                                ? "bg-white text-black border-white"
+                                : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
+                                }`}
+                            >
+                              {option.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Deadline</label>
+                        <input
+                          type="date"
+                          className="w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Sequence</label>
+                        <div className="flex gap-2">
+                          {(["low", "high"] as const).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => setPriority(p)}
+                              className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${priority === p ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/5 border-white/5 text-white/40'
+                                }`}
+                            >
+                              {p.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                          <div className="relative group-picker">
+                            <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
+                              <div className="py-10"> {/* Top/Bottom spacing for center snapping */}
+                                {WORLDS.map((w) => (
+                                  <button
+                                    key={w.id}
+                                    type="button"
+                                    onClick={() => setLf(w.id)}
+                                    className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
+                                      ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
+                                      : 'text-white/20 hover:text-white/40'
+                                      }`}
+                                  >
+                                    <div className="flex flex-col items-start text-left">
+                                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                        {w.name}
+                                      </span>
+                                      {lf === w.id && <span className="text-[8px] opacity-80 font-medium">{w.desc}</span>}
+                                    </div>
+                                    <span className="text-xs font-mono opacity-20">{w.id}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
+                          </div>
+
+                          <div className="relative group-picker">
+                            <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
+                              <div className="py-10">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => setStep(s)}
+                                    className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${step === s
+                                      ? 'bg-white text-black shadow-xl scale-[1.02] z-10'
+                                      : 'text-white/20 hover:text-white/40'
+                                      }`}
+                                  >
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                      Step {s}
+                                    </span>
+                                    {step === s && <Check size={10} />}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
+                            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Deadline</label>
-                    <input
-                      type="date"
-                      className="w-full rounded-xl bg-white/5 border border-white/5 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Extra Context / Notes</label>
+                    <textarea
+                      className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none placeholder:text-white/10 focus:border-white/10 transition leading-relaxed"
+                      rows={4}
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Any details to help with execution..."
                     />
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Priority & Sequence</label>
-                    <div className="flex gap-2">
-                      {["low", "high"].map(p => (
+                  {/* Progress Slider */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Progress: {progress}%</label>
+                    <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="absolute top-0 left-0 h-full bg-white transition-all duration-300" style={{ width: `${progress}%` }} />
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={progress}
+                        onChange={(e) => setProgress(Number(e.target.value))}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Goal and Project */}
+                  <div className="grid grid-cols-2 gap-4">
+
+                    {/* Goal */}
+                    <div className="flex flex-col gap-2 relative">
+                      <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] flex items-center justify-between">
+                        <span>Goal</span>
                         <button
-                          key={p}
-                          onClick={() => setPriority(p as any)}
-                          className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${priority === p ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/5 border-white/5 text-white/40'
-                            }`}
+                          onClick={() => setShowGoalInput(!showGoalInput)}
+                          className="hover:text-white text-[8px] opacity-50"
                         >
-                          {p.toUpperCase()}
+                          {showGoalInput ? "SELECT FROM LIST" : "CUSTOM"}
                         </button>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mt-2">
-                      <div className="relative group-picker">
-                        <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
-                          <div className="py-10"> {/* Top/Bottom spacing for center snapping */}
-                            {WORLDS.map((w) => (
-                              <button
-                                key={w.id}
-                                type="button"
-                                onClick={() => setLf(w.id)}
-                                className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${lf === w.id
-                                  ? `bg-gradient-to-r ${w.color} text-white shadow-xl scale-[1.02] z-10`
-                                  : 'text-white/20 hover:text-white/40'
-                                  }`}
-                              >
-                                <div className="flex flex-col items-start text-left">
-                                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                    {w.name}
-                                  </span>
-                                  {lf === w.id && <span className="text-[8px] opacity-80 font-medium">{w.desc}</span>}
-                                </div>
-                                <span className="text-xs font-mono opacity-20">{w.id}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
-                      </div>
-
-                      <div className="relative group-picker">
-                        <div className="h-32 overflow-y-auto scrollbar-hide snap-y snap-mandatory bg-black/20 rounded-2xl border border-white/5 p-1 relative">
-                          <div className="py-10">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
-                              <button
-                                key={s}
-                                type="button"
-                                onClick={() => setStep(s)}
-                                className={`w-full py-3 px-4 mb-1 rounded-xl transition-all snap-center flex items-center justify-between group ${step === s
-                                  ? 'bg-white text-black shadow-xl scale-[1.02] z-10'
-                                  : 'text-white/20 hover:text-white/40'
-                                  }`}
-                              >
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                  Step {s}
-                                </span>
-                                {step === s && <Check size={10} />}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#1c1c1e] to-transparent pointer-events-none rounded-t-2xl z-20" />
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1c1c1e] to-transparent pointer-events-none rounded-b-2xl z-20" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Extra Context / Notes</label>
-                <textarea
-                  className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none placeholder:text-white/10 focus:border-white/10 transition leading-relaxed"
-                  rows={4}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any details to help with execution..."
-                />
-              </div>
-
-              {/* Subtasks Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between group">
-                  <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">AI Brainstorming</label>
-                  <button
-                    className="text-[10px] font-bold bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-white/60 transition-colors"
-                    disabled={decomposing}
-                    onClick={suggestBreakdown}
-                  >
-                    {decomposing ? "THINKING..." : "GENERATE SUBTASKS"}
-                  </button>
-                </div>
-
-                {suggested.length === 0 && (
-                  <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-[2rem] opacity-20">
-                    <p className="text-xs">Optional AI-powered breakdown available</p>
-                  </div>
-                )}
-
-                {suggested.length > 0 && (
-                  <div className="grid gap-3">
-                    {suggested.map((s, i) => {
-                      const checked = selectedIdx.has(i);
-                      return (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            const next = new Set(selectedIdx);
-                            if (next.has(i)) next.delete(i); else next.add(i);
-                            setSelectedIdx(next);
+                      </label>
+                      {showGoalInput ? (
+                        <input
+                          className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-white/10 transition-colors"
+                          value={goal}
+                          onChange={(e) => setGoal(e.target.value)}
+                          placeholder="Quarterly Goal"
+                        />
+                      ) : (
+                        <select
+                          className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-white/10 transition-colors appearance-none"
+                          value={goal}
+                          onChange={(e) => {
+                            if (e.target.value === "__NEW__") {
+                              setShowGoalInput(true);
+                              setGoal("");
+                            } else {
+                              setGoal(e.target.value);
+                            }
                           }}
-                          className={`p-4 rounded-2xl border transition-all cursor-pointer ${checked ? 'bg-white/10 border-white/20' : 'bg-white/3 border-white/5 opacity-50'
-                            }`}
+                          disabled={isLoadingGoals}
                         >
-                          <div className="text-sm font-semibold">{s.title}</div>
-                          <div className="text-[10px] text-white/40 mt-1">{s.rationale}</div>
-                        </div>
-                      );
-                    })}
-                    <button
-                      className="w-full py-3 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[0.98] transition-transform active:scale-95 mt-2"
-                      onClick={createSelectedSubtasks}
-                      disabled={selectedIdx.size === 0}
-                    >
-                      Create {selectedIdx.size} Subtasks
-                    </button>
+                          {!goal && <option value="">Select Goal...</option>}
+                          {availableGoals.map(g => (
+                            <option key={g.id} value={g.title}>{g.title}</option>
+                          ))}
+                          {goal && !availableGoals.find(g => g.title === goal) && (
+                            <option value={goal}>{goal}</option>
+                          )}
+                          <option value="__NEW__" className="text-emerald-400 font-bold">+ Create New Goal...</option>
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2 relative">
+                      <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] flex items-center justify-between">
+                        <span>Project</span>
+                        <button
+                          onClick={() => setShowProjectInput(!showProjectInput)}
+                          className="hover:text-white text-[8px] opacity-50"
+                        >
+                          {showProjectInput ? "SELECT FROM LIST" : "CUSTOM"}
+                        </button>
+                      </label>
+                      {showProjectInput ? (
+                        <input
+                          className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-white/10 transition-colors"
+                          value={project}
+                          onChange={(e) => setProject(e.target.value)}
+                          placeholder="Monthly Project"
+                        />
+                      ) : (
+                        <select
+                          className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-white/10 transition-colors appearance-none"
+                          value={project}
+                          onChange={(e) => {
+                            if (e.target.value === "__NEW__") {
+                              setShowProjectInput(true);
+                              setProject("");
+                            } else {
+                              setProject(e.target.value);
+                            }
+                          }}
+                          disabled={isLoadingProjects || !goal}
+                        >
+                          {!project && <option value="">Select Project...</option>}
+                          {availableProjects.map(p => (
+                            <option key={p.id} value={p.title}>{p.title}</option>
+                          ))}
+                          {project && !availableProjects.find(p => p.title === project) && (
+                            <option value={project}>{project}</option>
+                          )}
+                          <option value="__NEW__" className="text-emerald-400 font-bold">+ Create New Project...</option>
+                        </select>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {/* Subtasks Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between group">
+                      <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">AI Brainstorming</label>
+                      <button
+                        className="text-[10px] font-bold bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-white/60 transition-colors"
+                        disabled={decomposing}
+                        onClick={suggestBreakdown}
+                      >
+                        {decomposing ? "THINKING..." : "GENERATE SUBTASKS"}
+                      </button>
+                    </div>
+
+                    {suggested.length === 0 && (
+                      <div className="p-12 text-center border-2 border-dashed border-white/5 rounded-[2rem] opacity-20">
+                        <p className="text-xs">Optional AI-powered breakdown available</p>
+                      </div>
+                    )}
+
+                    {suggested.length > 0 && (
+                      <div className="grid gap-3">
+                        {suggested.map((s, i) => {
+                          const checked = selectedIdx.has(i);
+                          return (
+                            <div
+                              key={i}
+                              onClick={() => {
+                                const next = new Set(selectedIdx);
+                                if (next.has(i)) next.delete(i); else next.add(i);
+                                setSelectedIdx(next);
+                              }}
+                              className={`p-4 rounded-2xl border transition-all cursor-pointer ${checked ? 'bg-white/10 border-white/20' : 'bg-white/3 border-white/5 opacity-50'
+                                }`}
+                            >
+                              <div className="text-sm font-semibold">{s.title}</div>
+                              <div className="text-[10px] text-white/40 mt-1">{s.rationale}</div>
+                            </div>
+                          );
+                        })}
+                        <button
+                          className="w-full py-3 rounded-2xl bg-white text-black font-bold text-sm hover:scale-[0.98] transition-transform active:scale-95 mt-2"
+                          onClick={createSelectedSubtasks}
+                          disabled={selectedIdx.size === 0}
+                        >
+                          Create {selectedIdx.size} Subtasks
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div

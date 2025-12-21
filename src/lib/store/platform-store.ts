@@ -11,6 +11,7 @@ interface PlatformState {
     taskViewMode: "compact" | "single-line";
     tasks: TaskRecord[];
     isLoadingTasks: boolean;
+    showAccomplishments: boolean;
 
     // Actions
     setSelectedDate: (date: Date) => void;
@@ -18,6 +19,7 @@ interface PlatformState {
     setLfFilter: (filter: number | null) => void;
     setTaskViewMode: (mode: "compact" | "single-line") => void;
     setTasks: (tasks: TaskRecord[]) => void;
+    setShowAccomplishments: (show: boolean) => void;
     refreshTasks: (range?: { start: string; end: string }) => Promise<void>;
 }
 
@@ -33,12 +35,14 @@ export const usePlatformStore = create<PlatformState>()(
             taskViewMode: "compact",
             tasks: [],
             isLoadingTasks: false,
+            showAccomplishments: false,
 
             setSelectedDate: (date) => set({ selectedDate: date.toISOString() }),
             setViewMode: (mode) => set({ viewMode: mode }),
             setLfFilter: (filter) => set({ lfFilter: filter }),
             setTaskViewMode: (mode) => set({ taskViewMode: mode }),
             setTasks: (tasks) => set({ tasks }),
+            setShowAccomplishments: (show) => set({ showAccomplishments: show }),
             refreshTasks: async (range?: { start: string; end: string }) => {
                 const state = usePlatformStore.getState();
                 const { selectedDate, viewMode } = state;

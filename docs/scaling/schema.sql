@@ -145,29 +145,43 @@ create index if not exists ledger_by_day
 -- 4. Abstract Goals (Life Focus Targets)
 create table if not exists nu.goals (
   tenant_id text not null,
-  goal_id text primary key,
+  goal_id text not null,
   lf_id int not null,           -- 1-9
   title text not null,
   status text not null,         -- 'active', 'completed', 'archived'
   rationale text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  
+  primary key (tenant_id, goal_id)
 );
 
 create index if not exists goals_by_lf
   on nu.goals (tenant_id, lf_id);
 
+create index if not exists goals_by_status
+  on nu.goals (tenant_id, status);
+
 -- 5. Projects (Concrete Undertakings)
 create table if not exists nu.projects (
   tenant_id text not null,
-  project_id text primary key,
-  goal_id text not null references nu.goals(goal_id),
+  project_id text not null,
+  goal_id text not null,
   title text not null,
   status text not null,         -- 'active', 'completed', 'archived'
   description text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  
+  primary key (tenant_id, project_id),
+  foreign key (tenant_id, goal_id) references nu.goals(tenant_id, goal_id)
 );
+
+create index if not exists projects_by_goal
+  on nu.projects (tenant_id, goal_id);
+
+create index if not exists projects_by_status
+  on nu.projects (tenant_id, status);
 
 
 -- 6. Daily Metrics (Telemetry & Analytics)

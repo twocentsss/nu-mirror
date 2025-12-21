@@ -65,6 +65,20 @@ export default function MePage() {
             bg="bg-sky-100/50"
           />
           <ThemeButton
+            active={theme === 'black'}
+            onClick={() => setTheme('black')}
+            label="Visionary Black"
+            icon={<Cpu size={16} />}
+            bg="bg-black text-white border border-white/20"
+          />
+          <ThemeButton
+            active={theme === 'midnight'}
+            onClick={() => setTheme('midnight')}
+            label="Midnight"
+            icon={<Moon size={16} />}
+            bg="bg-zinc-800 text-white"
+          />
+          <ThemeButton
             active={theme === 'dark'}
             onClick={() => setTheme('dark')}
             label="Dark Glass"

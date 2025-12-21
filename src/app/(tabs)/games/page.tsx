@@ -54,12 +54,12 @@ const POLYGON_SHAPES = [
 ];
 
 const TILE_CLASSES: Record<TileStatus, string> = {
-    correct: "bg-emerald-500 text-white border-transparent",
-    present: "bg-yellow-400 text-slate-900 border-transparent",
-    absent: "bg-slate-900 text-white border border-slate-700",
+    correct: "bg-emerald-500 text-white border-transparent shadow-[0_0_15px_rgba(16,185,129,0.3)]",
+    present: "bg-yellow-500 text-white border-transparent shadow-[0_0_15px_rgba(234,179,8,0.3)]",
+    absent: "bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]",
 };
 
-const emptyTileClass = "bg-slate-950/40 border border-slate-900 text-slate-500";
+const emptyTileClass = "bg-[var(--glass-bg)]/40 border-[var(--glass-border)] text-[var(--text-secondary)]/30";
 
 function hashString(value: string) {
     let hash = 0;
@@ -214,7 +214,7 @@ function WordleGame({ target }: { target: string }) {
 
     return (
         <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.5em] text-slate-400">5-letter Wordle</p>
+            <p className="text-xs uppercase tracking-[0.5em] text-[var(--text-secondary)]">5-letter Wordle</p>
 
             {/* Input moved to top */}
             <div className="flex flex-col gap-2">
@@ -224,22 +224,22 @@ function WordleGame({ target }: { target: string }) {
                         onChange={(event) => setGuess(event.target.value.toUpperCase())}
                         disabled={finished || history.length >= MAX_ATTEMPTS}
                         maxLength={target.length}
-                        className="flex-1 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-lg font-bold tracking-[0.3em] text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+                        className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-lg font-bold tracking-[0.3em] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]/30 focus:border-cyan-400 transition-all"
                         placeholder="GUESS"
                         autoFocus
                     />
                     <button
                         type="submit"
                         disabled={finished || history.length >= MAX_ATTEMPTS}
-                        className="rounded-2xl bg-cyan-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-950 disabled:opacity-60"
+                        className="rounded-2xl bg-cyan-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-950 disabled:opacity-40 hover:scale-105 active:scale-95 transition-all shadow-lg"
                     >
                         Guess
                     </button>
                 </form>
-                <p className="text-xs text-slate-400">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">
                     Attempts left: {attemptsLeft} / {MAX_ATTEMPTS}
                 </p>
-                {message && <p className="text-sm font-semibold text-cyan-300">{message}</p>}
+                {message && <p className="text-sm font-bold text-cyan-400 drop-shadow-md">{message}</p>}
             </div>
 
             <GameGrid length={target.length} history={history} />
@@ -312,7 +312,7 @@ function PolygonleGame({ target }: { target: string }) {
 
     return (
         <div className="space-y-4">
-            <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Polygonle schema</p>
+            <p className="text-xs uppercase tracking-[0.5em] text-[var(--text-secondary)]">Polygonle schema</p>
 
             {/* Input moved to top */}
             <div className="flex flex-col gap-2">
@@ -322,36 +322,36 @@ function PolygonleGame({ target }: { target: string }) {
                         onChange={(event) => setGuess(event.target.value.toUpperCase())}
                         disabled={finished || history.length >= MAX_ATTEMPTS}
                         maxLength={target.length}
-                        className="flex-1 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-lg font-bold tracking-[0.3em] text-white outline-none placeholder:text-slate-500 focus:border-fuchsia-500"
+                        className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-lg font-bold tracking-[0.3em] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]/30 focus:border-fuchsia-500 transition-all"
                         placeholder={`${target.length}-letter guess`}
                         autoFocus
                     />
                     <button
                         type="submit"
                         disabled={finished || history.length >= MAX_ATTEMPTS}
-                        className="rounded-2xl bg-fuchsia-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white disabled:opacity-60"
+                        className="rounded-2xl bg-fuchsia-500 px-4 py-2 text-xs font-black uppercase tracking-widest text-white disabled:opacity-40 hover:scale-105 active:scale-95 transition-all shadow-lg"
                     >
                         Guess
                     </button>
                 </form>
-                <p className="text-xs text-slate-400">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-40">
                     Attempts left: {attemptsLeft} / {MAX_ATTEMPTS}
                 </p>
-                {message && <p className="text-sm font-semibold text-fuchsia-200">{message}</p>}
+                {message && <p className="text-sm font-bold text-fuchsia-400 drop-shadow-md">{message}</p>}
             </div>
 
             <div className="flex flex-wrap gap-3">
                 {blueprint.sequence.map((shape, index) => (
-                    <div key={`shape-${index}`} className="flex flex-col items-center gap-1 rounded-2xl bg-slate-900/60 px-3 py-2 text-xs uppercase tracking-[0.2em]">
+                    <div key={`shape-${index}`} className="flex flex-col items-center gap-1 rounded-2xl bg-[var(--glass-bg)] border border-[var(--glass-border)] px-3 py-2 text-xs uppercase tracking-[0.2em] shadow-lg">
                         <span className="text-2xl">{shape.symbol}</span>
-                        <span className="text-[10px] text-slate-400">{shape.name}</span>
+                        <span className="text-[10px] text-[var(--text-secondary)]">{shape.name}</span>
                     </div>
                 ))}
             </div>
 
-            <div className="text-[11px] text-slate-400">
+            <div className="text-[11px] text-[var(--text-secondary)]">
                 {Array.from(blueprint.mapping.entries()).map(([letter, shape]) => (
-                    <span key={`legend-${letter}`} className="mr-3 inline-flex items-center gap-1">
+                    <span key={`legend-${letter}`} className="mr-3 inline-flex items-center gap-1 opacity-60">
                         <span className="text-lg">{shape.symbol}</span>
                         {letter}
                     </span>
@@ -430,22 +430,22 @@ export default function GamesPage() {
     const [crosswordDifficulty, setCrosswordDifficulty] = useState("medium");
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950/80 text-white px-6 py-12">
+        <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text-primary)] px-6 py-12 transition-colors duration-500">
             <div className="max-w-5xl mx-auto space-y-8">
-                <header className="space-y-2 text-center">
-                    <h1 className="text-4xl font-black tracking-wide">Playground</h1>
-                    <p className="text-sm uppercase tracking-[0.5em] text-slate-400">Pick a daily mind-bender</p>
-                    <p className="text-xs text-slate-500 uppercase tracking-[0.4em]">
+                <header className="space-y-4 text-center">
+                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none mb-4">Playground</h1>
+                    <p className="text-sm uppercase tracking-[0.5em] text-[var(--text-secondary)] opacity-60">Pick a daily mind-bender</p>
+                    <p className="text-xs text-[var(--text-secondary)] uppercase tracking-[0.4em] mt-2">
                         {selectedDate} puzzles
                     </p>
                 </header>
 
                 <section className="flex flex-col gap-2 items-center">
-                    <label className="text-xs italic tracking-widest uppercase text-slate-400">Choose a game</label>
+                    <label className="text-[10px] font-black tracking-[0.4em] uppercase text-[var(--text-secondary)] opacity-40">Choose a game</label>
                     <select
                         value={selectedGame}
                         onChange={(event) => setSelectedGame(event.target.value)}
-                        className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm font-semibold tracking-tight text-white outline-none transition focus:border-cyan-400"
+                        className="w-full max-w-sm rounded-[2rem] border border-[var(--glass-border)] bg-[var(--glass-bg)] px-6 py-4 text-sm font-black tracking-tight text-[var(--text-primary)] outline-none transition-all focus:border-[var(--text-primary)] focus:bg-[var(--glass-bg)]/80 appearance-none text-center"
                     >
                         {games.map((game) => (
                             <option key={game.id} value={game.id}>
@@ -455,65 +455,65 @@ export default function GamesPage() {
                     </select>
                 </section>
 
-                <section className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6">
+                <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[3rem] p-10 space-y-8 shadow-2xl backdrop-blur-3xl">
                     <div>
-                        <p className="text-xs uppercase tracking-[0.5em] text-slate-400">Now playing</p>
-                        <h2 className="text-3xl font-extrabold">{activeGame.label}</h2>
-                        <p className="text-sm text-slate-300 mt-2">{activeGame.hero}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[var(--text-secondary)] opacity-40">Now playing</p>
+                        <h2 className="text-4xl font-black tracking-tighter text-[var(--text-primary)] mt-2">{activeGame.label}</h2>
+                        <p className="text-lg font-medium text-[var(--text-secondary)] mt-4 leading-relaxed">{activeGame.hero}</p>
                     </div>
 
-                    <p className="text-sm text-slate-200">{activeGame.blurb}</p>
+                    <p className="text-base text-[var(--text-secondary)] leading-relaxed">{activeGame.blurb}</p>
 
-                    <div className="space-y-3">
-                        <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Algorithm outline</p>
-                        <ol className="list-decimal list-inside space-y-2 text-sm text-slate-200">
+                    <div className="space-y-4 pt-4 border-t border-[var(--glass-border)]">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Algorithm outline</p>
+                        <ol className="list-decimal list-inside space-y-3 text-base text-[var(--text-secondary)]">
                             {activeGame.steps.map((step) => (
-                                <li key={step} className="pl-1 leading-relaxed">
+                                <li key={step} className="pl-2 leading-relaxed font-medium">
                                     {step}
                                 </li>
                             ))}
                         </ol>
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/50">
-                        <p className="text-xs uppercase tracking-[0.4em] text-cyan-200">Bonus notes</p>
-                        <p className="text-sm text-cyan-100">{activeGame.suggestion}</p>
+                    <div className="p-6 rounded-[2rem] bg-gradient-to-br from-[var(--glass-bg)] to-[var(--glass-bg)]/50 border border-[var(--glass-border)] shadow-inner">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-60">Bonus notes</p>
+                        <p className="text-sm font-medium text-[var(--text-primary)] mt-2 leading-relaxed">{activeGame.suggestion}</p>
                     </div>
                 </section>
 
                 {selectedGame === "polygonle" && (
-                    <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+                    <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[3rem] p-10 space-y-6 shadow-2xl backdrop-blur-3xl">
                         <PolygonleGame target={polygonleTarget} />
                     </section>
                 )}
 
                 {selectedGame === "wordle" && (
-                    <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+                    <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[3rem] p-10 space-y-6 shadow-2xl backdrop-blur-3xl">
                         <WordleGame target={wordleTarget} />
                     </section>
                 )}
 
                 {selectedGame === "crossword" && (
                     <>
-                        <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-4 space-y-4">
-                            <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Configure Puzzle</p>
-                            <div className="grid sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-2">Topic</label>
+                        <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 space-y-6 backdrop-blur-3xl">
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Configure Puzzle</p>
+                            <div className="grid sm:grid-cols-2 gap-8">
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Topic</label>
                                     <input
                                         type="text"
                                         value={crosswordTopic}
                                         onChange={(e) => setCrosswordTopic(e.target.value)}
                                         placeholder="e.g., Science, Movies, Sports"
-                                        className="w-full px-3 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white focus:border-sky-500 outline-none"
+                                        className="w-full px-6 py-4 bg-[var(--app-bg)] border border-[var(--glass-border)] rounded-2xl text-sm font-bold text-[var(--text-primary)] focus:border-[var(--text-primary)] outline-none transition-all"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-2">Difficulty</label>
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] opacity-60">Difficulty</label>
                                     <select
                                         value={crosswordDifficulty}
                                         onChange={(e) => setCrosswordDifficulty(e.target.value)}
-                                        className="w-full px-3 py-2 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white focus:border-sky-500 outline-none"
+                                        className="w-full px-6 py-4 bg-[var(--app-bg)] border border-[var(--glass-border)] rounded-2xl text-sm font-bold text-[var(--text-primary)] focus:border-[var(--text-primary)] outline-none transition-all appearance-none"
                                     >
                                         <option value="easy">Easy</option>
                                         <option value="medium">Medium</option>
@@ -522,15 +522,15 @@ export default function GamesPage() {
                                 </div>
                             </div>
                         </section>
-                        <section className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+                        <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[3rem] p-10 space-y-6 shadow-2xl backdrop-blur-3xl">
                             <CrosswordGame topic={crosswordTopic} difficulty={crosswordDifficulty} />
                         </section>
                     </>
                 )}
 
-                <section className="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 space-y-2 text-sm text-slate-300">
-                    <p className="font-semibold text-cyan-200">Bonus concepts</p>
-                    <ul className="list-disc list-inside space-y-1">
+                <section className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 space-y-4 text-sm text-[var(--text-secondary)] backdrop-blur-xl">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-60">Bonus concepts</p>
+                    <ul className="list-disc list-inside space-y-2 opacity-80 font-medium">
                         <li>Numerangle – substitute geometric angles for digits to encode repeated numbers.</li>
                         <li>Syllable – guess five-syllable phrases with syllable-focused feedback instead of letters.</li>
                         <li>MazeCross – fill a 5x5 maze grid where word paths wind around walls and intersection hints help.</li>

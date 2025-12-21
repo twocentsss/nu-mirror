@@ -216,9 +216,9 @@ export default function CrosswordGame({ topic = "general", difficulty = "medium"
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="text-center space-y-3">
-                    <div className="w-12 h-12 border-4 border-slate-600 border-t-sky-400 rounded-full animate-spin mx-auto"></div>
-                    <p className="text-sm text-slate-400">Generating your crossword puzzle...</p>
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 border-[6px] border-[var(--glass-border)] border-t-[var(--text-primary)] rounded-full animate-spin mx-auto shadow-2xl"></div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-60">Constructing daily grid...</p>
                 </div>
             </div>
         );
@@ -240,12 +240,12 @@ export default function CrosswordGame({ topic = "general", difficulty = "medium"
 
     if (!puzzle) {
         return (
-            <div className="text-center py-20 space-y-4">
-                <p className="text-slate-300 text-lg">Ready to play crossword?</p>
-                <p className="text-sm text-slate-400">Click "Generate Puzzle" to start a new game with your selected topic and difficulty.</p>
+            <div className="text-center py-20 space-y-8">
+                <p className="text-[var(--text-primary)] text-3xl font-black tracking-tighter italic">Ready to crack the grid?</p>
+                <p className="text-sm text-[var(--text-secondary)] opacity-60 max-w-sm mx-auto leading-relaxed">Daily mind-benders constructed on-demand via Gemini prompts. Stressed by topic, refined by difficulty.</p>
                 <button
                     onClick={generatePuzzle}
-                    className="px-6 py-3 bg-sky-500 text-white text-lg font-bold rounded-xl hover:bg-sky-600 transition shadow-lg"
+                    className="px-10 py-5 bg-[var(--text-primary)] text-[var(--app-bg)] text-sm font-black uppercase tracking-widest rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-2xl"
                 >
                     Generate Puzzle
                 </button>
@@ -293,7 +293,7 @@ export default function CrosswordGame({ topic = "general", difficulty = "medium"
                 {/* Grid */}
                 <div className="aspect-square max-w-lg mx-auto w-full">
                     <div
-                        className="grid gap-0.5 bg-slate-700 p-0.5 rounded-lg"
+                        className="grid gap-0.5 bg-[var(--glass-border)] p-1 rounded-2xl overflow-hidden shadow-2xl"
                         style={{ gridTemplateColumns: `repeat(${puzzle.grid[0].length}, 1fr)` }}
                     >
                         {puzzle.grid.map((row, rowIndex) =>
@@ -307,17 +307,17 @@ export default function CrosswordGame({ topic = "general", difficulty = "medium"
                                     <div
                                         key={`${rowIndex}-${colIndex}`}
                                         onClick={() => handleCellClick(rowIndex, colIndex)}
-                                        className={`aspect-square relative flex items-center justify-center text-lg font-bold transition cursor-pointer ${isBlack
-                                                ? "bg-slate-900"
-                                                : isSelected
-                                                    ? "bg-sky-400 text-slate-900"
-                                                    : isHinted
-                                                        ? "bg-amber-400/30 text-white"
-                                                        : "bg-white hover:bg-slate-100 text-slate-900"
+                                        className={`aspect-square relative flex items-center justify-center text-xl font-black transition cursor-pointer select-none ${isBlack
+                                            ? "bg-[var(--app-bg)] opacity-40"
+                                            : isSelected
+                                                ? "bg-[var(--text-primary)] text-[var(--app-bg)] scale-[1.05] z-10 shadow-xl"
+                                                : isHinted
+                                                    ? "bg-amber-400/20 text-[var(--text-primary)]"
+                                                    : "bg-[var(--glass-bg)] hover:bg-[var(--glass-bg)]/80 text-[var(--text-primary)]"
                                             }`}
                                     >
                                         {!isBlack && cellNumber && (
-                                            <span className="absolute top-0.5 left-1 text-[10px] font-semibold text-slate-600">
+                                            <span className="absolute top-1 left-1.5 text-[10px] font-black text-[var(--text-secondary)] opacity-50">
                                                 {cellNumber}
                                             </span>
                                         )}
@@ -330,24 +330,24 @@ export default function CrosswordGame({ topic = "general", difficulty = "medium"
                 </div>
 
                 {/* Clues */}
-                <div className="space-y-4">
-                    <div className="bg-slate-900/50 rounded-xl p-4 space-y-3">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">Across</h3>
-                        <div className="space-y-2 text-sm max-h-48 overflow-y-auto">
+                <div className="space-y-6">
+                    <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[2rem] p-6 space-y-4 shadow-xl">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Across</h3>
+                        <div className="space-y-3 text-sm max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                             {puzzle.clues.across.map((clue) => (
-                                <div key={clue.number} className="text-slate-300">
-                                    <span className="font-bold text-sky-400">{clue.number}.</span> {clue.clue}
+                                <div key={clue.number} className="text-[var(--text-primary)] leading-relaxed">
+                                    <span className="font-black text-cyan-500 mr-2">{clue.number}.</span> {clue.clue}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/50 rounded-xl p-4 space-y-3">
-                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">Down</h3>
-                        <div className="space-y-2 text-sm max-h-48 overflow-y-auto">
+                    <div className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-[2rem] p-6 space-y-4 shadow-xl">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] opacity-40">Down</h3>
+                        <div className="space-y-3 text-sm max-h-64 overflow-y-auto pr-2 custom-scrollbar">
                             {puzzle.clues.down.map((clue) => (
-                                <div key={clue.number} className="text-slate-300">
-                                    <span className="font-bold text-fuchsia-400">{clue.number}.</span> {clue.clue}
+                                <div key={clue.number} className="text-[var(--text-primary)] leading-relaxed">
+                                    <span className="font-black text-fuchsia-500 mr-2">{clue.number}.</span> {clue.clue}
                                 </div>
                             ))}
                         </div>

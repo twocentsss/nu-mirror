@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import "tailwindcss";
-
 :root {
   --bg-top: 255 255 255;
   --bg-bottom: 248 248 250;
@@ -26,6 +24,32 @@ html[data-theme="dark"] {
   --accent-color: #a855f7;
   --dock-bg: rgba(2, 6, 23, 0.8);
   --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
+}
+
+html[data-theme="black"] {
+  --bg-top: 0 0 0;
+  --bg-bottom: 9 9 11;
+  --app-bg: #000000;
+  --text-primary: #ffffff;
+  --text-secondary: #71717a;
+  --glass-bg: rgba(9, 9, 11, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --accent-color: #3b82f6;
+  --dock-bg: rgba(0, 0, 0, 0.95);
+  --bg-gradient: linear-gradient(180deg, #000000 0%, #09090b 100%);
+}
+
+html[data-theme="midnight"] {
+  --bg-top: 24 24 27;
+  --bg-bottom: 9 9 11;
+  --app-bg: #18181b;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --glass-bg: rgba(39, 39, 42, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --accent-color: #f43f5e;
+  --dock-bg: rgba(24, 24, 27, 0.9);
+  --bg-gradient: linear-gradient(180deg, #18181b 0%, #09090b 100%);
 }
 
 html[data-theme="white"] {
@@ -116,6 +140,26 @@ body {
 
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400;
+  }
+
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll {
+    display: flex;
+    width: max-content;
+    animation: scroll 40s linear infinite;
+  }
+
+  .animate-scroll:hover {
+    animation-play-state: paused;
   }
 }
 

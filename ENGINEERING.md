@@ -1,12 +1,17 @@
-# Project Nu: Engineering Deep Dive
+# Project Nu: The Immutable Spine
+
+**"Nu organizes your days so your life can compound."**
+
+Project Nu is not about building a task manager; it is about building the infrastructure for human stability. We have engineered a platform where truth is immutable, days are organized, and progress is visible. By separating the "Engine" of reasoning from the "Illusion" of interface, we provide a sanctuary for the mind to act while the system remembers.
 
 ## Architecture Overview
-Project Nu is built on an **Event-Sourced Headless Brain** with **Zen Projections**. The architecture separates the "Engine" (Logic/Data) from the "Illusion" (UI).
+Nu is built on an **Event-Sourced Headless Brain** with **Zen Projections**. Every interaction is an immutable event that feeds into a life that compounds.
 
 ### The Data Spine: Event Sourcing
-The **EventLog** is the canonical source of truth. Every user action (Capture, Complete, Edit) is an immutable event.
-- **Benefits**: Perfect audit trails, time-travel debugging, and the ability to rebuild any **Projection** (Read Model) from scratch.
-- **Storage**: Supports a hybrid model. **Postgres** for high-concurrency/relational queries and **Google Sheets** as a transparent, user-owned persistent backup/data-spine.
+The **EventLog** is the canonical source of truth. Every user action (Capture, Complete, Edit) is an immutable, append-only event.
+- **Classical Truth**: The EventLog is the river that did flow. It provides the auditable record a meaningful life deserves.
+- **Scalability**: Designed to handle ~1,000 users on a serverless stack with atomic, batched writes.
+- **Consistency**: Strong consistency for event appends; eventual consistency for derived behavioral views.
 
 ---
 
@@ -18,41 +23,46 @@ When a user captures text, it isn't just stored; it is deconstructed into the **
 
 ---
 
-## The Reasoning Engine
-Nu goes beyond CRUD. It implements structural reasoning frameworks:
+## The Quantum Protocol: Engineering Foresight
+Nu handles uncertainty through the **Quantum Flow Protocol**. While the EventLog is classical, our planning is quantum.
+- **Superposition Events**: A `ProposedFlowEvent` represents a candidate truth with probability mass. "Meeting with Sarah" may be `S6 Social` (30%) or `S6 Grind` (70%) until confirmed.
+- **Measurement Ceremony**: The "Daily Close" is a system-wide **Collapse Event**. It measures the day's superposition and collapses probabilistic proposals into clean ledger entries.
+- **Scenario Branching**: Week planning creates multiple `ScenarioBranches` (e.g., "Ship Mode" vs. "Recovery"). The engine simulates deltas, reservoir levels, and backpressure growth for each branch.
+
+---
+
+## The Liquid Ledger: Neural Accounting
+Nu implements a dual-entry accounting system for non-monetary human capital.
+- **Reservoirs & Leaks**: We track `SleepReservoir`, `FocusCredits`, and `DoomscrollLeaks`.
+- **Entanglement**: Reservoirs are coupled. A leak in `Chaos` directly impacts the capacity of `Grind` and `Level Up`.
+- **Interference**: Habits are modeled as constructive or destructive interference. `Gym` + `Deep Work` creates an amplification effect visible in the productivity metrics.
+
+---
+
+## The Reasoning Engine: Beyond CRUD
+Nu implements structural reasoning frameworks as first-class citizens:
 - **SCQA Frame**: Situation, Complication, Question, Answer. Used to transform "vague problems" into "structured episodes."
 - **Issue Trees**: Recursive breakdown of problems into mutually exclusive, collectively exhaustive (MECE) nodes.
-- **WorldGraph**: A graph of all entities (Tasks, Goals, Episodes, Characters). Every node in the WorldGraph is influenced by the **EventLog**.
+- **WorldGraph**: A directed acyclic graph (DAG) of all entities. Every node is a materialization of its history in the EventLog.
 
 ---
 
 ## LLM Orchestration & Routing
-The `LlmRouter` is a mission-critical component that manages model diversity and reliability.
-- **Multi-Provider Support**: Seamless fallback between OpenAI (GPT-4o), Anthropic (Claude 3.5), Gemini (2.0 Flash), and OpenRouter (Llama, Qwen, Gemma).
-- **Lease & Cooldown**: Smart key management that tracks rate limits and "cools down" keys on failure.
-- **Cost/Performance Logic**: Routes simple classification to fast/cheap models (Gemma/Llama) and complex reasoning to "frontier" models (Claude/GPT-4o).
-
----
-
-## Innovation in Planning: Quantum Projections
-Traditional scheduling is linear. Nu uses **Quantum Planning**:
-- **Jar Fitting**: Instead of fixed times, tasks are "fitted" into capacity jars.
-- **Net Workload Delta**: A metric that calculates if your life is getting "heavier" or "lighter" based on the ratio of captured items to completed outcomes.
-
----
-
-## Scalability & Standardization
-- **Nu Flow Protocol**: A standardized API for how data flows from Capture -> Assertion -> Event -> Projection.
-- **Strategy Templates**: Extensible recipes for common workflows (e.g., "Weekly Review", "Deep Work Sprint").
-- **RulePacks**: A declarative logic layer where users (or the system) can define "If-Then" triggers (e.g., "If I capture a chore, suggest pairing it with a podcast").
+The `LlmRouter` manages model diversity to ensure 99.9% availability of intelligence.
+- **Multi-Provider Failover**: Seamlessly switches between OpenAI, Anthropic, Gemini, and OpenRouter.
+- **Context-Aware Routing**: Simple classification is routed to 4B-12B parameter models (Gemma/Llama); complex reasoning (SCQA/Issue Trees) is routed to frontier models.
+- **Performance Tracking**: Every LLM call is logged with metadata: tokens, latency, cost, and cache status.
 
 ---
 
 ## Implementation Stack
-- **Frontend**: Next.js 15 (App Router), Tailwind CSS (for layout), Framer Motion (for Zen-like micro-animations).
-- **Backend**: Next.js API Routes (Edge Runtime where possible).
-- **Database**: Supabase (Postgres) + Redis (for LLM rate-limiting/caching).
-- **AI**: Multi-LLM Routing (OpenRouter, OpenAI, Gemini).
+- **Frontend**: Next.js 15, Framer Motion, Tailwind CSS.
+- **Backend**: Next.js API Routes (Serverless / Edge).
+- **Database**: 
+  - **Postgres (Supabase)**: Event log and projection tables.
+  - **Redis (Upstash)**: High-speed projection caching and rate-limiting.
+  - **Google Sheets**: Optional user-owned data spine for transparency.
+- **Auth**: NextAuth with Google SSO.
 
 ---
 
@@ -60,11 +70,11 @@ Traditional scheduling is linear. Nu uses **Quantum Planning**:
 Every PR is evaluated against **Zen Gates**:
 1. **Choice Reduction**: Does this add a mandatory decision? (Rejection if yes).
 2. **Cognitive Load**: Does this increase the "Time to First Relief"?
-3. **Headless First**: Can this feature exist without a UI entry point?
+3. **Headless First**: Build power as an API; expose UI only when earned.
 
 ---
 
 ## Future Roadmap (Scale)
-- **Vector Bench**: Implementing vector search across the `EventLog` for "Historical Similarity" (What did I do last time I had this problem?).
-- **Local-First Sync**: Moving the EventLog to a local CRDT for instantaneous offline capture.
-- **Multi-Agent Simulation**: Simulating your week using LLM "Characters" to find potential bottlenecks before they happen.
+- **Vector Bench**: Vector search across the EventLog for "Historical Similarity."
+- **Local-First Sync**: Moving the EventLog to a local CRDT for zero-latency offline capture.
+- **Multi-Agent Simulation**: LLM "Characters" that simulate your week to find bottlenecks.

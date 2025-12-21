@@ -1,6 +1,4 @@
 "use client";
-
-import { motion } from "framer-motion";
 import { MirrorCard } from "@/ui/MirrorCard";
 import { DockPosition } from "@/lib/store/dock-store";
 import { usePlatformStore, ViewMode } from "@/lib/store/platform-store";
@@ -21,6 +19,7 @@ import {
   Search,
   Fingerprint,
   Info,
+  HelpCircle,
   ChevronLeft,
   ChevronRight,
   Map,
@@ -33,12 +32,28 @@ import ViewSelector from "@/components/today/ViewSelector";
 import { useUIStore } from "@/lib/store/ui-store";
 
 export type DockActionId =
-  | "chat" | "solve" | "capture" | "rant"
-  | "calendar" | "reports" | "comics"
-  | "story" | "agents" | "settings"
-  | "todo" | "today" | "focus" | "me"
-  | "search" | "protocol" | "about"
-  | "graph" | "waterfall" | "report";
+  | "chat"
+  | "solve"
+  | "capture"
+  | "rant"
+  | "calendar"
+  | "reports"
+  | "comics"
+  | "story"
+  | "agents"
+  | "settings"
+  | "todo"
+  | "today"
+  | "focus"
+  | "me"
+  | "search"
+  | "protocol"
+  | "about"
+  | "graph"
+  | "waterfall"
+  | "report"
+  | "evidence"
+  | "howto";
 
 interface DockItem {
   id: DockActionId;
@@ -53,6 +68,7 @@ const ITEMS_BY_SIDE: Record<Exclude<DockPosition, 'top'>, DockItem[]> = {
     { id: "capture", label: "Create Task", sub: "Quantum Capture", icon: <Plus size={18} /> },
     { id: "rant", label: "Rant to Task", sub: "AI Generation", icon: <Zap size={18} /> },
     { id: "chat", label: "Ask Nu", sub: "Quick chat", icon: <MessageCircle size={18} /> },
+    { id: "howto", label: "How-To", sub: "Protocol", icon: <HelpCircle size={18} /> },
   ],
   right: [
     { id: "story", label: "Story", sub: "Narrative", icon: <BookOpen size={18} /> },
@@ -83,7 +99,8 @@ export default function DockPad({
     selectedDate, setSelectedDate,
     viewMode, setViewMode,
     lfFilter, setLfFilter,
-    taskViewMode, setTaskViewMode
+    taskViewMode, setTaskViewMode,
+    showAccomplishments, setShowAccomplishments
   } = usePlatformStore();
   const { setClickOrigin } = useUIStore();
   const dateObj = new Date(selectedDate);
@@ -144,22 +161,29 @@ export default function DockPad({
           </div>
 
           <div className="flex gap-2">
-            <div className="bg-black/5 rounded-full px-4 py-1.5 flex items-center gap-2 border border-black/5 shadow-sm">
-              <PartyPopper size={14} className="text-[var(--accent-color)]" />
-              <span className="text-xs font-bold text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
-                {stats.completed}/{stats.total} Accomplished
+            <button
+              onClick={() => setShowAccomplishments(!showAccomplishments)}
+              className={`rounded-full px-4 py-1.5 flex items-center gap-2 border shadow-sm transition-all hover:shadow-md hover:scale-105 active:scale-95 cursor-pointer ${showAccomplishments
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600'
+                : 'bg-black/5 hover:bg-black/10 border-black/5'
+                }`}
+            >
+              <Target size={14} className={showAccomplishments ? 'text-emerald-600' : 'text-[var(--accent-color)]'} />
+              <span className="text-xs font-bold transition-colors">
+                {stats.completed}/{stats.total} {showAccomplishments ? 'Completed' : 'Accomplished'}
               </span>
-            </div>
+            </button>
 
             <div className="flex bg-black/5 rounded-full border border-black/5 p-1 gap-1 items-center">
               {[
-                { id: "protocol", icon: <Fingerprint size={16} />, title: "Nu Flow Protocol" },
-                { id: "search", icon: <Search size={16} />, title: "Search" },
-                { id: "settings", icon: <Settings size={16} />, title: "Settings" },
-                { id: "graph", icon: <Map size={16} />, title: "Mental Map" },
-                { id: "waterfall", icon: <Activity size={16} />, title: "Day Waterfall" },
-                { id: "report", icon: <FileText size={16} />, title: "End of Day Report" },
-                { id: "about", icon: <Info size={16} />, title: "About" },
+                { id: "protocol", icon: <Fingerprint size={16} />, title: "Identity", color: "hover:text-blue-400" },
+                { id: "search", icon: <Search size={16} />, title: "The Recall", color: "hover:text-zinc-400" },
+                { id: "settings", icon: <Settings size={16} />, title: "The Dial", color: "hover:text-zinc-400" },
+                { id: "graph", icon: <Map size={16} />, title: "The World", color: "hover:text-emerald-400" },
+                { id: "waterfall", icon: <Activity size={16} />, title: "The Momentum", color: "hover:text-amber-400" },
+                { id: "report", icon: <FileText size={16} />, title: "The Evidence", color: "hover:text-purple-400" },
+                { id: "howto", icon: <HelpCircle size={16} />, title: "The Protocol", color: "hover:text-blue-500" },
+                { id: "about", icon: <Info size={16} />, title: "About", color: "hover:text-zinc-400" },
               ].map(it => (
                 <button
                   key={it.id}
@@ -167,7 +191,7 @@ export default function DockPad({
                     setClickOrigin({ x: e.clientX, y: e.clientY });
                     onPick?.(it.id as DockActionId);
                   }}
-                  className="p-2 rounded-full hover:bg-white text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:shadow-sm transition-all"
+                  className={`p-2 rounded-full hover:bg-[var(--glass-border)] text-[var(--text-secondary)] ${it.color} hover:shadow-sm transition-all duration-300`}
                   title={it.title}
                 >
                   {it.icon}
@@ -195,8 +219,8 @@ export default function DockPad({
           />
         </div>
 
-        {/* Filters & View Selector */}
-        <div className="w-full flex items-center justify-between gap-4">
+        {/* View Options Moved to Main Page */}
+        <div className="w-full flex items-center justify-center pb-2">
           <div className="flex bg-black/5 rounded-full p-1 border border-black/5 shadow-sm">
             {VIEW_MODES.map((mode) => (
               <button
@@ -210,23 +234,6 @@ export default function DockPad({
                 {mode}
               </button>
             ))}
-          </div>
-
-          <div className="flex gap-3 items-center">
-            <ViewSelector
-              view={taskViewMode}
-              onChange={setTaskViewMode}
-            />
-            <button
-              onClick={() => setLfFilter(lfFilter === null ? 1 : null)}
-              className={`h-9 px-4 rounded-full border text-[11px] font-bold transition-all flex items-center gap-2 shadow-sm ${lfFilter !== null
-                ? "bg-[var(--accent-color)]/20 border-[var(--accent-color)]/50 text-[var(--accent-color)]"
-                : "bg-black/5 border-black/5 text-[var(--text-secondary)] hover:bg-black/10"
-                }`}
-            >
-              <SlidersHorizontal size={14} />
-              {lfFilter ? `LF${lfFilter}` : "Filter"}
-            </button>
           </div>
         </div>
       </div>

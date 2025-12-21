@@ -11,9 +11,10 @@ import {
   Clock,
   PartyPopper,
   Check,
+  SlidersHorizontal,
 } from "lucide-react";
 import { usePlatformStore } from "@/lib/store/platform-store";
-import { TaskRecord } from "@/components/TaskEditorModal";
+import { TaskRecord, WORLDS } from "@/components/TaskEditorModal";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
 import { CircularDatePicker } from "@/ui/CircularDatePicker";
@@ -22,6 +23,7 @@ import { useUIStore } from "@/lib/store/ui-store";
 import ViewSelector, { TaskViewMode } from "@/components/today/ViewSelector";
 import SingleLineTaskView from "@/components/today/SingleLineTaskView";
 import { computeRange } from "@/lib/utils/date";
+import { CustomSelect } from "@/ui/CustomSelect";
 
 
 let hasResetOnReload = false;
@@ -33,12 +35,15 @@ export default function TodayPage() {
   const selectedDate = usePlatformStore(s => s.selectedDate);
   const viewMode = usePlatformStore(s => s.viewMode);
   const lfFilter = usePlatformStore(s => s.lfFilter);
+  const setLfFilter = usePlatformStore(s => s.setLfFilter);
   const taskViewMode = usePlatformStore(s => s.taskViewMode);
+  const setTaskViewMode = usePlatformStore(s => s.setTaskViewMode);
   const tasks = usePlatformStore(s => s.tasks);
   const refreshTasks = usePlatformStore(s => s.refreshTasks);
   const isLoadingTasks = usePlatformStore(s => s.isLoadingTasks);
   const setSelectedDate = usePlatformStore(s => s.setSelectedDate);
   const setViewMode = usePlatformStore(s => s.setViewMode);
+  const showAccomplishments = usePlatformStore(s => s.showAccomplishments);
 
   const dateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
   const { setClickOrigin, openTaskEditor } = useUIStore();
@@ -61,7 +66,7 @@ export default function TodayPage() {
   }, []);
 
   const dateRange = useMemo(() => computeRange(viewMode, dateObj), [viewMode, dateObj]);
-  
+
   const dateRangeKey = useMemo(() => `${dateRange.start}-${dateRange.end}`, [dateRange.start, dateRange.end]);
   const lastRefreshedKey = useRef<string>("");
 
@@ -123,8 +128,6 @@ export default function TodayPage() {
     setIsBatchProcessing(true);
     try {
       const ids = Array.from(selectedTaskIds);
-      // We'll loop for now as there's no deleteMany API yet, or I can create it.
-      // Actually let's just loop to be safe and quick for now.
       await Promise.all(ids.map(id =>
         fetch("/api/cogos/task/delete", {
           method: "POST",
@@ -136,6 +139,14 @@ export default function TodayPage() {
       await refreshTasks(dateRange);
     } finally {
       setIsBatchProcessing(false);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0) {
+      setSelectedTaskIds(new Set());
+    } else {
+      setSelectedTaskIds(new Set(filteredTasks.map(t => t.id).filter((id): id is string => !!id)));
     }
   };
 
@@ -276,6 +287,14 @@ export default function TodayPage() {
 
   const filteredTasks = useMemo(() => {
     let res = tasks;
+
+    // Filter based on accomplishments mode
+    if (showAccomplishments) {
+      res = res.filter((t) => t.status === "done");
+    } else {
+      res = res.filter((t) => t.status !== "done");
+    }
+
     if (lfFilter !== null) {
       res = res.filter((t) => t.lf === lfFilter);
     }
@@ -295,7 +314,7 @@ export default function TodayPage() {
       }
       return (a.title ?? "").localeCompare(b.title ?? "");
     });
-  }, [tasks, lfFilter, goalFilter, projectFilter, sortKey]);
+  }, [tasks, showAccomplishments, lfFilter, goalFilter, projectFilter, sortKey]);
 
   return (
     <SwipeToCreate onTrigger={() => openEditor()}>
@@ -351,80 +370,112 @@ export default function TodayPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          <div className="flex flex-wrap items-center gap-3 px-4 text-[10px] uppercase tracking-[0.3em] text-white/60">
-            <div className="flex items-center gap-2">
-              <span className="text-white/40">Goal</span>
-              <select
-                className="bg-black/30 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white"
-                value={goalFilter}
-                onChange={(e) => setGoalFilter(e.target.value)}
+          <div className="flex flex-col gap-1">
+            <div className="pt-6 border-t-[4px] border-black flex flex-wrap items-center gap-4 px-4 text-[10px] font-black uppercase tracking-[0.4em] text-[var(--text-secondary)] mb-1">
+              <button
+                onClick={handleSelectAll}
+                className={`px-4 py-2 rounded-full border-2 transition-all ${selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "bg-black text-white border-black" : "border-black/20 text-black/60 hover:border-black hover:text-black"}`}
               >
-                <option value="all">ALL</option>
-                {uniqueGoals.map(goal => (
-                  <option key={goal} value={goal}>{goal.toUpperCase()}</option>
-                ))}
-              </select>
+                {selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "DESELECT ALL" : "SELECT ALL"}
+              </button>
+
+              <div className="h-6 w-px bg-black/10 mx-2" />
+
+              {/* View & Filters Group */}
+              <div className="flex items-center gap-3">
+                <ViewSelector
+                  view={taskViewMode}
+                  onChange={setTaskViewMode}
+                />
+
+                {/* LF Filter */}
+                <CustomSelect
+                  value={lfFilter ?? "all"}
+                  onChange={(val) => setLfFilter(val === "all" ? null : Number(val))}
+                  options={[
+                    { value: "all", label: "ALL FOCUS" },
+                    ...WORLDS.map(w => ({ value: w.id, label: w.name.toUpperCase() }))
+                  ]}
+                  icon={<SlidersHorizontal size={12} />}
+                  className="w-32"
+                />
+
+                {/* Goal Filter */}
+                <CustomSelect
+                  value={goalFilter}
+                  onChange={setGoalFilter}
+                  options={[
+                    { value: "all", label: "GOAL: ALL" },
+                    ...uniqueGoals.map(g => ({ value: g, label: `GOAL: ${g.toUpperCase()}` }))
+                  ]}
+                  className="w-32"
+                />
+
+                {/* Project Filter */}
+                <CustomSelect
+                  value={projectFilter}
+                  onChange={setProjectFilter}
+                  options={[
+                    { value: "all", label: "PROJ: ALL" },
+                    ...uniqueProjects.map(p => ({ value: p, label: `PROJ: ${p.toUpperCase()}` }))
+                  ]}
+                  className="w-32"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 ml-auto">
+                <div className="flex items-center gap-2">
+                  <span className="opacity-40">Sort</span>
+                  <div className="flex gap-1 bg-black/5 rounded-full p-1 border-2 border-black/10">
+                    {(["lf", "title"] as const).map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSortKey(key)}
+                        className={`px-4 py-1.5 rounded-full text-[10px] font-black transition-all ${sortKey === key ? "bg-black text-white" : "text-black/40 hover:text-black"}`}
+                      >
+                        {key === "lf" ? "LF" : "TITLE"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white/40">Project</span>
-              <select
-                className="bg-black/30 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white"
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-              >
-                <option value="all">ALL</option>
-                {uniqueProjects.map(project => (
-                  <option key={project} value={project}>{project.toUpperCase()}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white/40">Sort</span>
-              {(["lf", "title"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSortKey(key)}
-                  className={`px-3 py-1 rounded-full border text-[10px] ${sortKey === key ? "border-white text-white" : "border-white/10 text-white/40"}`}
-                >
-                  {key === "lf" ? "LF" : "TITLE"}
-                </button>
-              ))}
-            </div>
+
+            {taskViewMode === 'single-line' ? (
+              <SingleLineTaskView
+                tasks={filteredTasks}
+                selectedIds={selectedTaskIds}
+                onSelectionChange={setSelectedTaskIds}
+                onTaskClick={(task, e) => openEditor(task, e)}
+                onStepChange={handleStepChange}
+                onStatusToggle={async (task) => { await markDone(task); }}
+                onDelete={handleDeleteTask}
+              />
+            ) : (
+              <div className="flex flex-col gap-2 relative">
+                <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
+                <AnimatePresence>
+                  {filteredTasks.map((task, i) => (
+                    <TodayTaskRow
+                      key={task.id ?? `task-${i}`}
+                      task={task}
+                      index={i}
+                      isSelected={task.id ? selectedTaskIds.has(task.id) : false}
+                      onToggleSelection={(id) => {
+                        const next = new Set(selectedTaskIds);
+                        if (next.has(id)) next.delete(id); else next.add(id);
+                        setSelectedTaskIds(next);
+                      }}
+                      markDone={markDone}
+                      handleScore={handleScore}
+                      openEditor={openEditor}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
-          {taskViewMode === 'single-line' ? (
-            <SingleLineTaskView
-              tasks={filteredTasks}
-              selectedIds={selectedTaskIds}
-              onSelectionChange={setSelectedTaskIds}
-              onTaskClick={(task, e) => openEditor(task, e)}
-              onStepChange={handleStepChange}
-              onStatusToggle={async (task) => { await markDone(task); }}
-              onDelete={handleDeleteTask}
-            />
-          ) : (
-            <>
-              <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
-              <AnimatePresence>
-                {filteredTasks.map((task, i) => (
-                  <TodayTaskRow
-                    key={task.id ?? `task-${i}`}
-                    task={task}
-                    index={i}
-                    isSelected={task.id ? selectedTaskIds.has(task.id) : false}
-                    onToggleSelection={(id) => {
-                      const next = new Set(selectedTaskIds);
-                      if (next.has(id)) next.delete(id); else next.add(id);
-                      setSelectedTaskIds(next);
-                    }}
-                    markDone={markDone}
-                    handleScore={handleScore}
-                    openEditor={openEditor}
-                  />
-                ))}
-              </AnimatePresence>
-            </>
-          )}
 
           {isLoadingTasks && <div className="py-10 text-center text-[var(--text-secondary)] text-sm animate-pulse">Loading thoughts...</div>}
           {!isLoadingTasks && filteredTasks.length === 0 && (
@@ -616,8 +667,16 @@ function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, ha
         <div className={`w-1 h-1 rounded-full border transition-all ${isDone ? "bg-green-500 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)]" : "bg-[var(--text-primary)] border-[var(--text-secondary)] group-hover:border-[var(--text-primary)]"}`} />
       </div>
 
-      <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 transition-all ${isDone ? "opacity-60 grayscale" : ""} ${isSelected ? "border-white/30 bg-white/5 shadow-xl" : ""}`}>
-        <div className="flex-shrink-0 pt-1">
+      <div className={`glass-card rounded-2xl p-4 flex items-start gap-4 transition-all relative overflow-hidden ${isDone ? "opacity-60 grayscale" : ""} ${isSelected ? "border-white/30 bg-white/5 shadow-xl" : ""}`}>
+        {/* Progress Fill Background */}
+        <div
+          className="absolute inset-0 bg-black/50 transition-all"
+          style={{
+            width: `${task.progress ?? 0}%`,
+            zIndex: 0
+          }}
+        />
+        <div className="relative z-10 flex-shrink-0 pt-1">
           {startTime ? (
             <div className="text-center">
               <div className="text-xs font-bold text-[var(--text-primary)]">{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}</div>
@@ -630,7 +689,7 @@ function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, ha
           )}
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="relative z-10 flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>{task.title || "Untitled Task"}</h3>
           </div>

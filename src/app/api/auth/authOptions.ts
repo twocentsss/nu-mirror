@@ -155,9 +155,14 @@ export const authOptions: NextAuthOptions = {
           // 2. Ensure Tenant Schema (Event Log, Goals, Projects)
           const schema = getTenantSchema(user.email);
           await ensureTenantSchema(sql, schema);
+
+          // 3. Seed Default Goals & Projects (Quarterly/Monthly)
+          const { seedDefaultsForUser } = await import("@/lib/cogos/seed");
+          await seedDefaultsForUser(user.email);
+
         }
       } catch (error) {
-        console.error("Postgres Schema Setup Critical Error:", error);
+        console.error("Postgres Schema/Seed Critical Error:", error);
       }
     },
   },
