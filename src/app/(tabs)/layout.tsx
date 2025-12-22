@@ -4,9 +4,12 @@ import DockBar from "@/components/layout/DockBar";
 import DockPad from "@/ui/DockPad";
 import BottomNav from "@/ui/BottomNav";
 import ScrollAwareLayout from "@/components/ScrollAwareLayout";
+import ZenModeHome from "@/components/ZenModeHome";
 import { usePathname, useRouter } from "next/navigation";
 import { usePlatformStore } from "@/lib/store/platform-store";
+import { computeRange } from "@/lib/utils/date";
 import { useEffect, useState, useMemo } from "react";
+import { useTheme } from "@/hooks/useTheme";
 import TaskEditorModal from "@/components/TaskEditorModal";
 import { useUIStore } from "@/lib/store/ui-store";
 import AboutModal from "@/components/AboutModal";
@@ -18,6 +21,8 @@ import { AnimatePresence } from "framer-motion";
 import RantModal from "@/components/RantModal";
 import { useSession } from "next-auth/react";
 import { useDockStore } from "@/lib/store/dock-store";
+import { usePersona } from "@/hooks/usePersona";
+
 
 export default function TabsLayout({
   children,
@@ -29,6 +34,8 @@ export default function TabsLayout({
   const active = pathname.split("/").pop() || "today";
   const selectedDate = usePlatformStore(s => s.selectedDate);
   const viewMode = usePlatformStore(s => s.viewMode);
+  const setViewMode = usePlatformStore(s => s.setViewMode);
+  const setSelectedDate = usePlatformStore(s => s.setSelectedDate);
   const tasks = usePlatformStore(s => s.tasks);
   const setTasks = usePlatformStore(s => s.setTasks);
   const refreshTasks = usePlatformStore(s => s.refreshTasks);
@@ -44,6 +51,9 @@ export default function TabsLayout({
     showTaskEditor, editingTask, openTaskEditor, closeTaskEditor,
     setNavVisible
   } = useUIStore();
+  const { persona } = usePersona();
+  const isZen = persona === "ZEN";
+
 
   const isTopVisible = useDockStore(s => s.visibility.top);
   const [identitySeed, setIdentitySeed] = useState(0);
@@ -69,20 +79,75 @@ export default function TabsLayout({
   const completedCount = tasks.filter(t => t.status === 'done').length;
   const totalTasks = tasks.length;
   const dateObj = new Date(selectedDate);
+  useTheme((state) => state.theme);
 
   const handleAction = (action: string) => {
     if (action === "task" || action === "capture") {
       // Create new task with default due date
       openTaskEditor({ time: { due_date: selectedDate.slice(0, 10) } });
+      return;
     }
-    else if (action === "rant") setShowRantModal(true);
-    else if (action === "about") setShowAbout(true);
-    else if (action === "graph") setShowGraph(true);
-    else if (action === "waterfall") setShowWaterfall(true);
-    else if (action === "report") setShowReport(true);
-    else if (action === "personalization") setShowPersonalization(true);
-    else if (action === "howto") router.push("/how-to");
+    if (action === "rant") {
+      setShowRantModal(true);
+      return;
+    }
+    if (action === "about") {
+      setShowAbout(true);
+      return;
+    }
+    if (action === "graph") {
+      setShowGraph(!showGraph);
+      return;
+    }
+    if (action === "waterfall") {
+      setShowWaterfall(!showWaterfall);
+      return;
+    }
+    if (action === "report") {
+      setShowReport(!showReport);
+      return;
+    }
+    if (action === "personalization") {
+      setShowPersonalization(true);
+      return;
+    }
+    if (action === "howto") {
+      router.push("/how-to");
+      return;
+    }
   };
+
+  const selectedRange = useMemo(() => computeRange(viewMode, new Date(selectedDate)), [viewMode, selectedDate]);
+  const isToday = useMemo(() => new Date(selectedDate).toDateString() === new Date().toDateString(), [selectedDate]);
+  const rangeLabel = useMemo(() => {
+    if (!selectedRange) return "";
+    const start = new Date(selectedRange.start);
+    const end = new Date(selectedRange.end);
+    if (start.toDateString() === end.toDateString()) {
+      return start.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    }
+    const options = { month: "short", day: "numeric" } as const;
+    const startStr = start.toLocaleDateString("en-US", options);
+    const endStr = end.toLocaleDateString("en-US", options);
+    return `${startStr} — ${endStr}`;
+  }, [selectedRange]);
+
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }));
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const topLabel = useMemo(() => {
     const hours = new Date().getHours();
@@ -102,35 +167,19 @@ export default function TabsLayout({
     // Tying to identitySeed ensures it ONLY changes when we want it to.
     const identityDisplay = identityVariants[(identitySeed + firstName.length) % identityVariants.length];
 
-    const dateStr = dateObj.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric'
-    });
+    const dayText = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const dateLabel = isZen && (!isToday || viewMode !== "DAY")
+      ? rangeLabel || dayText
+      : dayText;
+    const timeLabel = isZen && (!isToday || viewMode !== "DAY") ? viewMode : currentTime;
 
-    return `${greeting}, ${identityDisplay} • ${dateStr}`;
-  }, [session, selectedDate, identitySeed]);
-
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }));
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    return `${greeting}, ${identityDisplay} • ${dateLabel}`;
+  }, [session, selectedDate, identitySeed, isZen, rangeLabel, isToday, viewMode, dateObj, currentTime]);
 
   const topParts = topLabel.split('•');
   const greetingPart = topParts[0].trim();
-  const datePart = `${topParts[1]?.trim() || ''} • ${currentTime}`;
+  const timeDisplay = isZen && (!isToday || viewMode !== "DAY") ? viewMode : currentTime;
+  const datePart = `${topParts[1]?.trim() || ''} • ${timeDisplay}`;
 
   const leftLabel = "IDENTITY & UTILS";
   const rightLabel = "MIRROR & META";
@@ -213,34 +262,55 @@ export default function TabsLayout({
   return (
     <div className="min-h-screen bg-[var(--app-bg)] overflow-hidden select-none transition-colors duration-500">
       {/* Top Dock: Period & System */}
-      <DockBar position="top" label={greetingPart} labelSecondary={datePart}>
-        <DockPad
-          position="top"
-          onPick={handleAction}
-          stats={{ completed: completedCount, total: totalTasks }}
-        />
-      </DockBar>
+      {!isZen && (
+        <DockBar position="top" label={greetingPart} labelSecondary={datePart}>
+          <DockPad
+            position="top"
+            onPick={handleAction}
+            stats={{ completed: completedCount, total: totalTasks }}
+          />
+        </DockBar>
+      )}
 
       {/* Left Dock: Quick Access & Tools */}
-      <DockBar position="left" label={leftLabel}>
-        <DockPad position="left" onPick={handleAction} />
-      </DockBar>
+      {!isZen && (
+        <DockBar position="left" label={leftLabel}>
+          <DockPad position="left" onPick={handleAction} />
+        </DockBar>
+      )}
 
       {/* Right Dock: Entertainment & Meta */}
-      <DockBar position="right" label={rightLabel}>
-        <DockPad position="right" onPick={handleAction} />
-      </DockBar>
+      {!isZen && (
+        <DockBar position="right" label={rightLabel}>
+          <DockPad position="right" onPick={handleAction} />
+        </DockBar>
+      )}
 
-      <ScrollAwareLayout className="pb-24 pt-10">
+      <ScrollAwareLayout className={isZen ? "pt-32" : "pb-24 pt-10"}>
+        {isZen && (
+          <ZenModeHome
+            onMap={() => handleAction("graph")}
+            onFlow={() => handleAction("waterfall")}
+            onFile={() => handleAction("report")}
+            greeting={greetingPart}
+            currentTime={currentTime}
+            viewMode={viewMode}
+            onViewChange={setViewMode}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+          />
+        )}
         {children}
       </ScrollAwareLayout>
 
       {/* Bottom Dock: Platform Navigation */}
-      <DockBar position="bottom" label={bottomLabel}>
-        <BottomNav active={active} onNavigate={(to: string) => router.push(to)} />
-      </DockBar>
+      {!isZen && (
+        <DockBar position="bottom" label={bottomLabel}>
+          <BottomNav active={active} onNavigate={(to: string) => router.push(to)} />
+        </DockBar>
+      )}
 
-      <FullPageScroller />
+      {!isZen && <FullPageScroller />}
 
       <TaskEditorModal
         open={showTaskEditor}

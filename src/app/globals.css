@@ -71,6 +71,27 @@ html[data-theme="white"] {
   --bg-gradient: linear-gradient(180deg, rgba(var(--bg-top), 1) 0%, rgba(var(--bg-bottom), 1) 100%);
 }
 
+/* Simple Theme */
+html[data-theme="simple"] {
+  --bg-top: 243 244 246;
+  /* gray-100 */
+  --bg-bottom: 255 255 255;
+  --app-bg: #f9fafb;
+  /* gray-50 */
+  --text-primary: #111827;
+  /* gray-900 */
+  --text-secondary: #6b7280;
+  /* gray-500 */
+  --glass-bg: rgba(255, 255, 255, 1);
+  /* No glass, solid white */
+  --glass-border: rgba(229, 231, 235, 1);
+  /* Solid light gray border */
+  --accent-color: #000000;
+  /* Stark black accent */
+  --dock-bg: rgba(255, 255, 255, 1);
+  --bg-gradient: linear-gradient(180deg, #f3f4f6 0%, #ffffff 100%);
+}
+
 html[data-theme="brown"] {
   --bg-top: 245 230 211;
   --bg-bottom: 226 210 189;

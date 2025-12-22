@@ -1,16 +1,26 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { MirrorCard } from "@/ui/MirrorCard";
 import TaskRow from "@/ui/TaskRow";
 import PostgresSetupManager from "@/components/PostgresSetupManager";
 import OpenAiKeyManager from "@/components/OpenAiKeyManager";
-import { useTheme, Theme } from "@/hooks/useTheme";
-import { Moon, Sun, Cloud, Coffee, Database, Cpu } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
+import { usePersona } from "@/hooks/usePersona";
+import { Moon, Sun, Cloud, Coffee, Database, Cpu, Terminal, Briefcase, Wind, Target } from "lucide-react";
 
 export default function MePage() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const { persona, setPersona } = usePersona();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-5 px-4 pb-20 min-h-screen text-[var(--text-primary)] transition-colors duration-500">
@@ -42,6 +52,47 @@ export default function MePage() {
         </div>
       </div>
 
+      <MirrorCard className="overflow-hidden">
+        <div className="px-4 pt-4 pb-2 text-[13px] font-semibold text-[var(--text-secondary)]">
+          System Persona
+        </div>
+        <div className="p-4 grid grid-cols-2 gap-3">
+          <PersonaButton
+            active={persona === 'DEVELOPER'}
+            onClick={() => setPersona('DEVELOPER')}
+            label="Dev"
+            icon={<Terminal size={16} />}
+            color="bg-blue-500/10 text-blue-500"
+          />
+          <PersonaButton
+            active={persona === 'EXECUTIVE'}
+            onClick={() => setPersona('EXECUTIVE')}
+            label="Exec"
+            icon={<Briefcase size={16} />}
+            color="bg-purple-500/10 text-purple-500"
+          />
+          <PersonaButton
+            active={persona === 'ZEN'}
+            onClick={() => setPersona('ZEN')}
+            label="Zen"
+            icon={<Wind size={16} />}
+            color="bg-emerald-500/10 text-emerald-500"
+          />
+          <PersonaButton
+            active={persona === 'CURRENT'}
+            onClick={() => setPersona('CURRENT')}
+            label="Current"
+            icon={<Target size={16} />}
+            color="bg-zinc-500/10 text-zinc-500"
+          />
+        </div>
+        <div className="bg-[var(--glass-bg)]/50 p-3 border-t border-[var(--glass-border)] text-center">
+          <p className="text-[10px] italic text-[var(--text-secondary)]">
+            Changes interface language and functional depth.
+          </p>
+        </div>
+      </MirrorCard>
+
       <MirrorCard className="p-5">
         <div className="text-[13px] text-[var(--text-secondary)]">This week</div>
         <div className="mt-2 text-[34px] font-serif leading-none tracking-[-0.02em] text-[var(--text-primary)]">
@@ -57,6 +108,13 @@ export default function MePage() {
           Appearance
         </div>
         <div className="p-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <ThemeButton
+            active={theme === 'simple'}
+            onClick={() => setTheme('simple')}
+            label="Simple"
+            icon={<div className="w-4 h-4 rounded-full border border-black bg-white" />}
+            bg="bg-gray-100 border border-gray-200"
+          />
           <ThemeButton
             active={theme === 'blue'}
             onClick={() => setTheme('blue')}
@@ -101,6 +159,8 @@ export default function MePage() {
           />
         </div>
       </MirrorCard>
+
+
 
       <PostgresSetupManager />
 
@@ -167,6 +227,24 @@ function ThemeButton({ active, onClick, label, icon, bg }: { active: boolean; on
         {icon}
       </div>
       <span className={`text-xs font-medium ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+        {label}
+      </span>
+    </button>
+  );
+}
+function PersonaButton({ active, onClick, label, icon, color }: { active: boolean; onClick: () => void; label: string; icon: React.ReactNode; color: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${active
+        ? "border-[var(--accent-color)] bg-[var(--accent-color)]/5 shadow-inner"
+        : "border-transparent hover:bg-[var(--glass-bg)]"
+        }`}
+    >
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} shadow-sm transition-transform`}>
+        {icon}
+      </div>
+      <span className={`text-xs font-bold ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
         {label}
       </span>
     </button>

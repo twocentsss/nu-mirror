@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import ViewSelector from "@/components/today/ViewSelector";
 import { useUIStore } from "@/lib/store/ui-store";
+import { usePersona, Persona } from "@/hooks/usePersona";
 
 export type DockActionId =
   | "chat"
@@ -63,25 +64,79 @@ interface DockItem {
   available?: boolean;
 }
 
-const ITEMS_BY_SIDE: Record<Exclude<DockPosition, 'top'>, DockItem[]> = {
-  left: [
-    { id: "capture", label: "New", sub: "Entry", icon: <Plus size={18} /> },
-    { id: "rant", label: "Voice", sub: "Dictate", icon: <Zap size={18} /> },
-    { id: "chat", label: "Ask", sub: "Assistant", icon: <MessageCircle size={18} /> },
-    { id: "howto", label: "Tips", sub: "Guide", icon: <HelpCircle size={18} /> },
-  ],
-  right: [
-    { id: "story", label: "Journal", sub: "Memoir", icon: <BookOpen size={18} /> },
-    { id: "agents", label: "Automate", sub: "Workflows", icon: <Cpu size={18} /> },
-    { id: "comics", label: "Gallery", sub: "Visuals", icon: <ImageIcon size={18} /> },
-    { id: "reports", label: "Trends", sub: "Analytics", icon: <BarChart2 size={18} /> },
-  ],
-  bottom: [
-    { id: "todo", label: "Reminders", sub: "Tasks", icon: <CheckSquare size={18} /> },
-    { id: "today", label: "Today", sub: "Schedule", icon: <Calendar size={18} /> },
-    { id: "focus", label: "Focus", sub: "Modes", icon: <Target size={18} /> },
-    { id: "me", label: "Me", sub: "Profile", icon: <User size={18} /> },
-  ],
+const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, 'top'>, DockItem[]> => {
+  const labels = {
+    DEVELOPER: {
+      capture: ["Commit", "Entry"],
+      rant: ["Log", "Dictate"],
+      chat: ["Query", "Consult"],
+      story: ["Docs", "Library"],
+      agents: ["CI/CD", "Automate"],
+      reports: ["Load", "Performance"],
+      focus: ["Focus", "Sprints"],
+      todo: ["Tasks", "Backlog"]
+    },
+    EXECUTIVE: {
+      capture: ["Lead", "Entry"],
+      rant: ["Brief", "Dictate"],
+      chat: ["Council", "Consult"],
+      story: ["Memoir", "Library"],
+      agents: ["ROI", "Automate"],
+      reports: ["KPIs", "Performance"],
+      focus: ["Goals", "Strategy"],
+      todo: ["Tasks", "Action"]
+    },
+    ZEN: {
+      capture: ["Intend", "Entry"],
+      rant: ["Breathe", "Dictate"],
+      chat: ["Oracle", "Consult"],
+      story: ["Flow", "Library"],
+      agents: ["Serenity", "Automate"],
+      reports: ["Harmony", "Performance"],
+      focus: ["Present", "Moment"],
+      todo: ["Tasks", "Quiet"]
+    },
+    CURRENT: {
+      capture: ["New", "Entry"],
+      rant: ["Voice", "Dictate"],
+      chat: ["Ask", "Assistant"],
+      story: ["Journal", "Memoir"],
+      agents: ["Automate", "Workflows"],
+      reports: ["Trends", "Analytics"],
+      focus: ["Focus", "Modes"],
+      todo: ["Reminders", "Tasks"]
+    }
+  }[persona] || {
+    capture: ["New", "Entry"],
+    rant: ["Voice", "Dictate"],
+    chat: ["Ask", "Assistant"],
+    story: ["Journal", "Memoir"],
+    agents: ["Automate", "Workflows"],
+    reports: ["Trends", "Analytics"],
+    focus: ["Focus", "Modes"],
+    todo: ["Reminders", "Tasks"]
+  };
+
+  return {
+    left: [
+      { id: "capture", label: labels.capture[0], sub: labels.capture[1], icon: <Plus size={18} /> },
+      { id: "rant", label: labels.rant[0], sub: labels.rant[1], icon: <Zap size={18} /> },
+      { id: "chat", label: labels.chat[0], sub: labels.chat[1], icon: <MessageCircle size={18} /> },
+      { id: "howto", label: "Tips", sub: "Guide", icon: <HelpCircle size={18} /> },
+    ],
+    right: [
+      { id: "story", label: labels.story[0], sub: labels.story[1], icon: <BookOpen size={18} /> },
+      { id: "agents", label: labels.agents[0], sub: labels.agents[1], icon: <Cpu size={18} /> },
+      { id: "comics", label: "Gallery", sub: "Visuals", icon: <ImageIcon size={18} /> },
+      { id: "reports", label: labels.reports[0], sub: labels.reports[1], icon: <BarChart2 size={18} /> },
+    ],
+    bottom: [
+      { id: "todo", label: labels.todo[0], sub: labels.todo[1], icon: <CheckSquare size={18} /> },
+      { id: "today", label: "Today", sub: "Schedule", icon: <Calendar size={18} /> },
+      { id: "focus", label: labels.focus[0], sub: labels.focus[1], icon: <Target size={18} /> },
+      { id: "me", label: "Me", sub: "Profile", icon: <User size={18} /> },
+    ],
+  };
 };
 
 const VIEW_MODES: ViewMode[] = ["DAY", "WEEK", "SPRINT", "MONTH", "QUARTER"];
@@ -103,6 +158,7 @@ export default function DockPad({
     showAccomplishments, setShowAccomplishments
   } = usePlatformStore();
   const { setClickOrigin } = useUIStore();
+  const { persona } = usePersona();
   const dateObj = new Date(selectedDate);
 
   const handlePrevDay = () => {
@@ -176,15 +232,15 @@ export default function DockPad({
 
             <div className="flex bg-black/5 rounded-full border border-black/5 p-1 gap-1 items-center">
               {[
-                { id: "protocol", icon: <Fingerprint size={16} />, title: "ID", color: "hover:text-blue-400" },
+                { id: "protocol", icon: <Fingerprint size={16} />, title: persona === 'DEVELOPER' ? "Auth" : persona === 'ZEN' ? "Vibe" : "ID", color: "hover:text-blue-400" },
                 { id: "search", icon: <Search size={16} />, title: "Search", color: "hover:text-zinc-400" },
                 { id: "settings", icon: <Settings size={16} />, title: "Settings", color: "hover:text-zinc-400" },
-                { id: "graph", icon: <Map size={16} />, title: "Map", color: "hover:text-emerald-400" },
-                { id: "waterfall", icon: <Activity size={16} />, title: "Flow", color: "hover:text-amber-400" },
-                { id: "report", icon: <FileText size={16} />, title: "Files", color: "hover:text-purple-400" },
+                { id: "graph", icon: <Map size={16} />, title: persona === 'DEVELOPER' ? "Nodes" : persona === 'ZEN' ? "Mandala" : "Map", color: "hover:text-emerald-400" },
+                { id: "waterfall", icon: <Activity size={16} />, title: persona === 'DEVELOPER' ? "Perf" : persona === 'ZEN' ? "Harmony" : "Flow", color: "hover:text-amber-400" },
+                { id: "report", icon: <FileText size={16} />, title: persona === 'DEVELOPER' ? "Stdout" : persona === 'ZEN' ? "Journal" : "Files", color: "hover:text-purple-400" },
                 { id: "howto", icon: <HelpCircle size={16} />, title: "Tips", color: "hover:text-blue-500" },
-                { id: "about", icon: <Info size={16} />, title: "Unknown", color: "hover:text-zinc-400" },
-              ].map(it => (
+                { id: "about", icon: <Info size={16} />, title: "Info", color: "hover:text-zinc-400" },
+              ].map((it: any) => (
                 <button
                   key={it.id}
                   onClick={(e) => {
@@ -240,12 +296,12 @@ export default function DockPad({
     );
   }
 
-  const items = ITEMS_BY_SIDE[position as Exclude<DockPosition, 'top'>];
+  const items = getItemsBySide(persona)[position as Exclude<DockPosition, 'top'>];
   const isVertical = position === 'left' || position === 'right';
 
   return (
     <div className={`p-6 ${isVertical ? 'flex flex-col gap-4' : 'flex flex-wrap gap-4 justify-center max-w-2xl'}`}>
-      {items.map((it) => (
+      {items.map((it: any) => (
         <button
           key={it.id}
           className="tap group"

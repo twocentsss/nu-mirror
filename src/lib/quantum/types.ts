@@ -20,6 +20,8 @@ export interface IntentAtom {
     // Detected signals (Context)
     signals: {
         time_phrase?: string; // "tomorrow", "this weekend"
+        due_date?: string;    // "2024-03-21"
+        time_of_day?: string; // "MORNING", "AFTERNOON", "EVENING"
         urgency?: 'low' | 'medium' | 'high';
         energy?: 'low' | 'medium' | 'high';
         people?: string[];

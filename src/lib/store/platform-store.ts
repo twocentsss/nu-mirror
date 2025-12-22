@@ -8,7 +8,7 @@ interface PlatformState {
     selectedDate: string; // ISO string for persistence
     viewMode: ViewMode;
     lfFilter: number | null;
-    taskViewMode: "compact" | "single-line";
+    taskViewMode: "compact" | "single-line" | "timeline";
     tasks: TaskRecord[];
     isLoadingTasks: boolean;
     showAccomplishments: boolean;
@@ -17,7 +17,7 @@ interface PlatformState {
     setSelectedDate: (date: Date) => void;
     setViewMode: (mode: ViewMode) => void;
     setLfFilter: (filter: number | null) => void;
-    setTaskViewMode: (mode: "compact" | "single-line") => void;
+    setTaskViewMode: (mode: "compact" | "single-line" | "timeline") => void;
     setTasks: (tasks: TaskRecord[]) => void;
     setShowAccomplishments: (show: boolean) => void;
     refreshTasks: (range?: { start: string; end: string }) => Promise<void>;
@@ -32,7 +32,7 @@ export const usePlatformStore = create<PlatformState>()(
             selectedDate: new Date().toISOString(),
             viewMode: "DAY",
             lfFilter: null,
-            taskViewMode: "compact",
+            taskViewMode: "timeline",
             tasks: [],
             isLoadingTasks: false,
             showAccomplishments: false,

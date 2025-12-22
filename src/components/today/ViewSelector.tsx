@@ -1,8 +1,8 @@
 "use client";
 
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, Clock } from "lucide-react";
 
-export type TaskViewMode = "compact" | "single-line";
+export type TaskViewMode = "compact" | "single-line" | "timeline";
 
 interface ViewSelectorProps {
     view: TaskViewMode;
@@ -15,8 +15,8 @@ export default function ViewSelector({ view, onChange }: ViewSelectorProps) {
             <button
                 onClick={() => onChange("compact")}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${view === "compact"
-                        ? "bg-white text-black shadow-md"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "bg-white text-black shadow-md"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                 title="Compact Card View"
             >
@@ -26,13 +26,24 @@ export default function ViewSelector({ view, onChange }: ViewSelectorProps) {
             <button
                 onClick={() => onChange("single-line")}
                 className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${view === "single-line"
-                        ? "bg-white text-black shadow-md"
-                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    ? "bg-white text-black shadow-md"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                     }`}
                 title="Single Line View"
             >
                 <List size={14} />
                 Line
+            </button>
+            <button
+                onClick={() => onChange("timeline")}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${view === "timeline"
+                    ? "bg-white text-black shadow-md"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                title="Timeline View"
+            >
+                <Clock size={14} />
+                Timeline
             </button>
         </div>
     );

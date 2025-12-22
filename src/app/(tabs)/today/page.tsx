@@ -24,6 +24,52 @@ import ViewSelector, { TaskViewMode } from "@/components/today/ViewSelector";
 import SingleLineTaskView from "@/components/today/SingleLineTaskView";
 import { computeRange } from "@/lib/utils/date";
 import { CustomSelect } from "@/ui/CustomSelect";
+import { usePersona } from "@/hooks/usePersona";
+import { format, addMinutes, startOfDay, parseISO } from 'date-fns';
+import TimelineView from "@/components/today/TimelineView";
+
+const PERSONA_LABELS = {
+  DEVELOPER: {
+    title: "Terminal",
+    new: "New Entry",
+    batch: "Bulk Action",
+    empty: "Backlog empty. System clear.",
+    intake: "Buffer",
+    doing: "Active",
+    done: "Deployed",
+    stats: "Efficiency",
+  },
+  EXECUTIVE: {
+    title: "Intelligence",
+    new: "New Initiative",
+    batch: "Strategy",
+    empty: "Schedule clear. Growth opportunity.",
+    intake: "Pending",
+    doing: "Executing",
+    done: "Outcome",
+    stats: "ROI",
+  },
+  ZEN: {
+    title: "Presence",
+    new: "New Intention",
+    batch: "Harmony",
+    empty: "Silence. Peace is found here.",
+    intake: "Awaiting",
+    doing: "Flow",
+    done: "Realized",
+    stats: "Energy",
+  },
+  CURRENT: {
+    title: "Tasks",
+    new: "Create Task",
+    batch: "Batch Action",
+    empty: "No tasks for this period.",
+    intake: "Intake",
+    doing: "Doing",
+    done: "Done",
+    stats: "Score",
+  }
+};
 
 
 let hasResetOnReload = false;
@@ -44,6 +90,8 @@ export default function TodayPage() {
   const setSelectedDate = usePlatformStore(s => s.setSelectedDate);
   const setViewMode = usePlatformStore(s => s.setViewMode);
   const showAccomplishments = usePlatformStore(s => s.showAccomplishments);
+  const { persona } = usePersona();
+  const labels = PERSONA_LABELS[persona];
 
   const dateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
   const { setClickOrigin, openTaskEditor } = useUIStore();
@@ -374,7 +422,7 @@ export default function TodayPage() {
           {/* Calm Header & Filter Toggle */}
           <div className="flex items-center justify-between px-4 pt-2">
             <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-              Tasks
+              {labels.title}
               <span className="ml-2 text-sm font-normal text-[var(--text-secondary)] opacity-60">
                 {filteredTasks.length}
               </span>
@@ -398,6 +446,14 @@ export default function TodayPage() {
               >
                 <div className="flex flex-col gap-3 px-4 py-4 bg-[var(--glass-bg)] border-y border-[var(--glass-border)] backdrop-blur-3xl">
                   <div className="flex flex-wrap items-center gap-3">
+                    {taskViewMode === 'timeline' && (
+                      <div className="mr-2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[10px] font-black text-red-500 tabular-nums">
+                          {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        </span>
+                      </div>
+                    )}
                     <button
                       onClick={handleSelectAll}
                       className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${selectedTaskIds.size === filteredTasks.length && filteredTasks.length > 0 ? "bg-[var(--text-primary)] text-[var(--app-bg)] border-[var(--text-primary)]" : "border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]"}`}
@@ -468,6 +524,24 @@ export default function TodayPage() {
               onStatusToggle={async (task) => { await markDone(task); }}
               onDelete={handleDeleteTask}
             />
+          ) : taskViewMode === 'timeline' ? (
+            <TimelineView
+              tasks={filteredTasks}
+              baseDate={dateObj}
+              onTaskClick={(task, e) => openEditor(task, e)}
+              onAddTask={(time, duration) => {
+                const hour = time.getHours();
+                const time_of_day = hour < 12 ? 'MORNING' : hour < 17 ? 'AFTERNOON' : 'EVENING';
+
+                // Deterministic local timestamp (avoids UTC shift issues)
+                const localISOTime = format(time, "yyyy-MM-dd'T'HH:mm");
+
+                openEditor({
+                  time: { due_date: localISOTime, time_of_day },
+                  duration_min: duration
+                });
+              }}
+            />
           ) : (
             <div className="flex flex-col gap-2 relative">
               <div className="absolute left-8 top-0 bottom-0 w-px bg-[var(--glass-border)]" />
@@ -486,6 +560,7 @@ export default function TodayPage() {
                     markDone={markDone}
                     handleScore={handleScore}
                     openEditor={openEditor}
+                    labels={labels}
                   />
                 ))}
               </AnimatePresence>
@@ -497,8 +572,8 @@ export default function TodayPage() {
           {!isLoadingTasks && filteredTasks.length === 0 && (
             <div className="py-20 text-center">
               <div className="w-16 h-16 rounded-full bg-[var(--glass-bg)] mx-auto mb-4 flex items-center justify-center"><PartyPopper className="text-[var(--text-secondary)]" /></div>
-              <p className="text-[var(--text-secondary)] text-sm">No tasks for this period.</p>
-              <button onClick={(e) => openEditor(undefined, e as any)} className="mt-4 text-[var(--accent-color)] text-sm hover:underline">+ Create one</button>
+              <p className="text-[var(--text-secondary)] text-sm">{labels.empty}</p>
+              <button onClick={(e) => openEditor(undefined, e as any)} className="mt-4 text-[var(--accent-color)] text-sm hover:underline">+ {labels.new}</button>
             </div>
           )}
         </div>
@@ -598,9 +673,10 @@ type TodayTaskRowProps = {
   markDone: (task: TaskRecord) => Promise<{ status: string; progress: number } | null>;
   handleScore: (task: TaskRecord) => void;
   openEditor: (task: TaskRecord, e: MouseEvent | React.MouseEvent) => void;
+  labels: any;
 };
 
-function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, handleScore, openEditor }: TodayTaskRowProps) {
+function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, handleScore, openEditor, labels }: TodayTaskRowProps) {
   const isDone = task.status === "done";
   const dragX = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -722,13 +798,13 @@ function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, ha
                 <label className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]" onClick={(e) => { e.stopPropagation(); triggerMarkDone(); }} role="button">
                   <input type="checkbox" checked={isDone} onChange={(e) => { e.stopPropagation(); triggerMarkDone(); }} className="sr-only" />
                   <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"}`}><Check size={14} /></span>
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}>{isDone ? "Done" : "Mark done"}</span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}>{isDone ? labels.done : labels.doing}</span>
                 </label>
               </div>
-              <button className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors" type="button" onClick={(e) => { e.stopPropagation(); handleScore(task); }}><Target size={14} className="text-blue-600" />Score</button>
+              <button className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors" type="button" onClick={(e) => { e.stopPropagation(); handleScore(task); }}><Target size={14} className="text-blue-600" />{labels.stats}</button>
             </div>
             <div className="flex items-center gap-3" onPointerDownCapture={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-              <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]"><span className="text-[var(--text-secondary)]">Progress</span><span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span></div>
+              <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]"><span className="text-[var(--text-secondary)]">{labels.stats === 'ROI' ? 'Margin' : 'Progress'}</span><span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span></div>
               <input type="range" min={0} max={100} value={draftProgress} onChange={(e) => { e.stopPropagation(); setDraftProgress(Number(e.target.value)); }} className="flex-1 accent-[var(--accent-color)] h-2 rounded-lg" onMouseDown={(e) => e.stopPropagation()} />
               <div className="flex gap-1">
                 <button type="button" onClick={(e) => { e.stopPropagation(); confirmProgress(); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a" }}><Check size={12} /></button>

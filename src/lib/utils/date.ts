@@ -42,3 +42,17 @@ export function computeRange(mode: ViewMode, baseDate: Date) {
 
     return { start: formatISODate(start), end: formatISODate(end) };
 }
+
+export function formatRangeLabel(range: { start: string; end: string }) {
+    const start = new Date(range.start);
+    const end = new Date(range.end);
+    const options = { month: "short", day: "numeric" } as const;
+
+    if (start.toDateString() === end.toDateString()) {
+        return start.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    }
+
+    const startStr = start.toLocaleDateString("en-US", options);
+    const endStr = end.toLocaleDateString("en-US", options);
+    return `${startStr} — ${endStr}`;
+}
