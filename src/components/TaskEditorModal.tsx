@@ -8,7 +8,7 @@ import { generateQuantumState } from "@/lib/quantum/generator";
 import { collapseOption } from "@/lib/quantum/collapser";
 import { emitIntentCaptured, emitTaskCommitted } from "@/lib/events/emitters";
 import { Option } from "@/lib/quantum/types";
-import { Check, Plus, Share2, Workflow } from "lucide-react";
+import { Check, Plus, Share2, Workflow, Sparkles, Settings } from "lucide-react";
 import { WheelPicker, DateTimeWheelPicker, formatLocalDateTime, normalizeDateTimeValue } from "./common/WheelPicker";
 
 export type TaskRecord = {
@@ -34,6 +34,21 @@ type SuggestedSubtask = {
   rationale?: string;
 };
 
+type GrammarSlot = {
+  type: "actor" | "action" | "object" | "time" | "modality" | "location" | "metric" | "quality";
+  value: string;
+  confidence: number;
+  alternatives: string[];
+};
+
+type ParseResult = {
+  slots: GrammarSlot[];
+  intentType: "create" | "complete" | "schedule" | "delegate" | "learn" | "review";
+  complexity: "atomic" | "simple" | "compound" | "complex";
+  estimatedSteps: number;
+  dependencies: string[];
+};
+
 export const WORLDS = [
   { id: 1, name: "Core", desc: "Soul, purpose, being", keywords: ["meditation", "spirit", "pray", "soul", "purpose", "being", "religion", "god", "destiny", "core"], color: "from-rose-500 to-pink-500" },
   { id: 2, name: "Self", desc: "Body, mind, heart", keywords: ["gym", "workout", "exercise", "run", "health", "mind", "heart", "therapy", "mental", "spa", "sleep", "self"], color: "from-purple-500 to-indigo-500" },
@@ -53,6 +68,214 @@ export function classifyTask(text: string) {
     if (world.keywords.some(k => lower.includes(k))) return world;
   }
   return null;
+}
+
+function enhancedGrammarParse(text: string, context?: { lf?: number; goal?: string; project?: string }): ParseResult {
+  const tokens = text ? text.split(/\s+/) : [];
+  const slots: GrammarSlot[] = [];
+
+  const patterns = {
+    actor: /\b(i|we|team|client|user|stakeholder|everyone|anyone|someone|myself)\b/i,
+    action: {
+      create: /\b(create|make|build|design|write|draft|produce|generate)\b/i,
+      complete: /\b(finish|complete|finalize|ship|deliver|submit|close|wrap up|wrap-up|wrapup)\b/i,
+      review: /\b(review|check|verify|audit|inspect|test|debug|validate)\b/i,
+      learn: /\b(learn|study|understand|research|explore|practice|master)\b/i,
+      schedule: /\b(schedule|plan|organize|arrange|prepare|setup|book)\b/i,
+      delegate: /\b(delegate|assign|ask|request|outsource|hire|contract)\b/i,
+    },
+    time: {
+      absolute: /\b(\d{1,2}(:\d{2})?\s*(am|pm)|today|tomorrow|tonight|morning|evening|weekend)\b/i,
+      relative: /\b(in\s+\d+\s+(min|hour|day|week)|by\s+(next|this)\s+\w+|before\s+\w+|after\s+\w+)\b/i,
+      recurring: /\b(every\s+\w+|daily|weekly|monthly|quarterly)\b/i,
+    },
+    object: /\b(report|spec|doc|feature|flow|design|deck|plan|system|app|api|code|test|meeting|call|budget|routine)\b/i,
+    metric: /\b(\d+\s*(min|hour|day|page|word|item|point)|percent|percentage|score|rating)\b/i,
+    quality: /\b(excellent|good|better|best|quick|fast|thorough|complete|detailed|professional|clean)\b/i,
+    modality: /\b(must|should|could|would|need|have to|ought to|required|optional|can|will)\b/i,
+    location: /\b(room|office|zoom|doc|repo|jira|figma|home|gym|store|client|site)\b/i,
+  };
+
+  const actorMatch = text.match(patterns.actor);
+  if (actorMatch) slots.push({ type: "actor", value: actorMatch[0], confidence: 0.9, alternatives: ["team", "client", "user"] });
+
+  let intentType: ParseResult["intentType"] = "create";
+  for (const [intent, pattern] of Object.entries(patterns.action)) {
+    const match = text.match(pattern);
+    if (match) {
+      const alt = Object.keys(patterns.action)
+        .filter((k) => k !== intent)
+        .map((k) => k);
+      slots.push({ type: "action", value: match[0], confidence: 0.85, alternatives: alt });
+      intentType = intent as ParseResult["intentType"];
+      break;
+    }
+  }
+
+  for (const pattern of Object.values(patterns.time)) {
+    const match = text.match(pattern);
+    if (match) slots.push({ type: "time", value: match[0], confidence: 0.8, alternatives: ["today", "tomorrow", "this week"] });
+  }
+
+  const objectMatch = text.match(patterns.object);
+  if (objectMatch) slots.push({ type: "object", value: objectMatch[0], confidence: 0.75, alternatives: ["spec", "deck", "flow", "routine"] });
+
+  const metricMatch = text.match(patterns.metric);
+  if (metricMatch) slots.push({ type: "metric", value: metricMatch[0], confidence: 0.6, alternatives: ["30m", "2h", "3 pages"] });
+
+  const qualityMatch = text.match(patterns.quality);
+  if (qualityMatch) slots.push({ type: "quality", value: qualityMatch[0], confidence: 0.6, alternatives: ["quick", "thorough", "clean"] });
+
+  const modalityMatch = text.match(patterns.modality);
+  if (modalityMatch) slots.push({ type: "modality", value: modalityMatch[0], confidence: 0.65, alternatives: ["should", "must", "can"] });
+
+  const locationMatch = text.match(patterns.location);
+  if (locationMatch) slots.push({ type: "location", value: locationMatch[0], confidence: 0.6, alternatives: ["zoom", "office", "repo"] });
+
+  const wordCount = tokens.length;
+  const hasMultipleVerbs = (text.match(/\b(\w+ed|ing)\b/g) || []).length > 1;
+  const hasConjunctions = /\b(and|or|but|then|after|before)\b/i.test(text);
+  let complexity: ParseResult["complexity"] = "simple";
+  if (wordCount > 15 && hasMultipleVerbs && hasConjunctions) complexity = "complex";
+  else if (wordCount > 8 || hasConjunctions) complexity = "compound";
+  else if (wordCount < 4) complexity = "atomic";
+
+  const stepEstimates = { atomic: 1, simple: 2, compound: 3, complex: 5 } as const;
+  let stepAdjustment = 0;
+  if (context?.lf === 4) stepAdjustment += 1;
+  if (context?.lf === 5) stepAdjustment += 2;
+  const estimatedSteps = Math.max(1, stepEstimates[complexity] + stepAdjustment);
+
+  return {
+    slots,
+    intentType,
+    complexity,
+    estimatedSteps,
+    dependencies: context?.project ? [context.project] : [],
+  };
+}
+
+function generateSmartSubtasks(
+  title: string,
+  parseResult: ParseResult,
+  context: { lf?: number; goal?: string; project?: string; durationMin?: number; persona?: string }
+): SuggestedSubtask[] {
+  const { slots, intentType, estimatedSteps } = parseResult;
+  const action = slots.find((s) => s.type === "action")?.value || "do";
+  const object = slots.find((s) => s.type === "object")?.value || title || "task";
+  const time = slots.find((s) => s.type === "time")?.value || "today";
+
+  const templates: Record<ParseResult["intentType"], string[]> = {
+    create: [
+      `Research ${object}`,
+      `Draft ${object}`,
+      `Review and refine ${object}`,
+      `Finalize ${object}`,
+    ],
+    complete: [
+      `Check remaining work on ${object}`,
+      `Finish ${object}`,
+      `Verify ${object} is done`,
+      `Share ${object}`,
+    ],
+    review: [
+      `Set criteria to review ${object}`,
+      `Inspect ${object}`,
+      `Document findings on ${object}`,
+      `Share feedback for ${object}`,
+    ],
+    learn: [
+      `Define learning outcome for ${object}`,
+      `Collect resources about ${object}`,
+      `Practice ${object}`,
+      `Summarize lessons from ${object}`,
+    ],
+    schedule: [
+      `Define scope for ${object}`,
+      `Block time for ${object}`,
+      `Invite stakeholders for ${object}`,
+      `Confirm schedule for ${object}`,
+    ],
+    delegate: [
+      `Pick owner for ${object}`,
+      `Write brief for ${object}`,
+      `Hand off ${object}`,
+      `Follow up on ${object}`,
+    ],
+  };
+
+  const subtasks: SuggestedSubtask[] = [];
+  const templateList = templates[intentType] || templates.create;
+  templateList.forEach((t, idx) => {
+    subtasks.push({
+      title: t.replace("${object}", object).replace("<object>", object),
+      duration_min: Math.max(10, Math.round((context.durationMin || 60) / Math.max(1, estimatedSteps))),
+      rationale: `Step ${idx + 1} of ${estimatedSteps} (${intentType})`,
+    });
+  });
+
+  if (context.persona === "DEVELOPER") {
+    subtasks.push({ title: `Write tests for ${object}`, duration_min: 25, rationale: "Quality gate" });
+  } else if (context.persona === "EXECUTIVE") {
+    subtasks.push({ title: `Align ${object} with strategy`, duration_min: 20, rationale: "Strategic check" });
+  }
+
+  if (context.lf === 2) {
+    subtasks.unshift({ title: "Prepare mentally/physically", duration_min: 10, rationale: "Self priming" });
+  }
+  if (context.lf === 3) {
+    subtasks.push({ title: `Communicate ${object} to circle`, duration_min: 10, rationale: "Social alignment" });
+  }
+
+  return subtasks.slice(0, Math.max(estimatedSteps, 3));
+}
+
+function getOpenRouterPrompt(
+  mode: "decompose" | "optimize" | "expand" | "clarify",
+  parseResult: ParseResult,
+  base: { title: string; notes: string; lf?: number; goal?: string; project?: string; durationMin: number; persona?: string }
+): string {
+  const missingSlots = ["actor", "action", "object", "time", "modality", "location", "metric", "quality"].filter(
+    (slot) => !parseResult.slots.find((s) => s.type === slot)
+  );
+
+  const ctx = `Task: "${base.title}"\nNotes: "${base.notes || "None"}"\nWorld: ${base.lf || "NA"} Goal: ${base.goal || "None"} Project: ${base.project || "Standalone"}\nTime: ${base.durationMin} minutes\nMissing: ${missingSlots.join(", ") || "None"}\nPersona: ${base.persona || "General"}`;
+
+  const prompts = {
+    decompose: `Decompose into 3-6 actionable subtasks with minutes and rationale.\n${ctx}\nReturn JSON: { "subtasks": [{ "title": "", "duration_min": number, "rationale": "" }] }`,
+    optimize: `Suggest optimizations (time, quality, risk) for this plan.\n${ctx}\nReturn JSON: { "optimizations": [{ "suggestion": "", "impact": "high|medium|low", "effort": "minutes" }] }`,
+    expand: `Expand with strategic angles (stakeholders, learning, long-term impact).\n${ctx}\nReturn JSON: { "expansions": [{ "aspect": "", "consideration": "", "action_item": "" }] }`,
+    clarify: `Ask clarifying questions about success criteria, constraints, resources, and stakeholders.\n${ctx}\nReturn JSON: { "questions": ["..."], "assumptions": ["..."] }`,
+  };
+  return prompts[mode];
+}
+
+function estimateComplexityScore(text: string): number {
+  const words = text.split(/\s+/).length;
+  const sentences = text.split(/[.!?]+/).filter(Boolean).length;
+  const uniqueWords = new Set(text.toLowerCase().split(/\s+/)).size;
+  const hasNumbers = /\d/.test(text);
+  const hasSpecialChars = /[@#$%^&*()_+=\[\]{}|;:,.<>?]/.test(text);
+
+  let score = 0;
+  if (words > 20) score += 2;
+  if (sentences > 3) score += 1;
+  if (uniqueWords / Math.max(1, words) > 0.7) score += 1;
+  if (hasNumbers) score += 1;
+  if (hasSpecialChars) score += 1;
+  return Math.min(5, score);
+}
+
+function generateSmartTemplate(slots: GrammarSlot[], context: { goal?: string; project?: string; lfLabel?: string }) {
+  const action = slots.find((s) => s.type === "action")?.value || "complete";
+  const object = slots.find((s) => s.type === "object")?.value || "task";
+  const time = slots.find((s) => s.type === "time")?.value || "by EOD";
+  const actor = slots.find((s) => s.type === "actor")?.value || "I";
+  const quality = slots.find((s) => s.type === "quality")?.value || "";
+  const metric = slots.find((s) => s.type === "metric")?.value || "";
+  const anchor = context.goal || context.project || context.lfLabel || "Focus";
+
+  return `${actor} will ${action} ${object} ${time} ${quality ? `to ${quality}` : ""} ${metric ? `(${metric})` : ""} [${anchor}]`.replace(/\s+/g, " ").trim();
 }
 
 export default function TaskEditorModal(props: {
@@ -143,7 +366,7 @@ export default function TaskEditorModal(props: {
   const task = props.task;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [editorMode, setEditorMode] = useState<"CAPTURE" | "DETAILS" | "GRAPH">("CAPTURE");
+  const [editorMode, setEditorMode] = useState<"CAPTURE" | "DETAILS" | "GRAPH" | "OPENROUTER" | "RULES">("CAPTURE");
 
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState("intake");
@@ -221,6 +444,41 @@ export default function TaskEditorModal(props: {
   const [decomposing, setDecomposing] = useState(false);
   const [suggested, setSuggested] = useState<SuggestedSubtask[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<Set<number>>(new Set());
+  const [aiEngine, setAiEngine] = useState<"gemini" | "openrouter">("gemini");
+  const [ruleSubtasks, setRuleSubtasks] = useState<SuggestedSubtask[]>([]);
+  const [aiMode, setAiMode] = useState<"decompose" | "optimize" | "expand" | "clarify">("decompose");
+
+  const worldLookup = useMemo(() => PERSONA_WORLDS.find(w => w.id === lf), [PERSONA_WORLDS, lf]);
+
+  const parseResult = useMemo(
+    () =>
+      enhancedGrammarParse(`${title || ""} ${notes || ""}`.trim(), {
+        lf: typeof lf === "number" ? lf : undefined,
+        goal,
+        project,
+      }),
+    [title, notes, lf, goal, project]
+  );
+
+  const grammarHints = useMemo(() => {
+    const missingSlots = ["Actor", "Action", "Object", "Time", "Modality", "Location"].filter(
+      (slot) => !parseResult.slots.find((s) => s.type.toUpperCase() === slot.toUpperCase())
+    );
+
+    const template = generateSmartTemplate(parseResult.slots, {
+      goal,
+      project,
+      lfLabel: worldLookup?.name,
+    });
+
+    const suggestions: string[] = [];
+    if (missingSlots.includes("Action")) suggestions.push("Add a verb: ship / design / complete / learn.");
+    if (missingSlots.includes("Object")) suggestions.push("Add an object: spec / deck / flow / routine.");
+    if (missingSlots.includes("Time")) suggestions.push("Add timing: today 4pm / tomorrow AM / before demo.");
+    if (missingSlots.includes("Actor")) suggestions.push("Add actor: I / team / client.");
+
+    return { missing: missingSlots, suggestions, template, complexityScore: estimateComplexityScore(title || "") };
+  }, [parseResult, goal, project, worldLookup, title]);
 
   useEffect(() => {
     if (!task) return;
@@ -392,19 +650,75 @@ export default function TaskEditorModal(props: {
     }
   }
 
-  async function suggestBreakdown() {
+  async function enhancedSuggestBreakdown() {
     setDecomposing(true);
     try {
-      const res = await fetch("/api/cogos/task/decompose", {
+      const parseCtxLf = typeof lf === "number" ? lf : undefined;
+      const parseResultForCall = enhancedGrammarParse(title || "", { lf: parseCtxLf, goal, project });
+      const smartSubtasks = generateSmartSubtasks(title || "Task", parseResultForCall, {
+        lf: parseCtxLf,
+        goal,
+        project,
+        durationMin,
+        persona,
+      });
+
+      let merged: SuggestedSubtask[] = [...smartSubtasks];
+
+      const prompt = getOpenRouterPrompt(aiMode, parseResultForCall, {
+        title: title || "Task",
+        notes: notes || "",
+        lf: parseCtxLf,
+        goal,
+        project,
+        durationMin,
+        persona,
+      });
+
+      const res = await fetch("/api/cogos/task/ai", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title, notes, duration_min: durationMin, model: "gpt-4o-mini" }),
+        body: JSON.stringify({
+          prompt,
+          model: aiEngine === "gemini" ? "gemini-1.5-pro" : "gpt-4o-mini",
+          context: { title, notes, lf: parseCtxLf, goal, project, durationMin },
+        }),
       });
-      const j = await res.json();
-      if (res.ok && j.ok) {
-        setSuggested(j.subtasks || []);
-        setSelectedIdx(new Set((j.subtasks || []).map((_: any, i: number) => i)));
+      const j = await res.json().catch(() => ({}));
+
+      if (res.ok && j) {
+        if (aiMode === "decompose" && Array.isArray(j.subtasks)) {
+          const combined = [...smartSubtasks, ...j.subtasks];
+          const seen = new Set<string>();
+          merged = combined.filter((s) => {
+            const key = (s.title || "").toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }).slice(0, 8);
+        } else if (aiMode === "optimize" && Array.isArray(j.optimizations)) {
+          merged = j.optimizations.map((opt: any) => ({
+            title: opt.suggestion || "Optimization",
+            duration_min: parseInt(opt.effort, 10) || 15,
+            rationale: `Impact: ${opt.impact || "?"}`,
+          }));
+        } else if (aiMode === "expand" && Array.isArray(j.expansions)) {
+          merged = j.expansions.map((e: any) => ({
+            title: e.action_item || e.aspect || "Expansion",
+            duration_min: 15,
+            rationale: e.consideration || "",
+          }));
+        } else if (aiMode === "clarify" && Array.isArray(j.questions)) {
+          merged = j.questions.map((q: string, idx: number) => ({
+            title: `Clarify: ${q}`,
+            duration_min: 10,
+            rationale: (j.assumptions && j.assumptions[idx]) || "Answer then proceed",
+          }));
+        }
       }
+
+      setSuggested(merged);
+      setSelectedIdx(new Set(merged.map((_, i) => i)));
     } finally {
       setDecomposing(false);
     }
@@ -425,6 +739,18 @@ export default function TaskEditorModal(props: {
     await props.onChanged();
     setSuggested([]);
     setSelectedIdx(new Set());
+  }
+
+  function generateRuleSubtasks() {
+    const parseCtxLf = typeof lf === "number" ? lf : undefined;
+    const ruleSuggestions = generateSmartSubtasks(title || "Task", parseResult, {
+      lf: parseCtxLf,
+      goal,
+      project,
+      durationMin,
+      persona,
+    });
+    setRuleSubtasks(ruleSuggestions);
   }
 
   async function deleteTask() {
@@ -499,14 +825,16 @@ export default function TaskEditorModal(props: {
                     className="absolute bg-white rounded-full shadow-lg"
                     initial={false}
                     animate={{
-                      left: editorMode === "CAPTURE" ? 4 : editorMode === "DETAILS" ? 44 : 84,
+                      left: ["CAPTURE", "DETAILS", "GRAPH", "OPENROUTER", "RULES"].indexOf(editorMode) * 40 + 4,
                       width: 36, height: 28, top: 4
                     }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
-                  <button type="button" onClick={() => setEditorMode("CAPTURE")} className={`z-10 w-9 h-7 flex items-center justify-center text-lg font-black transition-colors ${editorMode === "CAPTURE" ? "text-black" : "text-white/40"}`}>-</button>
-                  <button type="button" onClick={() => setEditorMode("DETAILS")} className={`z-10 w-9 h-7 flex items-center justify-center text-lg font-black transition-colors ${editorMode === "DETAILS" ? "text-black" : "text-white/40"}`}>=</button>
-                  <button type="button" onClick={() => setEditorMode("GRAPH")} className={`z-10 w-9 h-7 flex items-center justify-center transition-colors ${editorMode === "GRAPH" ? "text-black" : "text-white/40"}`}><Workflow size={14} /></button>
+                  <button type="button" onClick={() => setEditorMode("CAPTURE")} className={`z-10 w-10 h-8 flex items-center justify-center text-lg font-black transition-colors ${editorMode === "CAPTURE" ? "text-black" : "text-white/40"}`}>-</button>
+                  <button type="button" onClick={() => setEditorMode("DETAILS")} className={`z-10 w-10 h-8 flex items-center justify-center text-lg font-black transition-colors ${editorMode === "DETAILS" ? "text-black" : "text-white/40"}`}>=</button>
+                  <button type="button" onClick={() => setEditorMode("GRAPH")} className={`z-10 w-10 h-8 flex items-center justify-center transition-colors ${editorMode === "GRAPH" ? "text-black" : "text-white/40"}`}><Workflow size={14} /></button>
+                  <button type="button" onClick={() => { setAiEngine("openrouter"); setEditorMode("OPENROUTER"); }} className={`z-10 w-10 h-8 flex items-center justify-center transition-colors ${editorMode === "OPENROUTER" ? "text-black" : "text-white/40"}`}><Sparkles size={14} /></button>
+                  <button type="button" onClick={() => setEditorMode("RULES")} className={`z-10 w-10 h-8 flex items-center justify-center transition-colors ${editorMode === "RULES" ? "text-black" : "text-white/40"}`}><Settings size={14} /></button>
                 </div>
 
                 {editorMode === "CAPTURE" && quantumOptions.length > 0 && (
@@ -523,134 +851,83 @@ export default function TaskEditorModal(props: {
             {editorMode !== "CAPTURE" && (
               <div className="flex-1 overflow-y-auto min-h-0 bg-black/20 p-6 lg:p-8 space-y-8">
                 <AnimatePresence mode="wait">
-                  {editorMode === "GRAPH" ? (
-                    <motion.div key="graph" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                      <TaskGraph
-                        title={title}
-                        lf={lf}
-                        goal={goal}
-                        project={project}
-                        allTasks={props.allTasks}
-                        currentTaskId={task?.id}
-                        personaWorlds={PERSONA_WORLDS}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div key="details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-8">
-                      {/* Wheel Pickers for Goal and Project */}
-                      <div className="flex gap-4">
-                        <div className="flex-1 flex flex-col gap-2">
-                          <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] px-1 flex justify-between">
-                            <span>Goal</span>
-                            <button onClick={() => setShowGoalInput(!showGoalInput)} className="text-[8px] opacity-40 hover:opacity-100">{showGoalInput ? "Picker" : "Custom"}</button>
-                          </label>
-                          {showGoalInput ? (
-                            <input className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-3 text-sm font-bold outline-none" value={goal} onChange={(e) => setGoal(e.target.value)} />
-                          ) : (
-                            <WheelPicker items={availableGoals.map(g => g.title)} value={goal} onChange={(v) => setGoal(v as string)} />
-                          )}
-                        </div>
-                        <div className="flex-1 flex flex-col gap-2">
-                          <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] px-1 flex justify-between">
-                            <span>Project</span>
-                            <button onClick={() => setShowProjectInput(!showProjectInput)} className="text-[8px] opacity-40 hover:opacity-100">{showProjectInput ? "Picker" : "Custom"}</button>
-                          </label>
-                          {showProjectInput ? (
-                            <input className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-3 text-sm font-bold outline-none" value={project} onChange={(e) => setProject(e.target.value)} />
-                          ) : (
-                            <WheelPicker items={availableProjects.map(p => p.title)} value={project} onChange={(v) => setProject(v as string)} />
-                          )}
-                        </div>
-                      </div>
+                  {editorMode === "GRAPH" && (
+                    <GraphPanel
+                      title={title}
+                      lf={lf}
+                      goal={goal}
+                      project={project}
+                      allTasks={props.allTasks}
+                      currentTaskId={task?.id}
+                      personaWorlds={PERSONA_WORLDS}
+                    />
+                  )}
 
-                      {/* Date Time Wheel Picker */}
-                      <DateTimeWheelPicker value={dueDate} onChange={setDueDate} />
+                  {editorMode === "DETAILS" && (
+                    <DetailsPanel
+                      goal={goal}
+                      setGoal={setGoal}
+                      project={project}
+                      setProject={setProject}
+                      showGoalInput={showGoalInput}
+                      setShowGoalInput={setShowGoalInput}
+                      showProjectInput={showProjectInput}
+                      setShowProjectInput={setShowProjectInput}
+                      availableGoals={availableGoals}
+                      availableProjects={availableProjects}
+                      isLoadingGoals={isLoadingGoals}
+                      isLoadingProjects={isLoadingProjects}
+                      dueDate={dueDate}
+                      setDueDate={setDueDate}
+                      UI_LABELS={UI_LABELS}
+                      status={status}
+                      setStatus={setStatus}
+                      priority={priority}
+                      setPriority={setPriority}
+                      lf={lf}
+                      setLf={setLf}
+                      step={step}
+                      setStep={setStep}
+                      notes={notes}
+                      setNotes={setNotes}
+                      progress={progress}
+                      setProgress={setProgress}
+                      personaWorlds={PERSONA_WORLDS}
+                    />
+                  )}
 
-                      {/* Status and World */}
-                      <div className="grid grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">{UI_LABELS.state}</label>
-                          <div className="flex flex-wrap gap-2">
-                            {["intake", "doing", "done"].map((option) => (
-                              <button key={option} onClick={() => setStatus(option)} className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${status === option ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5"}`}>{option.toUpperCase()}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">{UI_LABELS.order}</label>
-                          <div className="flex gap-2">
-                            {["low", "high"].map((p) => (
-                              <button key={p} onClick={() => setPriority(p as any)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${priority === p ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/5 border-white/5 text-white/40'}`}>{p.toUpperCase()}</button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                  {editorMode === "OPENROUTER" && (
+                    <OpenRouterPanel
+                      aiEngine={aiEngine}
+                      setAiEngine={setAiEngine}
+                      parseResult={parseResult}
+                      grammarHints={grammarHints}
+                      aiMode={aiMode}
+                      setAiMode={setAiMode}
+                      enhancedSuggestBreakdown={enhancedSuggestBreakdown}
+                      decomposing={decomposing}
+                      suggested={suggested}
+                      selectedIdx={selectedIdx}
+                      setSelectedIdx={setSelectedIdx}
+                      createSelectedSubtasks={createSelectedSubtasks}
+                    />
+                  )}
 
-                      {/* World & Step Selection (Restored) */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Focus World</label>
-                          <WheelPicker
-                            items={PERSONA_WORLDS.map(w => w.name)}
-                            value={PERSONA_WORLDS.find(w => w.id === lf)?.name || ""}
-                            onChange={(v) => {
-                              const w = PERSONA_WORLDS.find(world => world.name === v);
-                              if (w) setLf(w.id);
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Current Step</label>
-                          <WheelPicker
-                            items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
-                            value={step}
-                            onChange={(v) => setStep(v as number)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Notes & Progress */}
-                      <div className="space-y-6">
-                        <div className="space-y-4">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Notes</label>
-                          <textarea className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none focus:border-white/20 transition" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Strategy notes..." />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Progress: {progress}%</label>
-                          <input type="range" min="0" max="100" step="5" value={progress} onChange={(e) => setProgress(Number(e.target.value))} className="w-full accent-white" />
-                        </div>
-                      </div>
-
-                      {/* Al Breakdown */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Task Breakdown</label>
-                          <button onClick={suggestBreakdown} disabled={decomposing} className="text-[10px] font-black bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-white/60 transition-colors uppercase tracking-widest">{decomposing ? "DECOMPOSING..." : "SUGGEST STEPS"}</button>
-                        </div>
-                        {suggested.length > 0 && (
-                          <div className="grid gap-2">
-                            {suggested.map((s, i) => (
-                              <div key={i} onClick={() => {
-                                const n = new Set(selectedIdx);
-                                if (n.has(i)) n.delete(i); else n.add(i);
-                                setSelectedIdx(n);
-                              }} className={`p-4 rounded-2xl border transition-all cursor-pointer ${selectedIdx.has(i) ? 'bg-white/10 border-white/20' : 'bg-white/3 border-white/5 opacity-50'}`}>
-                                <div className="text-sm font-bold">{s.title}</div>
-                                <div className="text-[10px] opacity-40 mt-1">{s.rationale}</div>
-                              </div>
-                            ))}
-                            <button onClick={createSelectedSubtasks} className="w-full py-3 bg-white text-black font-black text-[10px] uppercase tracking-widest rounded-xl mt-2 active:scale-95 transition-transform">Commit {selectedIdx.size} Subtasks</button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
+                  {editorMode === "RULES" && (
+                    <RulesPanel
+                      worldLookup={worldLookup}
+                      goal={goal}
+                      project={project}
+                      grammarHints={grammarHints}
+                      parseResult={parseResult}
+                      generateRuleSubtasks={generateRuleSubtasks}
+                      ruleSubtasks={ruleSubtasks}
+                      setTitle={setTitle}
+                    />
                   )}
                 </AnimatePresence>
               </div>
-            )}
-
-            {/* Footer Actions */}
+            )}            {/* Footer Actions */}
             {editorMode !== "CAPTURE" && (
               <div className="p-6 bg-white/3 border-t border-white/10 flex items-center justify-between flex-shrink-0">
                 {task.id && <button onClick={deleteTask} className="text-[10px] font-black uppercase tracking-widest text-red-500/50 hover:text-red-500 transition-colors">DELETE</button>}
@@ -740,5 +1017,379 @@ function TaskGraph({ title, lf, goal, project, allTasks, currentTaskId, personaW
         <span className="text-xs font-black uppercase tracking-tighter leading-tight">{title || "Untitled Intent"}</span>
       </motion.div>
     </div>
+  );
+}
+
+function GraphPanel({ title, lf, goal, project, allTasks, currentTaskId, personaWorlds }: any) {
+  return (
+    <motion.div key="graph" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <TaskGraph
+        title={title}
+        lf={lf}
+        goal={goal}
+        project={project}
+        allTasks={allTasks}
+        currentTaskId={currentTaskId}
+        personaWorlds={personaWorlds}
+      />
+    </motion.div>
+  );
+}
+
+function DetailsPanel({
+  goal,
+  setGoal,
+  project,
+  setProject,
+  showGoalInput,
+  setShowGoalInput,
+  showProjectInput,
+  setShowProjectInput,
+  availableGoals,
+  availableProjects,
+  isLoadingGoals,
+  isLoadingProjects,
+  dueDate,
+  setDueDate,
+  UI_LABELS,
+  status,
+  setStatus,
+  priority,
+  setPriority,
+  lf,
+  setLf,
+  step,
+  setStep,
+  notes,
+  setNotes,
+  progress,
+  setProgress,
+  personaWorlds,
+}: any) {
+  return (
+    <motion.div key="details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-8">
+      <div className="flex gap-4">
+        <div className="flex-1 flex flex-col gap-2">
+          <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] px-1 flex justify-between">
+            <span>Goal</span>
+            {isLoadingGoals ? <span className="text-white/40">Loading...</span> : <button onClick={() => setShowGoalInput(!showGoalInput)} className="text-white/30">+ Custom</button>}
+          </label>
+          {showGoalInput ? (
+            <input className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition" placeholder="New goal title" value={goal} onChange={(e: any) => setGoal(e.target.value)} />
+          ) : (
+            <WheelPicker items={availableGoals.map((g: any) => g.title)} value={goal} onChange={(v) => setGoal(v as string)} />
+          )}
+        </div>
+
+        <div className="flex-1 flex flex-col gap-2">
+          <label className="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] px-1 flex justify-between">
+            <span>Project</span>
+            {isLoadingProjects ? <span className="text-white/40">Loading...</span> : <button onClick={() => setShowProjectInput(!showProjectInput)} className="text-white/30">+ Custom</button>}
+          </label>
+          {showProjectInput ? (
+            <input className="w-full rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white/80 outline-none focus:border-white/20 transition" placeholder="New project title" value={project} onChange={(e: any) => setProject(e.target.value)} />
+          ) : isLoadingProjects ? (
+            <div className="text-white/40 text-sm">Loading...</div>
+          ) : (
+            <WheelPicker items={availableProjects.map((p: any) => p.title)} value={project} onChange={(v) => setProject(v as string)} />
+          )}
+        </div>
+      </div>
+
+      <DateTimeWheelPicker value={dueDate} onChange={setDueDate} />
+
+      <div className="grid grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">{UI_LABELS.state}</label>
+          <div className="flex flex-wrap gap-2">
+            {["intake", "doing", "done"].map((option) => (
+              <button key={option} onClick={() => setStatus(option)} className={`px-4 py-2 rounded-xl text-xs font-bold border transition ${status === option ? "bg-white text-black border-white" : "bg-white/5 text-white/40 border-white/5"}`}>{option.toUpperCase()}</button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-4">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">{UI_LABELS.order}</label>
+          <div className="flex gap-2">
+            {["low", "high"].map((p) => (
+              <button key={p} onClick={() => setPriority(p as any)} className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${priority === p ? 'bg-red-500/20 border-red-500/40 text-red-200' : 'bg-white/5 border-white/5 text-white/40'}`}>{p.toUpperCase()}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Focus World</label>
+          <WheelPicker
+            items={personaWorlds.map((w: any) => w.name)}
+            value={personaWorlds.find((w: any) => w.id === lf)?.name || ""}
+            onChange={(v) => {
+              const w = personaWorlds.find((world: any) => world.name === v);
+              if (w) setLf(w.id);
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Current Step</label>
+          <WheelPicker
+            items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+            value={step}
+            onChange={(v) => setStep(v as number)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Notes</label>
+          <textarea className="w-full rounded-2xl bg-white/3 border border-white/5 px-4 py-4 text-sm text-white/70 outline-none focus:border-white/20 transition" rows={4} value={notes} onChange={(e: any) => setNotes(e.target.value)} placeholder="Strategy notes..." />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Progress: {progress}%</label>
+          <input type="range" min="0" max="100" step="5" value={progress} onChange={(e: any) => setProgress(Number(e.target.value))} className="w-full accent-white" />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function OpenRouterPanel({
+  aiEngine,
+  setAiEngine,
+  parseResult,
+  grammarHints,
+  aiMode,
+  setAiMode,
+  enhancedSuggestBreakdown,
+  decomposing,
+  suggested,
+  selectedIdx,
+  setSelectedIdx,
+  createSelectedSubtasks,
+}: any) {
+  return (
+    <motion.div key="openrouter" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/50">Enhanced Assistant</p>
+          <p className="text-[11px] text-white/50">Smart parsing + OpenRouter/Gemini with POS anchors.</p>
+        </div>
+        <div className="flex gap-2">
+          {["gemini", "openrouter"].map((engine) => (
+            <button
+              key={engine}
+              onClick={() => setAiEngine(engine as "gemini" | "openrouter")}
+              className={`text-[10px] font-black px-3 py-1 rounded-full border transition ${
+                aiEngine === engine ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/50"
+              }`}
+            >
+              {engine.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Smart Parsing</span>
+          <span className="text-[9px] text-white/30">
+            {parseResult.intentType.toUpperCase()} • {parseResult.complexity} • {parseResult.estimatedSteps} steps • score {grammarHints.complexityScore}/5
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {parseResult.slots.map((slot: any, i: number) => (
+            <span
+              key={`${slot.type}-${i}`}
+              className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border ${
+                slot.type === "action"
+                  ? "border-blue-400/40 text-blue-200 bg-blue-500/10"
+                  : slot.type === "time"
+                  ? "border-amber-400/40 text-amber-200 bg-amber-500/10"
+                  : slot.type === "object"
+                  ? "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
+                  : "border-white/20 text-white/60 bg-white/5"
+              }`}
+              title={`Confidence: ${Math.round(slot.confidence * 100)}%`}
+            >
+              {slot.type}: {slot.value}
+            </span>
+          ))}
+          {parseResult.slots.length === 0 && (
+            <span className="px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border border-white/10 text-white/50">
+              No signals yet
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {(["decompose", "optimize", "expand", "clarify"] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setAiMode(mode)}
+            className={`text-[9px] font-black px-2 py-2 rounded-xl border transition-all ${
+              aiMode === mode ? "bg-white text-black border-white" : "bg-white/5 border-white/5 text-white/50"
+            }`}
+          >
+            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={enhancedSuggestBreakdown}
+        disabled={decomposing}
+        className="text-[10px] font-black bg-white text-black px-4 py-2 rounded-full uppercase tracking-widest shadow active:scale-95 transition w-full"
+      >
+        {decomposing ? "Thinking..." : `Generate (${aiMode}) with ${aiEngine.toUpperCase()}`}
+      </button>
+
+      {suggested.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">
+              {aiMode === "decompose"
+                ? "Suggested Subtasks"
+                : aiMode === "optimize"
+                ? "Optimizations"
+                : aiMode === "expand"
+                ? "Strategic Expansions"
+                : "Clarifications"}
+            </span>
+            <span className="text-[9px] text-white/30">
+              {selectedIdx.size} selected • {suggested.reduce((sum: number, s: any) => sum + (s.duration_min || 0), 0)} min total
+            </span>
+          </div>
+          <div className="grid gap-2">
+            {suggested.map((s: any, i: number) => (
+              <div
+                key={i}
+                onClick={() => {
+                  const n = new Set(selectedIdx);
+                  if (n.has(i)) n.delete(i);
+                  else n.add(i);
+                  setSelectedIdx(n);
+                }}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
+                  selectedIdx.has(i) ? "bg-white/10 border-white/20" : "bg-white/3 border-white/5 opacity-70"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="text-sm font-bold flex-1">{s.title}</div>
+                  <div className="text-[10px] font-black bg-white/10 text-white/60 px-2 py-1 rounded-full">
+                    {s.duration_min || 15}m
+                  </div>
+                </div>
+                {s.rationale && <div className="text-[10px] opacity-40 mt-1">{s.rationale}</div>}
+              </div>
+            ))}
+          </div>
+          {aiMode === "decompose" && (
+            <button
+              onClick={createSelectedSubtasks}
+              className="w-full py-3 bg-white text-black font-black text-[10px] uppercase tracking-widest rounded-xl mt-2 active:scale-95 transition-transform"
+            >
+              Create {selectedIdx.size} Subtasks
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function RulesPanel({
+  worldLookup,
+  goal,
+  project,
+  grammarHints,
+  parseResult,
+  generateRuleSubtasks,
+  ruleSubtasks,
+  setTitle,
+}: any) {
+  return (
+    <motion.div key="rules" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/50">Rules-based (POS)</p>
+          <p className="text-[11px] text-white/50">Offline parsing with POS keys for LF/Goal/Project.</p>
+        </div>
+        <span className="text-[10px] text-white/40">Offline</span>
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+        <p className="text-[11px] text-white/70">
+          LF/Goal/Project: {worldLookup?.name || "Unassigned"} / {goal || "Goal?"} / {project || "Project?"}
+        </p>
+        <p className="text-[10px] text-white/50">
+          Complexity score: {grammarHints.complexityScore}/5 • Estimated steps: {parseResult.estimatedSteps}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {["Actor", "Action", "Object", "Time", "Modality", "Location"].map((slot) => {
+            const missing = grammarHints.missing.includes(slot);
+            return (
+              <span
+                key={slot}
+                className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
+                  missing ? "border-amber-300 text-amber-200 bg-amber-500/10" : "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
+                }`}
+              >
+                {slot}
+              </span>
+            );
+          })}
+        </div>
+        <ul className="space-y-2">
+          {grammarHints.suggestions.map((s: string, i: number) => (
+            <li key={i} className="text-[11px] text-white/70">• {s}</li>
+          ))}
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          {grammarHints.template && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText(grammarHints.template);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white text-black px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] shadow active:scale-95 transition"
+              >
+                Copy template
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTitle((prev: string) => prev || grammarHints.template || "");
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/90 text-black px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] shadow active:scale-95 transition"
+              >
+                Insert into title
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={generateRuleSubtasks}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 text-white px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] shadow active:scale-95 transition"
+          >
+            Generate 3 subtasks (rules)
+          </button>
+        </div>
+      </div>
+      {ruleSubtasks.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/50">Rule-based subtasks</p>
+          <div className="grid gap-2">
+            {ruleSubtasks.map((s: any, i: number) => (
+              <div key={i} className="p-3 rounded-2xl border border-white/10 bg-white/5">
+                <div className="text-sm font-bold text-white">{s.title}</div>
+                <div className="text-[10px] text-white/50">{s.rationale}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
