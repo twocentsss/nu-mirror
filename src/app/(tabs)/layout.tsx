@@ -298,6 +298,7 @@ export default function TabsLayout({
             onViewChange={setViewMode}
             selectedDate={selectedDate}
             onDateChange={setSelectedDate}
+            activeTab={active}
           />
         )}
         {children}

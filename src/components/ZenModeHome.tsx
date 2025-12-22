@@ -50,6 +50,7 @@ type ZenModeHomeProps = {
   onViewChange: (mode: ViewMode) => void;
   selectedDate: string;
   onDateChange: (date: Date) => void;
+  activeTab?: string | null;
 };
 
 type ZenSidebarMenuProps = {
@@ -93,6 +94,7 @@ export default function ZenModeHome({
   onViewChange,
   selectedDate,
   onDateChange,
+  activeTab = null,
 }: ZenModeHomeProps) {
   const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
@@ -153,6 +155,7 @@ export default function ZenModeHome({
 
   const isoDate = baseDate.toISOString().slice(0, 10);
   const selectedDayString = baseDate.toDateString();
+  const showDateControls = (activeTab || active) === "today";
 
   const changeDate = (date: Date) => {
     onDateChange(date);
@@ -189,6 +192,12 @@ export default function ZenModeHome({
     }
   };
 
+  useEffect(() => {
+    if (activeTab) {
+      setActive(activeTab);
+    }
+  }, [activeTab]);
+
   return (
     <div className="relative">
       {menuOpen && (
@@ -224,70 +233,106 @@ export default function ZenModeHome({
         </header>
 
         <main className="w-full px-6 py-6">
-          <div className="space-y-6">
-            <section className="space-y-2">
-              <div className="text-[10px] uppercase tracking-[0.4em] text-white/50">Drag the timeline</div>
-              <div className="w-full">
-                <div
-                  ref={scrollerRef}
-                  onScroll={handleScroll}
-                  className="overflow-x-auto whitespace-nowrap scroll-smooth px-1"
-                >
-                  <div className="flex gap-3">
-                    {dayRange.map((day) => {
-                      const isActive = day.toDateString() === selectedDayString;
-                      return (
-                        <button
-                          key={day.toISOString()}
-                          onClick={() => changeDate(day)}
-                          className={`pointer-events-auto flex-shrink-0 rounded-2xl border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.3em] transition ${isActive
-                            ? "border-white/70 bg-white text-black"
-                            : "border-white/15 bg-white/5 text-white/60 hover:border-white/40"
-                          }`}
-                        >
-                          <div className="text-[9px] text-white/50">
-                            {day.toLocaleDateString("en-US", { weekday: "short" })}
-                          </div>
-                          <div className="text-[16px] text-white">{day.getDate()}</div>
-                        </button>
-                      );
-                    })}
+          {showDateControls ? (
+            <div className="space-y-6">
+              <section className="space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.4em] text-white/50">Drag the timeline</div>
+                <div className="w-full">
+                  <div
+                    ref={scrollerRef}
+                    onScroll={handleScroll}
+                    className="overflow-x-auto whitespace-nowrap scroll-smooth px-1"
+                  >
+                    <div className="flex gap-3">
+                      {dayRange.map((day) => {
+                        const isActive = day.toDateString() === selectedDayString;
+                        return (
+                          <button
+                            key={day.toISOString()}
+                            onClick={() => changeDate(day)}
+                            className={`pointer-events-auto flex-shrink-0 rounded-2xl border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.3em] transition ${isActive
+                              ? "border-white/70 bg-white text-black"
+                              : "border-white/15 bg-white/5 text-white/60 hover:border-white/40"
+                            }`}
+                          >
+                            <div className="text-[9px] text-white/50">
+                              {day.toLocaleDateString("en-US", { weekday: "short" })}
+                            </div>
+                            <div className="text-[16px] text-white">{day.getDate()}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+              </section>
+
+              <section className="flex flex-wrap items-center gap-3">
+                <label className="pointer-events-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
+                  Pick date
+                  <input
+                    type="date"
+                    value={isoDate}
+                    onChange={(event) => {
+                      if (!event.target.value) return;
+                      changeDate(new Date(event.target.value));
+                    }}
+                    className="rounded-full border border-white/20 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
+                  />
+                </label>
+              </section>
+
+              <section className="flex gap-2 overflow-x-auto whitespace-nowrap">
+                {CALENDAR_OPTIONS.map((option) => {
+                  const selected = viewMode === option.key;
+                  const optionClass =
+                    "pointer-events-auto flex-shrink-0 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] transition " +
+                    (selected
+                      ? "border-white/80 bg-white text-black"
+                      : "border-white/20 bg-white/10 text-white/70 hover:border-white/40");
+                  return (
+                    <button key={option.key} onClick={() => onViewChange(option.key)} className={optionClass}>
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </section>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-white/70">Date slider and period selector live on Today. Choose a lane:</p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/today")}
+                  className="rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.3em] text-white hover:border-white/40"
+                >
+                  Go to Today
+                </button>
+                <button
+                  type="button"
+                  onClick={onMap}
+                  className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-[0.3em] text-white hover:border-white/40"
+                >
+                  Open Map
+                </button>
+                <button
+                  type="button"
+                  onClick={onFlow}
+                  className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-[0.3em] text-white hover:border-white/40"
+                >
+                  Open Flow
+                </button>
+                <button
+                  type="button"
+                  onClick={onFile}
+                  className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-[0.3em] text-white hover:border-white/40"
+                >
+                  Open Files
+                </button>
               </div>
-            </section>
-
-            <section className="flex flex-wrap items-center gap-3">
-              <label className="pointer-events-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
-                Pick date
-                <input
-                  type="date"
-                  value={isoDate}
-                  onChange={(event) => {
-                    if (!event.target.value) return;
-                    changeDate(new Date(event.target.value));
-                  }}
-                  className="rounded-full border border-white/20 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
-                />
-              </label>
-            </section>
-
-            <section className="flex gap-2 overflow-x-auto whitespace-nowrap">
-              {CALENDAR_OPTIONS.map((option) => {
-                const selected = viewMode === option.key;
-                const optionClass =
-                  "pointer-events-auto flex-shrink-0 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] transition " +
-                  (selected
-                    ? "border-white/80 bg-white text-black"
-                    : "border-white/20 bg-white/10 text-white/70 hover:border-white/40");
-                return (
-                  <button key={option.key} onClick={() => onViewChange(option.key)} className={optionClass}>
-                    {option.label}
-                  </button>
-                );
-              })}
-            </section>
-          </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
