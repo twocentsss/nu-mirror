@@ -8,6 +8,7 @@ import { authOptions } from "@/app/api/auth/authOptions";
 import { getServerSession, type Session } from "next-auth";
 import ReportControls from "@/components/ReportControls";
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import ReportTabs from "@/components/ReportTabs";
 
 type MetricDefinition = {
   id: string;
@@ -176,11 +177,7 @@ export default async function ReportsPage() {
         <ReportControls />
       </header>
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {ordered.map(({ metric, chart }) => (
-          <RandomChartCard key={metric.id} metric={metric} chartFamily={chart} />
-        ))}
-      </section>
+      <ReportTabs ordered={ordered} />
     </div>
   );
 }
