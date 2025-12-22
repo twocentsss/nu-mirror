@@ -286,7 +286,7 @@ export default function TabsLayout({
         </DockBar>
       )}
 
-      <ScrollAwareLayout className={isZen ? "pt-32" : "pb-24 pt-10"}>
+      <ScrollAwareLayout className={isZen ? "" : "pb-24 pt-10"}>
         {isZen && (
           <ZenModeHome
             onMap={() => handleAction("graph")}

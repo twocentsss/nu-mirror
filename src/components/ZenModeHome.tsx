@@ -52,6 +52,37 @@ type ZenModeHomeProps = {
   onDateChange: (date: Date) => void;
 };
 
+type ZenSidebarMenuProps = {
+  options: ZenOption[];
+  active: string | null;
+  onSelect: (option: ZenOption) => void;
+};
+
+const ZenSidebarMenu = ({ options, active, onSelect }: ZenSidebarMenuProps) => (
+  <nav className="pointer-events-auto flex w-full max-w-[220px] flex-col gap-2 rounded-[32px] border border-transparent bg-white/5 px-3 py-4 shadow-[0_30px_60px_rgba(0,0,0,0.45)] backdrop-blur-[24px] transition-all">
+    {options.map((option) => {
+      const isActive = active === option.id;
+      return (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onSelect(option)}
+          className={`flex min-h-[52px] w-full items-center gap-3 rounded-[28px] border border-transparent px-4 text-left text-[14px] font-semibold tracking-[0.35em] uppercase transition-colors ${isActive
+            ? "bg-white text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+            : "text-white/60 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full transition-colors ${isActive ? "bg-black" : "bg-white/40"}`}
+            aria-hidden
+          />
+          <span className="flex-1 truncate text-[13px] leading-none">{option.label}</span>
+        </button>
+      );
+    })}
+  </nav>
+);
+
 export default function ZenModeHome({
   onMap,
   onFlow,
@@ -65,6 +96,7 @@ export default function ZenModeHome({
 }: ZenModeHomeProps) {
   const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const safeSelectedDate = selectedDate || new Date().toISOString();
   const baseDate = useMemo(() => new Date(safeSelectedDate), [safeSelectedDate]);
   const isToday = useMemo(
@@ -108,9 +140,8 @@ export default function ZenModeHome({
   const handleSelect = (item: ZenOption) => {
     setActive(item.id);
     execute(item);
+    setMenuOpen(false);
   };
-
-  const repeatedOptions = useMemo(() => [...OPTIONS, ...OPTIONS], []);
 
   const dayRange = useMemo(() => {
     return Array.from({ length: RANGE_LENGTH }, (_, idx) => {
@@ -159,92 +190,105 @@ export default function ZenModeHome({
   };
 
   return (
-    <div className="pointer-events-none">
-      <div className="relative z-10 flex flex-col gap-6 px-6 py-6">
-        <div className="space-y-2">
-          <p className="text-[13px] font-semibold uppercase tracking-[0.3em] text-white/70">{greeting}</p>
-          <p className="text-[32px] font-black uppercase tracking-[0.3em] text-white/90">{displayTime}</p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.4em] text-white/50">Drag the timeline</div>
+    <div className="relative">
+      {menuOpen && (
+        <div className="fixed inset-0 z-20 pointer-events-auto">
           <div
-            ref={scrollerRef}
-            onScroll={handleScroll}
-            className="overflow-x-auto whitespace-nowrap scroll-smooth px-1"
-          >
-            <div className="flex gap-3">
-              {dayRange.map((day) => {
-                const isActive = day.toDateString() === selectedDayString;
-                return (
-                  <button
-                    key={day.toISOString()}
-                    onClick={() => changeDate(day)}
-                    className={`pointer-events-auto flex-shrink-0 rounded-2xl border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.3em] transition ${isActive
-                      ? "border-white/70 bg-white text-black"
-                      : "border-white/15 bg-white/5 text-white/60 hover:border-white/40"
-                    }`}
-                  >
-                    <div className="text-[9px] text-white/50">
-                      {day.toLocaleDateString("en-US", { weekday: "short" })}
-                    </div>
-                    <div className="text-[16px] text-white">{day.getDate()}</div>
-                  </button>
-                );
-              })}
+            className="absolute inset-0 bg-black/70 backdrop-blur-[4px]"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div className="relative h-full w-full">
+            <div className="absolute inset-0 flex items-center justify-center px-6">
+              <ZenSidebarMenu options={OPTIONS} active={active} onSelect={handleSelect} />
             </div>
           </div>
         </div>
+      )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="pointer-events-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
-            Pick date
-            <input
-              type="date"
-              value={isoDate}
-              onChange={(event) => {
-                if (!event.target.value) return;
-                changeDate(new Date(event.target.value));
-              }}
-              className="rounded-full border border-white/20 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
-            />
-          </label>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto whitespace-nowrap">
-          {CALENDAR_OPTIONS.map((option) => {
-            const selected = viewMode === option.key;
-            const optionClass =
-              "pointer-events-auto flex-shrink-0 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] transition " +
-              (selected
-                ? "border-white/80 bg-white text-black"
-                : "border-white/20 bg-white/10 text-white/70 hover:border-white/40");
-            return (
-              <button key={option.key} onClick={() => onViewChange(option.key)} className={optionClass}>
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-2 overflow-x-auto whitespace-nowrap rounded-[32px] border border-white/10 bg-black/30 p-2">
-          <div className="flex items-center gap-3 px-1">
-            {repeatedOptions.map((item, index) => (
-              <button
-                key={`${item.id}-${index}`}
-                onClick={() => handleSelect(item)}
-                className={
-                  "pointer-events-auto flex-shrink-0 rounded-[24px] border px-5 py-3 text-[11px] font-black uppercase tracking-[0.4em] transition " +
-                  (active === item.id
-                    ? "border-white/70 bg-white/90 text-black"
-                    : "border-white/10 bg-white/5 text-white/60 hover:border-white/40 hover:text-white")
-                }
-              >
-                {item.label}
-              </button>
-            ))}
+      <div className="relative z-10 w-full">
+        <header className="flex h-[10vh] w-full items-center gap-4 border-b border-white/10 px-6">
+          <button
+            type="button"
+            aria-label="Open navigation"
+            onClick={() => setMenuOpen(true)}
+            className="pointer-events-auto flex h-12 w-12 flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-black/30 p-2 transition hover:border-white/40 active:bg-white/10"
+          >
+            <span className="block h-[2px] w-6 rounded bg-white/80" />
+            <span className="block h-[2px] w-6 rounded bg-white/80" />
+            <span className="block h-[2px] w-6 rounded bg-white/80" />
+          </button>
+          <div className="space-y-2">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.3em] text-white/70">{greeting}</p>
+            <p className="text-[32px] font-black uppercase tracking-[0.3em] text-white/90">{displayTime}</p>
           </div>
-        </div>
+        </header>
+
+        <main className="w-full px-6 py-6">
+          <div className="space-y-6">
+            <section className="space-y-2">
+              <div className="text-[10px] uppercase tracking-[0.4em] text-white/50">Drag the timeline</div>
+              <div className="w-full">
+                <div
+                  ref={scrollerRef}
+                  onScroll={handleScroll}
+                  className="overflow-x-auto whitespace-nowrap scroll-smooth px-1"
+                >
+                  <div className="flex gap-3">
+                    {dayRange.map((day) => {
+                      const isActive = day.toDateString() === selectedDayString;
+                      return (
+                        <button
+                          key={day.toISOString()}
+                          onClick={() => changeDate(day)}
+                          className={`pointer-events-auto flex-shrink-0 rounded-2xl border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.3em] transition ${isActive
+                            ? "border-white/70 bg-white text-black"
+                            : "border-white/15 bg-white/5 text-white/60 hover:border-white/40"
+                          }`}
+                        >
+                          <div className="text-[9px] text-white/50">
+                            {day.toLocaleDateString("en-US", { weekday: "short" })}
+                          </div>
+                          <div className="text-[16px] text-white">{day.getDate()}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="flex flex-wrap items-center gap-3">
+              <label className="pointer-events-auto flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
+                Pick date
+                <input
+                  type="date"
+                  value={isoDate}
+                  onChange={(event) => {
+                    if (!event.target.value) return;
+                    changeDate(new Date(event.target.value));
+                  }}
+                  className="rounded-full border border-white/20 bg-black/30 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
+                />
+              </label>
+            </section>
+
+            <section className="flex gap-2 overflow-x-auto whitespace-nowrap">
+              {CALENDAR_OPTIONS.map((option) => {
+                const selected = viewMode === option.key;
+                const optionClass =
+                  "pointer-events-auto flex-shrink-0 rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] transition " +
+                  (selected
+                    ? "border-white/80 bg-white text-black"
+                    : "border-white/20 bg-white/10 text-white/70 hover:border-white/40");
+                return (
+                  <button key={option.key} onClick={() => onViewChange(option.key)} className={optionClass}>
+                    {option.label}
+                  </button>
+                );
+              })}
+            </section>
+          </div>
+        </main>
       </div>
     </div>
   );
