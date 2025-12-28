@@ -102,7 +102,7 @@ export async function POST(req: Request) {
                     input: prompt,
                     baseURL: effectiveProvider === "openrouter" ? "https://openrouter.ai/api/v1" : undefined,
                     siteUrl: process.env.NEXTAUTH_URL,
-                    siteName: "NuMirror",
+                    siteName: "Alfred",
                 });
             }
 

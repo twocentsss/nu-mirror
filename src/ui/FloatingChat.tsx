@@ -27,12 +27,12 @@ export default function FloatingChat({
     <Sheet
       open={open}
       onClose={() => onOpenChange(false)}
-      title="Nu Chat"
+      title="Alfred Chat"
     >
       <div className="space-y-4">
         <MirrorCard tilt={false} className="p-4">
           <div className="text-[12px] text-black/55 mb-2">
-            Ask Nu anything. (Tasks, planning, reports, comics…)
+            Ask Alfred anything. (Tasks, planning, reports, comics…)
           </div>
           <div className="flex gap-2">
             <input

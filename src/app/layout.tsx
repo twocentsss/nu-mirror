@@ -16,7 +16,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Nu Mirror",
+  title: "Alfred - The Butler",
   description: "Mirror UI prototype",
   viewport: {
     width: "device-width",

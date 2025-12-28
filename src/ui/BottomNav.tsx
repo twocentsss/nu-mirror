@@ -85,7 +85,7 @@ export default function BottomNav({
         }
     }, [active, isDragging, ITEM_WIDTH, TOTAL_WIDTH, x]);
 
-    const handleItemClick = (item: DockItem) => {
+    const handleItemClick = (item: BottomNavItem) => {
         if (!item.available) return;
         onNavigate(item.href);
     };

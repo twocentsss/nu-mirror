@@ -65,7 +65,18 @@ export interface DockItem {
 }
 
 export const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, 'top'>, DockItem[]> => {
-  const labels = {
+  const defaultLabels = {
+    capture: ["New", "Entry"],
+    rant: ["Voice", "Dictate"],
+    chat: ["Ask", "Assistant"],
+    story: ["Journal", "Memoir"],
+    agents: ["Automate", "Workflows"],
+    reports: ["Trends", "Analytics"],
+    focus: ["Focus", "Modes"],
+    todo: ["Reminders", "Tasks"]
+  };
+
+  const personaMap: Record<Persona, typeof defaultLabels> = {
     DEVELOPER: {
       capture: ["Commit", "Entry"],
       rant: ["Log", "Dictate"],
@@ -96,26 +107,33 @@ export const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, '
       focus: ["Present", "Moment"],
       todo: ["Tasks", "Quiet"]
     },
-    CURRENT: {
-      capture: ["New", "Entry"],
-      rant: ["Voice", "Dictate"],
-      chat: ["Ask", "Assistant"],
-      story: ["Journal", "Memoir"],
+    CURRENT: defaultLabels,
+    CREATIVE: {
+      capture: ["New Sketch", "Entry"],
+      rant: ["Log", "Dictate"],
+      chat: ["Query", "Consult"],
+      story: ["Docs", "Library"],
       agents: ["Automate", "Workflows"],
-      reports: ["Trends", "Analytics"],
-      focus: ["Focus", "Modes"],
-      todo: ["Reminders", "Tasks"]
-    }
-  }[persona] || {
-    capture: ["New", "Entry"],
-    rant: ["Voice", "Dictate"],
-    chat: ["Ask", "Assistant"],
-    story: ["Journal", "Memoir"],
-    agents: ["Automate", "Workflows"],
-    reports: ["Trends", "Analytics"],
-    focus: ["Focus", "Modes"],
-    todo: ["Reminders", "Tasks"]
+      reports: ["Load", "Performance"],
+      focus: ["Focus", "Sprints"],
+      todo: ["Tasks", "Backlog"]
+    },
+    CORP: {
+      capture: ["Lead", "Entry"],
+      rant: ["Brief", "Dictate"],
+      chat: ["Council", "Consult"],
+      story: ["Memoir", "Library"],
+      agents: ["ROI", "Automate"],
+      reports: ["KPIs", "Performance"],
+      focus: ["Goals", "Strategy"],
+      todo: ["Tasks", "Action"]
+    },
+    SIMPLE1: defaultLabels,
+    SIMPLE2: defaultLabels,
+    SIMPLE3: defaultLabels,
   };
+
+  const labels = personaMap[persona] || defaultLabels;
 
   return {
     left: [

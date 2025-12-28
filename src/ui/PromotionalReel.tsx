@@ -32,7 +32,7 @@ export function PromotionalReel() {
                         <div className={`aspect-[9/16] rounded-[2rem] p-8 flex flex-col justify-end gap-2 overflow-hidden bg-gradient-to-br ${ad.color} transition-transform duration-500 group-hover:scale-[1.02] shadow-2xl`}>
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                             <div className="relative z-10">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1">Nu Protocol</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1">Alfred Protocol</p>
                                 <h3 className="text-3xl font-black text-white leading-tight">{ad.title}</h3>
                                 <p className="text-sm font-bold text-white/80 lowercase italic mb-4">{ad.tagline}</p>
 

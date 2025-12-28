@@ -324,8 +324,8 @@ function SudokuMini({ badge, onComplete }: { badge: string; onComplete?: (score:
                                 type="button"
                                 onClick={() => !fixed && setValue(r, c, ((cell % 4) + 1) as number)}
                                 className={`flex aspect-square items-center justify-center rounded-xl border text-lg font-black ${fixed
-                                        ? "border-white/30 bg-white/20 text-white"
-                                        : "border-white/15 bg-black/30 text-white/80 hover:border-white/40"
+                                    ? "border-white/30 bg-white/20 text-white"
+                                    : "border-white/15 bg-black/30 text-white/80 hover:border-white/40"
                                     }`}
                             >
                                 {cell === 0 ? "" : cell}
@@ -1252,7 +1252,7 @@ export default function GamesPage() {
             <div className="contents">
                 <div className="contents">
                     <header className="snap-start scroll-m-12 max-w-6xl mx-auto w-full px-6 py-24 space-y-6 text-center text-white">
-                        <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">Nu Games Lab</p>
+                        <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">Alfred Games Lab</p>
                         <h1 className="text-6xl sm:text-7xl font-extrabold tracking-tighter leading-[1.05]">
                             Modern puzzles for rule-discovery brains
                         </h1>
@@ -1291,8 +1291,8 @@ export default function GamesPage() {
                                         type="button"
                                         onClick={() => setActivePrototype(prototype.id)}
                                         className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] border transition ${activePrototype === prototype.id
-                                                ? "border-white bg-white text-black shadow-lg"
-                                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/40"
+                                            ? "border-white bg-white text-black shadow-lg"
+                                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/40"
                                             }`}
                                     >
                                         {prototype.label}

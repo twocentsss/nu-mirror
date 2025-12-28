@@ -138,13 +138,13 @@ export default function PostgresSetupManager() {
                     <Step
                         number={2}
                         title="Configure Discovery"
-                        description="Open your private Google Sheet ('NuMirror Account - [Your Email]') and go to the 'Meta' tab."
+                        description="Open your private Google Sheet ('Alfred Account - [Your Email]') and go to the 'Meta' tab."
                     />
 
                     <Step
                         number={3}
                         title="Set Connection String"
-                        description="Add a new row: key='DATABASE_URL', value='your_postgres_url_here'. Nu will now prefer this storage."
+                        description="Add a new row: key='DATABASE_URL', value='your_postgres_url_here'. Alfred will now prefer this storage."
                     />
                 </div>
 

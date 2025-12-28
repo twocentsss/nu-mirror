@@ -22,8 +22,8 @@ export async function openAiResponses({
         baseURL,
         defaultHeaders: baseURL?.includes("openrouter")
             ? {
-                "HTTP-Referer": siteUrl ?? "https://numirror.com", // Placeholder
-                "X-Title": siteName ?? "NuMirror", // Placeholder
+                "HTTP-Referer": siteUrl ?? "https://alfred.app", // Placeholder
+                "X-Title": siteName ?? "Alfred", // Placeholder
             }
             : undefined,
     });

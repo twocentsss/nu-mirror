@@ -18,7 +18,7 @@ export default function GlobalHeader() {
     if (pathname === "/today" || pathname === "/") return null;
 
     // Infer title from pathname with Apple-style overrides
-    const titleKey = pathname?.split("/").pop() || "NuMirror";
+    const titleKey = pathname?.split("/").pop() || "Alfred";
     const TITLE_MAP: Record<string, string> = {
         "today": "Today",
         "protocol": "ID",

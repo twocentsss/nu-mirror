@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type Persona = "DEVELOPER" | "EXECUTIVE" | "ZEN" | "CURRENT" | "SIMPLE1" | "SIMPLE2" | "SIMPLE3";
+export type Persona = "DEVELOPER" | "EXECUTIVE" | "ZEN" | "CURRENT" | "CREATIVE" | "CORP" | "SIMPLE1" | "SIMPLE2" | "SIMPLE3";
 
 type PersonaState = {
     persona: Persona;

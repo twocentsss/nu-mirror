@@ -93,7 +93,7 @@ export async function callOpenRouterJson<T>({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3000",
-      "X-Title": process.env.OPENROUTER_APP_NAME || "nu-mirror",
+      "X-Title": process.env.OPENROUTER_APP_NAME || "alfred",
     },
     body: JSON.stringify({
       model,

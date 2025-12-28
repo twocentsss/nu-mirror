@@ -37,7 +37,7 @@ export async function generateDailyReplay(
     // 2. Construct Prompt
     const eventSummary = events.map(e => `- [${e.timestamp.split('T')[1].slice(0, 5)}] ${e.description} (${e.amount} ${e.unit})`).join('\n');
 
-    const prompt = `You are the Chronicler of the Nu Flow.
+    const prompt = `You are the Chronicler of the Alfred Flow.
 Based on the following ledger of today's events, write a short, engaging narrative summary (max 3 paragraphs) in the second person ("You").
 Focus on the flow of energy and value.
     

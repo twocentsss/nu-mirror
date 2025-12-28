@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
       }
     }),
     CredentialsProvider({
-      name: "Streamforge Login",
+      name: "Alfred Login",
       credentials: {
         mode: { label: "Mode", type: "text" },
         email: { label: "Email", type: "text" },

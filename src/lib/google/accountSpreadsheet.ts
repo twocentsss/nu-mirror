@@ -104,7 +104,7 @@ async function setCache(userEmail: string, spreadsheetId: string) {
   spreadsheetCache.set(cacheKey(userEmail), { spreadsheetId, ts: Date.now() });
   if (redis) {
     try {
-      await redis.set(`nu:sheet_id:${cacheKey(userEmail)}`, spreadsheetId, { ex: 24 * 3600 });
+      await redis.set(`alfred:sheet_id:${cacheKey(userEmail)}`, spreadsheetId, { ex: 24 * 3600 });
     } catch (err) {
       console.error("[accountSpreadsheet] Redis set failed", err);
     }
@@ -123,7 +123,7 @@ async function getCachedSpreadsheetId(userEmail: string) {
   // L2: Redis
   if (redis) {
     try {
-      const stored = await redis.get<string>(`nu:sheet_id:${cKey}`);
+      const stored = await redis.get<string>(`alfred:sheet_id:${cKey}`);
       if (stored) {
         spreadsheetCache.set(cKey, { spreadsheetId: stored, ts: Date.now() });
         return stored;
@@ -137,7 +137,7 @@ async function getCachedSpreadsheetId(userEmail: string) {
 }
 
 async function lookupSpreadsheetId(userEmail: string, drive: drive_v3.Drive) {
-  const fileName = `NuMirror Account - ${userEmail}`;
+  const fileName = `Alfred Account - ${userEmail}`;
   try {
     const list = await drive.files.list({
       q: [
@@ -198,7 +198,7 @@ export async function initAccountSpreadsheet(params: {
   userEmail: string;
 }) {
   const { drive, sheets } = makeGoogleClient(params.accessToken, params.refreshToken);
-  const fileName = `NuMirror Account - ${params.userEmail}`;
+  const fileName = `Alfred Account - ${params.userEmail}`;
 
   let spreadsheetId = await lookupSpreadsheetId(params.userEmail, drive);
 

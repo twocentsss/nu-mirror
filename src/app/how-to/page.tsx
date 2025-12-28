@@ -13,7 +13,7 @@ const LIFE_STAGES = [
     useCases: [
       { focus: "Body & Energy", want: "Sleep better and stop feeling wiped by 3pm.", delivery: "Auto-schedule wind-down reminders + nightly sleep score with 'today's experiment' tweaks." },
       { focus: "Focus & Mind", want: "Sustain a study session that doesn’t collapse after 20 minutes.", delivery: "One-tap 90-minute study flow that blocks distractions and auto-saves flashcards." },
-      { focus: "Career & Work", want: "Keep up with assignments so I’m not scrambling on Sunday.", delivery: "Capture 'exam, paper, lab' in one line → Nu auto-splits into timed study sessions." },
+      { focus: "Career & Work", want: "Keep up with assignments so I’m not scrambling on Sunday.", delivery: "Capture 'exam, paper, lab' in one line → Alfred auto-splits into timed study sessions." },
       { focus: "Learning", want: "Actually learn, not just cram.", delivery: "Convert notes into weekly micro-practice tasks; remind until mastery." },
       { focus: "Side Projects", want: "Ship something small to show I can.", delivery: "Turn a fleeting idea into a 3-step MVP checklist and reserve three 45-minute slots." },
       { focus: "Relationships", want: "Be reliable — don’t ghost friends or crushes.", delivery: "One-line 'date with Sam' becomes a plan reminder and suggested message starters." },
@@ -89,7 +89,7 @@ export default function HowToPage() {
             Choose your era. <br />Own your direction.
           </h1>
           <p className="text-2xl text-slate-400 font-medium max-w-2xl leading-relaxed">
-            Nu decides what you already want but can’t articulate. Pick your current horizon to see exactly how Nu delivers your organized life.
+            Alfred decides what you already want but can’t articulate. Pick your current horizon to see exactly how Alfred delivers your organized life.
           </p>
         </header>
 
@@ -125,7 +125,7 @@ export default function HowToPage() {
               <div className="rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-800 p-10 text-white shadow-2xl">
                 <p className="text-lg font-bold mb-4 uppercase tracking-widest opacity-70">The System</p>
                 <p className="text-2xl font-black leading-tight">
-                  By organizing your days at {activeStage.age}, your life starts to compound. Nu handles the friction, you handle the results.
+                  By organizing your days at {activeStage.age}, your life starts to compound. Alfred handles the friction, you handle the results.
                 </p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function HowToPage() {
                 <div key={uc.focus} className="group p-8 rounded-[2rem] border border-white/5 bg-white/[0.03] transition-all hover:bg-white/[0.06] hover:border-white/10">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4">{uc.focus}</h4>
                   <p className="text-lg font-bold text-white mb-2 leading-tight">"{uc.want}"</p>
-                  <p className="text-slate-400 font-medium">{uc.delivery}</p>
+                  <p className="text-slate-400 font-medium">{uc.delivery.replace(/Nu/g, 'Alfred')}</p>
                 </div>
               ))}
             </div>
@@ -156,7 +156,7 @@ export default function HowToPage() {
         <footer className="rounded-[4rem] bg-zinc-900/50 border border-white/5 p-20 text-center relative overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
           <div className="space-y-10 relative z-10">
-            <h3 className="text-5xl font-black tracking-tighter italic">"Nu organizes your days so your life can compound."</h3>
+            <h3 className="text-5xl font-black tracking-tighter italic">"Alfred organizes your days so your life can compound."</h3>
             <p className="text-2xl text-slate-400 max-w-2xl mx-auto font-medium">
               Join a legendary structure built for human reality. More predictable days. Visible progress. Fewer small disasters.
             </p>

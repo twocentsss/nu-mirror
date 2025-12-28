@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useUIStore } from "@/lib/store/ui-store";
-import { usePersona } from "@/hooks/usePersona";
+import { usePersona, type Persona } from "@/hooks/usePersona";
 import { generateQuantumState } from "@/lib/quantum/generator";
 import { collapseOption } from "@/lib/quantum/collapser";
 import { emitIntentCaptured, emitTaskCommitted } from "@/lib/events/emitters";
@@ -300,7 +300,19 @@ export default function TaskEditorModal(props: {
   const { clickOrigin } = useUIStore();
   const { persona } = usePersona();
 
-  const PERSONA_WORLDS = {
+  const defaultWorlds = [
+    { id: 1, name: "Core", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
+    { id: 2, name: "Self", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
+    { id: 3, name: "Circle", desc: "Family, friends, love", color: "from-blue-500 to-cyan-500" },
+    { id: 4, name: "Grind", desc: "Work, responsibilities", color: "from-gray-600 to-gray-800" },
+    { id: 5, name: "Level Up", desc: "Skills, growth, business", color: "from-emerald-500 to-green-500" },
+    { id: 6, name: "Impact", desc: "Giving back, community", color: "from-teal-500 to-cyan-600" },
+    { id: 7, name: "Play", desc: "Joy, creativity, travel", color: "from-yellow-500 to-orange-500" },
+    { id: 8, name: "Insight", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
+    { id: 9, name: "Chaos", desc: "The unexpected", color: "from-red-500 to-orange-600" },
+  ];
+
+  const personaWorldsMap: Record<Persona, typeof defaultWorlds> = {
     DEVELOPER: [
       { id: 1, name: "Root", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
       { id: 2, name: "Hardware", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
@@ -334,37 +346,50 @@ export default function TaskEditorModal(props: {
       { id: 8, name: "Jnana", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
       { id: 9, name: "Shunya", desc: "The unexpected", color: "from-red-500 to-orange-600" },
     ],
-    CURRENT: [
-      { id: 1, name: "Core", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
-      { id: 2, name: "Self", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
-      { id: 3, name: "Circle", desc: "Family, friends, love", color: "from-blue-500 to-cyan-500" },
-      { id: 4, name: "Grind", desc: "Work, responsibilities", color: "from-gray-600 to-gray-800" },
-      { id: 5, name: "Level Up", desc: "Skills, growth, business", color: "from-emerald-500 to-green-500" },
-      { id: 6, name: "Impact", desc: "Giving back, community", color: "from-teal-500 to-cyan-600" },
-      { id: 7, name: "Play", desc: "Joy, creativity, travel", color: "from-yellow-500 to-orange-500" },
-      { id: 8, name: "Insight", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
-      { id: 9, name: "Chaos", desc: "The unexpected", color: "from-red-500 to-orange-600" },
-    ]
-  }[persona] || [
-      { id: 1, name: "Core", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
-      { id: 2, name: "Self", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
-      { id: 3, name: "Circle", desc: "Family, friends, love", color: "from-blue-500 to-cyan-500" },
-      { id: 4, name: "Grind", desc: "Work, responsibilities", color: "from-gray-600 to-gray-800" },
-      { id: 5, name: "Level Up", desc: "Skills, growth, business", color: "from-emerald-500 to-green-500" },
-      { id: 6, name: "Impact", desc: "Giving back, community", color: "from-teal-500 to-cyan-600" },
-      { id: 7, name: "Play", desc: "Joy, creativity, travel", color: "from-yellow-500 to-orange-500" },
-      { id: 8, name: "Insight", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
-      { id: 9, name: "Chaos", desc: "The unexpected", color: "from-red-500 to-orange-600" },
-    ];
+    CURRENT: defaultWorlds,
+    CREATIVE: [
+      { id: 1, name: "Soul", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
+      { id: 2, name: "Canvas", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
+      { id: 3, name: "Muse", desc: "Family, friends, love", color: "from-blue-500 to-cyan-500" },
+      { id: 4, name: "Draft", desc: "Work, responsibilities", color: "from-gray-600 to-gray-800" },
+      { id: 5, name: "Skill", desc: "Skills, growth, business", color: "from-emerald-500 to-green-500" },
+      { id: 6, name: "Gallery", desc: "Giving back, community", color: "from-teal-500 to-cyan-600" },
+      { id: 7, name: "Sketch", desc: "Joy, creativity, travel", color: "from-yellow-500 to-orange-500" },
+      { id: 8, name: "Theory", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
+      { id: 9, name: "Glitch", desc: "The unexpected", color: "from-red-500 to-orange-600" },
+    ],
+    CORP: [
+      { id: 1, name: "Identity", desc: "Soul, purpose, being", color: "from-rose-500 to-pink-500" },
+      { id: 2, name: "Asset", desc: "Body, mind, heart", color: "from-purple-500 to-indigo-500" },
+      { id: 3, name: "Network", desc: "Family, friends, love", color: "from-blue-500 to-cyan-500" },
+      { id: 4, name: "Operations", desc: "Work, responsibilities", color: "from-gray-600 to-gray-800" },
+      { id: 5, name: "Growth", desc: "Skills, growth, business", color: "from-emerald-500 to-green-500" },
+      { id: 6, name: "CSR", desc: "Giving back, community", color: "from-teal-500 to-cyan-600" },
+      { id: 7, name: "Offsite", desc: "Joy, creativity, travel", color: "from-yellow-500 to-orange-500" },
+      { id: 8, name: "Strategy", desc: "Knowledge, wisdom", color: "from-amber-500 to-yellow-600" },
+      { id: 9, name: "Risk", desc: "The unexpected", color: "from-red-500 to-orange-600" },
+    ],
+    SIMPLE1: defaultWorlds,
+    SIMPLE2: defaultWorlds,
+    SIMPLE3: defaultWorlds,
+  };
 
-  const UI_LABELS = {
+  const PERSONA_WORLDS = personaWorldsMap[persona] || defaultWorlds;
+
+  type UILabels = { state: string; due: string; order: string; notes: string; completed: string };
+  const defaultLabels: UILabels = { state: "State", due: "Due", order: "Order", notes: "Notes", completed: "Completed" };
+  const personaLabelsMap: Record<Persona, UILabels> = {
     DEVELOPER: { state: "Status", due: "Deadline", order: "Priority", notes: "Logs", completed: "Diff" },
     EXECUTIVE: { state: "Phase", due: "Target", order: "Priority", notes: "Brief", completed: "Yield" },
     ZEN: { state: "State", due: "Season", order: "Natural Order", notes: "Reflection", completed: "Realized" },
-    CURRENT: { state: "State", due: "Due", order: "Order", notes: "Notes", completed: "Completed" }
-  }[persona] || {
-    state: "State", due: "Due", order: "Order", notes: "Notes", completed: "Completed"
+    CURRENT: defaultLabels,
+    CREATIVE: { state: "Draft", due: "Release", order: "Queue", notes: "Sketches", completed: "Render" },
+    CORP: { state: "Phase", due: "Deadline", order: "Priority", notes: "Minutes", completed: "Sign-off" },
+    SIMPLE1: defaultLabels,
+    SIMPLE2: defaultLabels,
+    SIMPLE3: defaultLabels,
   };
+  const UI_LABELS = personaLabelsMap[persona] || defaultLabels;
   const modalRef = useRef<HTMLDivElement>(null);
 
   const getTransformOrigin = () => {
