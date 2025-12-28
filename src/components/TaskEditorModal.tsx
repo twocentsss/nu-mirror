@@ -26,6 +26,18 @@ export type TaskRecord = {
   step?: number;
   goal?: string;
   project?: string;
+  is_routine?: boolean;
+  recurrence?: {
+    freq: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+    interval?: number;
+    byDay?: ("MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU")[];
+    byMonthDay?: number[]; // 1-31, -1 for last day
+    bySetPos?: number[];
+    count?: number;
+    until?: string;
+    weekStart?: "MO" | "SU";
+  };
+  completion_policy?: "floating" | "fixed" | "skip";
 };
 
 type SuggestedSubtask = {
@@ -380,6 +392,9 @@ export default function TaskEditorModal(props: {
   const [progress, setProgress] = useState<number>(0);
   const [goal, setGoal] = useState<string>("");
   const [project, setProject] = useState<string>("");
+  const [recurrence, setRecurrence] = useState<any>(null);
+  const [isRoutine, setIsRoutine] = useState(false);
+  const [completionPolicy, setCompletionPolicy] = useState<"floating" | "fixed" | "skip">("floating");
 
   // Fetching state
   const [availableGoals, setAvailableGoals] = useState<any[]>([]);
@@ -520,6 +535,9 @@ export default function TaskEditorModal(props: {
     setSuggested([]);
     setSelectedIdx(new Set());
     setPriority(task.priority ?? "medium");
+    setRecurrence(task.recurrence ?? null);
+    setIsRoutine(task.is_routine ?? false);
+    setCompletionPolicy(task.completion_policy ?? "floating");
     setEditorMode("CAPTURE");
   }, [task]);
 
@@ -606,6 +624,9 @@ export default function TaskEditorModal(props: {
             progress,
             goal: goal.trim() || undefined,
             project: project.trim() || undefined,
+            recurrence: recurrence,
+            is_routine: isRoutine,
+            completion_policy: completionPolicy,
           }),
         });
       } else {
@@ -634,6 +655,8 @@ export default function TaskEditorModal(props: {
             progress,
             goal: goal.trim() || undefined,
             project: project.trim() || undefined,
+            recurrence: recurrence,
+            is_routine: isRoutine,
           }),
         });
       }
@@ -893,6 +916,11 @@ export default function TaskEditorModal(props: {
                       progress={progress}
                       setProgress={setProgress}
                       personaWorlds={PERSONA_WORLDS}
+                      recurrence={recurrence}
+                      setRecurrence={setRecurrence}
+                      setIsRoutine={setIsRoutine}
+                      completionPolicy={completionPolicy}
+                      setCompletionPolicy={setCompletionPolicy}
                     />
                   )}
 
@@ -1065,6 +1093,11 @@ function DetailsPanel({
   progress,
   setProgress,
   personaWorlds,
+  recurrence,
+  setRecurrence,
+  setIsRoutine,
+  completionPolicy,
+  setCompletionPolicy,
 }: any) {
   return (
     <motion.div key="details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-8">
@@ -1117,6 +1150,127 @@ function DetailsPanel({
         </div>
       </div>
 
+      <div className="space-y-4">
+        <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Recurrence</label>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { label: "NONE", value: "none" },
+            { label: "DAILY", value: "DAILY" },
+            { label: "WEEKLY", value: "WEEKLY" },
+            { label: "MONTHLY", value: "MONTHLY" },
+            { label: "CUSTOM", value: "CUSTOM" }
+          ].map((opt) => {
+            const isActive = opt.value === "none" ? !recurrence : (opt.value === "CUSTOM" && recurrence?.interval && recurrence.interval > 1) || recurrence?.freq === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  if (opt.value === "none") { setRecurrence(null); setIsRoutine(false); }
+                  else if (opt.value === "CUSTOM") {
+                    // Expand custom Logic - for now, default to Weekly if not set, or stay as is
+                    if (!recurrence) { setRecurrence({ freq: 'WEEKLY', interval: 1 }); setIsRoutine(true); }
+                  }
+                  else {
+                    setRecurrence({ freq: opt.value as any, interval: 1 });
+                    setIsRoutine(true);
+                  }
+                }}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition ${isActive ? 'bg-white text-black border-white' : 'bg-white/5 border-white/5 text-white/40'}`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        {/* Custom Recurrence Editor */}
+        {recurrence && (
+          <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Repeat every</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  value={recurrence.interval || 1}
+                  onChange={(e) => setRecurrence({ ...recurrence, interval: parseInt(e.target.value) || 1 })}
+                  className="w-12 bg-transparent border-b border-white/20 text-center text-sm font-bold outline-none focus:border-white"
+                />
+                <span className="text-xs text-white/60">
+                  {recurrence.freq === 'DAILY' ? 'days' :
+                    recurrence.freq === 'WEEKLY' ? 'weeks' :
+                      recurrence.freq === 'MONTHLY' ? 'months' : 'years'}
+                </span>
+              </div>
+            </div>
+
+            {recurrence.freq === 'WEEKLY' && (
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">On days</span>
+                <div className="flex justify-between gap-1">
+                  {['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'].map(day => {
+                    const isSelected = recurrence.byDay?.includes(day as any);
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          const current = recurrence.byDay || [];
+                          const next = isSelected ? current.filter((d: any) => d !== day) : [...current, day];
+                          setRecurrence({ ...recurrence, byDay: next.length ? next : undefined });
+                        }}
+                        className={`w-8 h-8 rounded-full text-[10px] font-bold border transition ${isSelected ? 'bg-white text-black border-white' : 'bg-white/5 border-white/10 text-white/30'}`}
+                      >
+                        {day.charAt(0)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {recurrence.freq === 'MONTHLY' && (
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Monthly on</span>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setRecurrence({ ...recurrence, byMonthDay: [new Date().getDate()], byDay: undefined, bySetPos: undefined })}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border text-left transition ${recurrence.byMonthDay ? 'bg-white text-black border-white' : 'bg-white/5 border-white/5 text-white/40'}`}
+                  >
+                    Monthly on the {new Date().getDate()}th
+                  </button>
+                  <button
+                    onClick={() => {
+                      const today = new Date();
+                      const dayName = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][today.getDay()];
+                      const pos = Math.ceil(today.getDate() / 7);
+                      setRecurrence({ ...recurrence, byMonthDay: undefined, byDay: [dayName as any], bySetPos: [pos] });
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border text-left transition ${recurrence.bySetPos ? 'bg-white text-black border-white' : 'bg-white/5 border-white/5 text-white/40'}`}
+                  >
+                    Monthly on the {Math.ceil(new Date().getDate() / 7)}{['st', 'nd', 'rd', 'th'][Math.min(3, Math.ceil(new Date().getDate() / 7) - 1)]} {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()]}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Completion Policy */}
+            <div className="pt-2 border-t border-white/5">
+              <span className="text-[10px] uppercase tracking-wider text-white/40 block mb-2">Completion Logic</span>
+              <div className="flex gap-2">
+                {['floating', 'fixed'].map(policy => (
+                  <button
+                    key={policy}
+                    onClick={() => setCompletionPolicy(policy as any)}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition ${completionPolicy === policy ? 'bg-white text-black border-white' : 'bg-white/5 border-white/5 text-white/30'}`}
+                  >
+                    {policy === 'floating' ? 'Floating' : 'Fixed'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <label className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/40">Focus World</label>
@@ -1150,7 +1304,7 @@ function DetailsPanel({
           <input type="range" min="0" max="100" step="5" value={progress} onChange={(e: any) => setProgress(Number(e.target.value))} className="w-full accent-white" />
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 }
 
@@ -1180,9 +1334,8 @@ function OpenRouterPanel({
             <button
               key={engine}
               onClick={() => setAiEngine(engine as "gemini" | "openrouter")}
-              className={`text-[10px] font-black px-3 py-1 rounded-full border transition ${
-                aiEngine === engine ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/50"
-              }`}
+              className={`text-[10px] font-black px-3 py-1 rounded-full border transition ${aiEngine === engine ? "bg-white text-black border-white" : "bg-white/5 border-white/10 text-white/50"
+                }`}
             >
               {engine.toUpperCase()}
             </button>
@@ -1201,15 +1354,14 @@ function OpenRouterPanel({
           {parseResult.slots.map((slot: any, i: number) => (
             <span
               key={`${slot.type}-${i}`}
-              className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border ${
-                slot.type === "action"
-                  ? "border-blue-400/40 text-blue-200 bg-blue-500/10"
-                  : slot.type === "time"
+              className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border ${slot.type === "action"
+                ? "border-blue-400/40 text-blue-200 bg-blue-500/10"
+                : slot.type === "time"
                   ? "border-amber-400/40 text-amber-200 bg-amber-500/10"
                   : slot.type === "object"
-                  ? "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
-                  : "border-white/20 text-white/60 bg-white/5"
-              }`}
+                    ? "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
+                    : "border-white/20 text-white/60 bg-white/5"
+                }`}
               title={`Confidence: ${Math.round(slot.confidence * 100)}%`}
             >
               {slot.type}: {slot.value}
@@ -1228,9 +1380,8 @@ function OpenRouterPanel({
           <button
             key={mode}
             onClick={() => setAiMode(mode)}
-            className={`text-[9px] font-black px-2 py-2 rounded-xl border transition-all ${
-              aiMode === mode ? "bg-white text-black border-white" : "bg-white/5 border-white/5 text-white/50"
-            }`}
+            className={`text-[9px] font-black px-2 py-2 rounded-xl border transition-all ${aiMode === mode ? "bg-white text-black border-white" : "bg-white/5 border-white/5 text-white/50"
+              }`}
           >
             {mode.charAt(0).toUpperCase() + mode.slice(1)}
           </button>
@@ -1252,10 +1403,10 @@ function OpenRouterPanel({
               {aiMode === "decompose"
                 ? "Suggested Subtasks"
                 : aiMode === "optimize"
-                ? "Optimizations"
-                : aiMode === "expand"
-                ? "Strategic Expansions"
-                : "Clarifications"}
+                  ? "Optimizations"
+                  : aiMode === "expand"
+                    ? "Strategic Expansions"
+                    : "Clarifications"}
             </span>
             <span className="text-[9px] text-white/30">
               {selectedIdx.size} selected • {suggested.reduce((sum: number, s: any) => sum + (s.duration_min || 0), 0)} min total
@@ -1271,9 +1422,8 @@ function OpenRouterPanel({
                   else n.add(i);
                   setSelectedIdx(n);
                 }}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
-                  selectedIdx.has(i) ? "bg-white/10 border-white/20" : "bg-white/3 border-white/5 opacity-70"
-                }`}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${selectedIdx.has(i) ? "bg-white/10 border-white/20" : "bg-white/3 border-white/5 opacity-70"
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="text-sm font-bold flex-1">{s.title}</div>
@@ -1331,9 +1481,8 @@ function RulesPanel({
             return (
               <span
                 key={slot}
-                className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
-                  missing ? "border-amber-300 text-amber-200 bg-amber-500/10" : "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
-                }`}
+                className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${missing ? "border-amber-300 text-amber-200 bg-amber-500/10" : "border-emerald-400/40 text-emerald-200 bg-emerald-500/10"
+                  }`}
               >
                 {slot}
               </span>

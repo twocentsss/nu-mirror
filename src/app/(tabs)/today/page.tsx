@@ -12,8 +12,24 @@ import {
   PartyPopper,
   Check,
   SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  Settings,
+  Search,
+  Fingerprint,
+  Info,
+  HelpCircle,
+  Map,
+  Activity,
+  FileText,
+  BarChart2,
+  Cpu,
+  BookOpen,
+  Image as ImageIcon,
+  Zap
 } from "lucide-react";
-import { usePlatformStore } from "@/lib/store/platform-store";
+import { DockActionId } from "@/ui/DockPad";
+import { usePlatformStore, ViewMode } from "@/lib/store/platform-store";
 import { TaskRecord, WORLDS } from "@/components/TaskEditorModal";
 import SwipeToCreate from "@/components/SwipeToCreate";
 import { scoreSingleTask } from "@/lib/actions/scoring";
@@ -27,6 +43,7 @@ import { CustomSelect } from "@/ui/CustomSelect";
 import { usePersona } from "@/hooks/usePersona";
 import { format, addMinutes, startOfDay, parseISO } from 'date-fns';
 import TimelineView from "@/components/today/TimelineView";
+import { computeNextDueDate } from "@/lib/utils/recurrence";
 
 const PERSONA_LABELS = {
   DEVELOPER: {
@@ -68,6 +85,36 @@ const PERSONA_LABELS = {
     doing: "Doing",
     done: "Done",
     stats: "Score",
+  },
+  SIMPLE1: {
+    title: "Focus",
+    new: "New",
+    batch: "Manage",
+    empty: "Nothing here.",
+    intake: "Todo",
+    doing: "Doing",
+    done: "Done",
+    stats: "Stats",
+  },
+  SIMPLE2: {
+    title: "Focus",
+    new: "New",
+    batch: "Manage",
+    empty: "Nothing here.",
+    intake: "Todo",
+    doing: "Doing",
+    done: "Done",
+    stats: "Stats",
+  },
+  SIMPLE3: {
+    title: "Focus",
+    new: "New",
+    batch: "Manage",
+    empty: "Nothing here.",
+    intake: "Todo",
+    doing: "Doing",
+    done: "Done",
+    stats: "Stats",
   }
 };
 
@@ -91,7 +138,10 @@ export default function TodayPage() {
   const setViewMode = usePlatformStore(s => s.setViewMode);
   const showAccomplishments = usePlatformStore(s => s.showAccomplishments);
   const { persona } = usePersona();
+
   const labels = PERSONA_LABELS[persona];
+
+  const VIEW_MODES: ViewMode[] = ["DAY", "WEEK", "SPRINT", "MONTH", "QUARTER"];
 
   const dateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
   const { setClickOrigin, openTaskEditor } = useUIStore();
@@ -115,6 +165,19 @@ export default function TodayPage() {
   }, []);
 
   const dateRange = useMemo(() => computeRange(viewMode, dateObj), [viewMode, dateObj]);
+  const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(dateObj);
+
+  const handlePrevDay = () => {
+    const d = new Date(dateObj);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d);
+  };
+
+  const handleNextDay = () => {
+    const d = new Date(dateObj);
+    d.setDate(d.getDate() + 1);
+    setSelectedDate(d);
+  };
 
   const dateRangeKey = useMemo(() => `${dateRange.start}-${dateRange.end}`, [dateRange.start, dateRange.end]);
   const lastRefreshedKey = useRef<string>("");
@@ -153,6 +216,43 @@ export default function TodayPage() {
   const markDone = useCallback(
     async (task: TaskRecord): Promise<{ status: string; progress: number } | null> => {
       if (!task?.id) return null;
+
+      // Routine Logic: If marking done and is a routine, spawn next instance
+      if (task.status !== "done" && task.is_routine && task.recurrence) {
+        // Calculate next due date
+        // (Use dynamic import or move utility to shared location)
+        // For client-side simplicity, we'll fetch a helper or just do simple math, 
+        // BUT ideally we use the shared utility.
+        // Let's import the utility at the top of the file.
+        // For this chunk replacement, assuming computeNextDueDate is imported.
+
+        try {
+          // We need to calculate based on 'due_date' or 'today' depending on strictness.
+          // Usually routines are based on previous due date.
+          const lastOccurrenceDate = task.time?.due_date ? new Date(task.time.due_date) : new Date();
+          const completionDate = new Date();
+          const nextDate = computeNextDueDate(task.recurrence, lastOccurrenceDate, completionDate, task.completion_policy || 'floating');
+          const nextDateStr = nextDate.toISOString().slice(0, 10); // YYYY-MM-DD
+
+          await fetch("/api/cogos/task/create", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              title: task.title,
+              status: "intake",
+              due_date: nextDateStr,
+              time_of_day: task.time?.time_of_day || "ANYTIME",
+              duration_min: task.duration_min,
+              lf: task.lf,
+              goal: task.goal,
+              project: task.project,
+              is_routine: true,
+              recurrence: task.recurrence // Propagate recurrence
+            })
+          });
+        } catch (e) { console.error("Routine spawn failed", e); }
+      }
+
       const nextStatus = task.status === "done" ? "in_progress" : "done";
       const payload: Record<string, string | number> = { id: task.id, status: nextStatus };
       payload.progress = nextStatus === "done" ? 100 : task.progress ?? 0;
@@ -419,20 +519,90 @@ export default function TodayPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          {/* Calm Header & Filter Toggle */}
-          <div className="flex items-center justify-between px-4 pt-2">
-            <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-              {labels.title}
-              <span className="ml-2 text-sm font-normal text-[var(--text-secondary)] opacity-60">
-                {filteredTasks.length}
-              </span>
-            </h2>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-full transition-all ${showFilters ? "bg-[var(--text-primary)] text-[var(--app-bg)]" : "bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
-            >
-              <SlidersHorizontal size={16} />
-            </button>
+          {/* Main Navigation Header (Transplanted from DockPad) */}
+          <div className="flex flex-col gap-6 items-center px-4 pt-2">
+            {/* Date Row */}
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1">
+                    <button onClick={handlePrevDay} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 text-[var(--text-secondary)]">
+                      <ChevronLeft size={20} />
+                    </button>
+                    <div className="relative">
+                      <h2 className="text-3xl font-greeting font-bold tracking-tight text-[var(--text-primary)] cursor-pointer hover:opacity-80 transition flex items-center gap-2">
+                        {dayName}, {dateObj.getDate()}
+                        <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full" value={dateObj.toISOString().slice(0, 10)} onChange={(e) => { const d = e.target.valueAsDate; if (d) setSelectedDate(d); }} />
+                      </h2>
+                    </div>
+                    <button onClick={handleNextDay} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 text-[var(--text-secondary)]">
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                  <p className="text-[var(--text-secondary)] text-xs font-medium uppercase tracking-wider ml-8">
+                    {dateObj.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={() => usePlatformStore.setState({ showAccomplishments: !showAccomplishments })} className={`rounded-full px-4 py-1.5 flex items-center gap-2 border shadow-sm transition-all hover:scale-105 active:scale-95 ${showAccomplishments ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600' : 'bg-black/5 border-black/5'}`}>
+                  <Target size={14} className={showAccomplishments ? 'text-emerald-600' : 'text-[var(--accent-color)]'} />
+                  <span className="text-xs font-bold">{showAccomplishments ? 'Completed' : 'Accomplished'}</span>
+                </button>
+
+                <div className="flex bg-black/5 rounded-full border border-black/5 p-1 gap-1 items-center">
+                  {[
+                    { id: "protocol", icon: <Fingerprint size={16} />, title: persona === 'DEVELOPER' ? "Auth" : "ID", color: "hover:text-blue-400" },
+                    { id: "search", icon: <Search size={16} />, title: "Search", color: "hover:text-zinc-400" },
+                    { id: "settings", icon: <Settings size={16} />, title: "Settings", color: "hover:text-zinc-400" },
+                    { id: "graph", icon: <Map size={16} />, title: "Map", color: "hover:text-emerald-400" },
+                    { id: "waterfall", icon: <Activity size={16} />, title: "Flow", color: "hover:text-amber-400" },
+                    { id: "report", icon: <FileText size={16} />, title: "Files", color: "hover:text-purple-400" },
+                    { id: "howto", icon: <HelpCircle size={16} />, title: "Tips", color: "hover:text-blue-500" },
+                    { id: "about", icon: <Info size={16} />, title: "Info", color: "hover:text-zinc-400" },
+                  ].map((it: any) => (
+                    <button key={it.id} onClick={(e) => { setClickOrigin({ x: e.clientX, y: e.clientY }); openTaskEditor({} as any); /* Placeholder action trigger needed? */ /* Wait, today page handles task editor. We need generic action handler? Reuse from layout props? */ }} className={`p-2 rounded-full hover:bg-[var(--glass-border)] text-[var(--text-secondary)] ${it.color} hover:shadow-sm transition-all duration-300`} title={it.title}>
+                      {it.icon}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Circular Date Picker */}
+            <div className="w-full max-w-xl scale-90 -my-4">
+              <CircularDatePicker selectedDate={dateObj} onDateChange={setSelectedDate} />
+            </div>
+
+            {/* View Options */}
+            <div className="w-full flex items-center justify-center pb-2">
+              <div className="flex bg-black/5 rounded-full p-1 border border-black/5 shadow-sm">
+                {VIEW_MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-5 py-2 rounded-full text-[11px] font-bold transition-all ${viewMode === mode
+                      ? "bg-black text-white shadow-md scale-105"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Calm Header & Filter Toggle (Moved Below) */}
+            <div className="w-full flex items-center justify-between">
+              <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
+                {labels.title}
+                <span className="ml-2 text-sm font-normal text-[var(--text-secondary)] opacity-60">{filteredTasks.length}</span>
+              </h2>
+              <button onClick={() => setShowFilters(!showFilters)} className={`p-2 rounded-full transition-all ${showFilters ? "bg-[var(--text-primary)] text-[var(--app-bg)]" : "bg-[var(--glass-bg)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>
+                <SlidersHorizontal size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Progressive Disclosure: Filters & Controls */}
@@ -768,51 +938,69 @@ function TodayTaskRow({ task, index, isSelected, onToggleSelection, markDone, ha
             zIndex: 0
           }}
         />
-        <div className="relative z-10 flex-shrink-0 pt-1">
-          {startTime ? (
-            <div className="text-center">
-              <div className="text-xs font-bold text-[var(--text-primary)]">{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}</div>
-              <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">{startTime.getHours() >= 12 ? "PM" : "AM"}</div>
+        {/* Routine Visual: Simplified Content */}
+        {task.is_routine ? (
+          <div className="relative z-10 flex items-center w-full py-1">
+            {/* Simple Line Row */}
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)] mr-3 opacity-50"></div>
+            <span className={`text-sm font-medium ${isDone ? "text-[var(--text-secondary)] line-through" : "text-[var(--text-primary)]"}`}>{task.title}</span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Routine</span>
+              <label className="flex items-center justify-center w-6 h-6 rounded-full border border-[var(--glass-border)] cursor-pointer hover:border-white/50 transition-colors" onClick={(e) => { e.stopPropagation(); triggerMarkDone(); }}>
+                {isDone && <Check size={10} className="text-emerald-400" />}
+                <input type="checkbox" checked={isDone} onChange={(e) => { e.stopPropagation(); triggerMarkDone(); }} className="sr-only" />
+              </label>
             </div>
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-[var(--glass-bg)] flex items-center justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/30" />
+          </div>
+        ) : (
+          <>
+            <div className="relative z-10 flex-shrink-0 pt-1">
+              {startTime ? (
+                <div className="text-center">
+                  <div className="text-xs font-bold text-[var(--text-primary)]">{startTime.getHours()}:{startTime.getMinutes().toString().padStart(2, "0")}</div>
+                  <div className="text-[10px] text-[var(--text-secondary)] uppercase font-medium">{startTime.getHours() >= 12 ? "PM" : "AM"}</div>
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-[var(--glass-bg)] flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--text-secondary)]/30" />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="relative z-10 flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>{task.title || "Untitled Task"}</h3>
-          </div>
-          {(task.notes || task.duration_min) && (
-            <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-secondary)]">
-              {task.duration_min && <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />{task.duration_min} min</span>}
-              {task.notes && <span className="truncate max-w-[150px]">{task.notes}</span>}
-            </div>
-          )}
-          <div className="flex flex-col gap-2 mt-4 text-[var(--text-secondary)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                {task.lf && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">LF{task.lf}</span>}
-                <label className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]" onClick={(e) => { e.stopPropagation(); triggerMarkDone(); }} role="button">
-                  <input type="checkbox" checked={isDone} onChange={(e) => { e.stopPropagation(); triggerMarkDone(); }} className="sr-only" />
-                  <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"}`}><Check size={14} /></span>
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}>{isDone ? labels.done : labels.doing}</span>
-                </label>
+            <div className="relative z-10 flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className={`text-base font-semibold leading-tight truncate ${isDone ? "line-through text-[var(--text-secondary)]" : "text-[var(--text-primary)]"}`}>{task.title || "Untitled Task"}</h3>
               </div>
-              <button className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors" type="button" onClick={(e) => { e.stopPropagation(); handleScore(task); }}><Target size={14} className="text-blue-600" />{labels.stats}</button>
-            </div>
-            <div className="flex items-center gap-3" onPointerDownCapture={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-              <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]"><span className="text-[var(--text-secondary)]">{labels.stats === 'ROI' ? 'Margin' : 'Progress'}</span><span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span></div>
-              <input type="range" min={0} max={100} value={draftProgress} onChange={(e) => { e.stopPropagation(); setDraftProgress(Number(e.target.value)); }} className="flex-1 accent-[var(--accent-color)] h-2 rounded-lg" onMouseDown={(e) => e.stopPropagation()} />
-              <div className="flex gap-1">
-                <button type="button" onClick={(e) => { e.stopPropagation(); confirmProgress(); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a" }}><Check size={12} /></button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setDraftProgress(savedProgress); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(239,68,68,0.4)" : "#dc2626" }}>✕</button>
+              {(task.notes || task.duration_min) && (
+                <div className="mt-1 flex items-center gap-3 text-xs text-[var(--text-secondary)]">
+                  {task.duration_min && <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[var(--text-secondary)]/40" />{task.duration_min} min</span>}
+                  {task.notes && <span className="truncate max-w-[150px]">{task.notes}</span>}
+                </div>
+              )}
+              <div className="flex flex-col gap-2 mt-4 text-[var(--text-secondary)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {task.lf && <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] font-black bg-[var(--glass-bg)] text-[var(--text-secondary)] border border-[var(--glass-border)]">LF{task.lf}</span>}
+                    <label className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] px-3 py-1 transition-colors bg-[var(--glass-bg)] hover:border-[var(--text-primary)] text-[var(--text-secondary)]" onClick={(e) => { e.stopPropagation(); triggerMarkDone(); }} role="button">
+                      <input type="checkbox" checked={isDone} onChange={(e) => { e.stopPropagation(); triggerMarkDone(); }} className="sr-only" />
+                      <span className={`h-8 w-8 flex items-center justify-center rounded-full border transition ${isDone ? "bg-emerald-500 border-emerald-500 text-white" : "bg-transparent border-[var(--glass-border)] text-[var(--text-secondary)]"}`}><Check size={14} /></span>
+                      <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] transition ${isDone ? "text-emerald-400" : "text-[var(--text-secondary)]"}`}>{isDone ? labels.done : labels.doing}</span>
+                    </label>
+                  </div>
+                  <button className="px-3 py-1 rounded-full bg-black/5 hover:bg-black/10 flex items-center gap-1 text-[11px] font-bold text-[var(--text-primary)] transition-colors" type="button" onClick={(e) => { e.stopPropagation(); handleScore(task); }}><Target size={14} className="text-blue-600" />{labels.stats}</button>
+                </div>
+                <div className="flex items-center gap-3" onPointerDownCapture={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-col text-[10px] uppercase tracking-[0.3em]"><span className="text-[var(--text-secondary)]">{labels.stats === 'ROI' ? 'Margin' : 'Progress'}</span><span className="text-[var(--text-primary)] font-semibold text-sm">{draftProgress}%</span></div>
+                  <input type="range" min={0} max={100} value={draftProgress} onChange={(e) => { e.stopPropagation(); setDraftProgress(Number(e.target.value)); }} className="flex-1 accent-[var(--accent-color)] h-2 rounded-lg" onMouseDown={(e) => e.stopPropagation()} />
+                  <div className="flex gap-1">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); confirmProgress(); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(16,185,129,0.4)" : "#16a34a" }}><Check size={12} /></button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setDraftProgress(savedProgress); }} disabled={progressUpdating || draftProgress === savedProgress} className="h-6 w-6 rounded-full text-white flex items-center justify-center text-[12px] shadow-sm" style={{ backgroundColor: progressUpdating || draftProgress === savedProgress ? "rgba(239,68,68,0.4)" : "#dc2626" }}>✕</button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </motion.div>
   );

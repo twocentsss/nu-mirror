@@ -8,7 +8,7 @@ import PostgresSetupManager from "@/components/PostgresSetupManager";
 import OpenAiKeyManager from "@/components/OpenAiKeyManager";
 import { useTheme } from "@/hooks/useTheme";
 import { usePersona } from "@/hooks/usePersona";
-import { Moon, Sun, Cloud, Coffee, Database, Cpu, Terminal, Briefcase, Wind, Target } from "lucide-react";
+import { Moon, Sun, Cloud, Coffee, Database, Cpu, Terminal, Briefcase, Wind, Target, LayoutGrid } from "lucide-react";
 
 export default function MePage() {
   const { data: session } = useSession();
@@ -84,6 +84,27 @@ export default function MePage() {
             label="Current"
             icon={<Target size={16} />}
             color="bg-zinc-500/10 text-zinc-500"
+          />
+          <PersonaButton
+            active={persona === 'SIMPLE1'}
+            onClick={() => setPersona('SIMPLE1')}
+            label="Simple 1"
+            icon={<LayoutGrid size={16} />}
+            color="bg-amber-500/10 text-amber-500"
+          />
+          <PersonaButton
+            active={persona === 'SIMPLE2'}
+            onClick={() => setPersona('SIMPLE2')}
+            label="Simple 2"
+            icon={<LayoutGrid size={16} />}
+            color="bg-orange-500/10 text-orange-500"
+          />
+          <PersonaButton
+            active={persona === 'SIMPLE3'}
+            onClick={() => setPersona('SIMPLE3')}
+            label="Simple 3"
+            icon={<LayoutGrid size={16} />}
+            color="bg-rose-500/10 text-rose-500"
           />
         </div>
         <div className="bg-[var(--glass-bg)]/50 p-3 border-t border-[var(--glass-border)] text-center">

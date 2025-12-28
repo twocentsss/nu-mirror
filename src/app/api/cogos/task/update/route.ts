@@ -21,6 +21,8 @@ type PatchBody = {
   step?: number;
   goal?: string;
   project?: string;
+  recurrence?: any;
+  is_routine?: boolean;
 };
 
 export async function POST(req: Request) {
@@ -88,6 +90,8 @@ export async function POST(req: Request) {
   if (typeof body.step === "number") task.step = body.step;
   if (typeof body.goal === "string") task.goal = body.goal;
   if (typeof body.project === "string") task.project = body.project;
+  if (body.recurrence) task.recurrence = body.recurrence;
+  if (typeof body.is_routine === "boolean") task.is_routine = body.is_routine;
 
   task.updated_at = new Date().toISOString();
 

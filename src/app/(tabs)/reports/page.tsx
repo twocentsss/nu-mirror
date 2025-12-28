@@ -19,6 +19,7 @@ type MetricDefinition = {
   color: string;
   filter: (event: FlowEvent) => boolean;
   insight: (trend: { percent: number; label: string }) => string;
+  lfId: number;
 };
 
 type MetricData = {
@@ -42,79 +43,25 @@ type MetricData = {
   globalMax: number;
 };
 
-const METRIC_DEFINITIONS: MetricDefinition[] = [
-  {
-    id: "workouts",
-    label: "Workouts",
-    unit: "min",
-    description: "Physical maintenance keeps the machine humming.",
-    focus: "Operations",
-    color: "#34d399",
-    filter: (event) => event.segments?.component_group === "Workouts",
-    insight: (trend) =>
-      trend.percent <= -20
-        ? "Crisis alert—output capacity has cratered."
-        : trend.percent < 0
-          ? "Production softened but salvageable."
-          : "Workouts are holding the line.",
-  },
-  {
-    id: "fuel_quality",
-    label: "Fuel Quality",
-    unit: "score",
-    description: "Healthy inputs keep the energy tanks topped off.",
-    focus: "Operations",
-    color: "#fbbf24",
-    filter: (event) =>
-      event.segments?.component_group === "Food" &&
-      event.segments?.activity_type !== "Sweets",
-    insight: (trend) =>
-      trend.percent <= -15
-        ? "Fuel strategy drifting—needs corrective inputs."
-        : "Fuel quality remains premium.",
-  },
-  {
-    id: "sweets",
-    label: "Sweets & Waste",
-    unit: "occurrences",
-    description: "Sugar spikes trigger waste management alarms.",
-    focus: "Operations",
-    color: "#fb7185",
-    filter: (event) =>
-      event.segments?.component_group === "Food" &&
-      event.segments?.activity_type === "Sweets",
-    insight: (trend) =>
-      trend.percent >= 20
-        ? "Cost spike—cut calories immediately."
-        : "Waste levels remain within bounds.",
-  },
-  {
-    id: "family",
-    label: "Family Time",
-    unit: "min",
-    description: "Investing in relationships keeps culture thriving.",
-    focus: "Culture",
-    color: "#f472b6",
-    filter: (event) => event.segments?.business_activity === "Family",
-    insight: (trend) =>
-      trend.percent <= -10
-        ? "Culture risk—pour minutes back into the table."
-        : "Family time maintains morale.",
-  },
-  {
-    id: "games",
-    label: "Games & Recovery",
-    unit: "min",
-    description: "Mental recovery prevents burnout and sharpens creativity.",
-    focus: "R&D",
-    color: "#818cf8",
-    filter: (event) => event.segments?.activity_type === "Games",
-    insight: (trend) =>
-      trend.percent >= 30
-        ? "Check for escape-mode burnout."
-        : "Recovery stays purposeful.",
-  },
-];
+const LIFE_FOCUS_METRICS: Array<{
+  lfId: number;
+  id: string;
+  label: string;
+  description: string;
+  color: string;
+}> = [
+    { lfId: 1, id: "core", label: "Core", description: "Identity, faith, meaning, and scripts.", color: "#f43f5e" },
+    { lfId: 2, id: "self", label: "Self", description: "Heart, body, mind, recovery systems.", color: "#a855f7" },
+    { lfId: 3, id: "circle", label: "Circle", description: "Family, marriage, friends, and social capital.", color: "#22d3ee" },
+    { lfId: 4, id: "grind", label: "Grind", description: "Work, responsibilities, and the economic engine.", color: "#475569" },
+    { lfId: 5, id: "level_up", label: "Level Up", description: "Skills, business building, and growth investments.", color: "#10b981" },
+    { lfId: 6, id: "impact", label: "Impact", description: "Giving back, community, and nature.", color: "#14b8a6" },
+    { lfId: 7, id: "play", label: "Play", description: "Creativity, exploration, travel, and joy.", color: "#f97316" },
+    { lfId: 8, id: "insight", label: "Insight", description: "Knowledge, philosophy, and strategic thinking.", color: "#f59e0b" },
+    { lfId: 9, id: "chaos", label: "Chaos", description: "The unexpected, entropy, and systems resilience.", color: "#ef4444" },
+  ];
+
+const METRIC_DEFINITIONS: MetricDefinition[] = buildLifeFocusMetrics();
 
 const chartFamilies = ["rings", "bars", "heatmap", "pie", "line", "swimlane"];
 
@@ -126,6 +73,7 @@ export default async function ReportsPage() {
   const refreshToken = session?.refreshToken;
   let spreadsheetId = process.env.SHEETS_ID;
 
+  // Try to get spreadsheet ID but don't fail if not available
   if (session?.user?.email) {
     const account = await getAccountSpreadsheetId({
       accessToken,
@@ -140,10 +88,6 @@ export default async function ReportsPage() {
     }
   }
 
-  if (!spreadsheetId) {
-    throw new Error("Spreadsheet not initialized; sign in with Google to create it.");
-  }
-
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now);
@@ -151,8 +95,10 @@ export default async function ReportsPage() {
 
   const userEmail = session?.user?.email ?? undefined;
   const fetchOpts = { spreadsheetId, accessToken, refreshToken, userEmail };
-  const currentEvents = await getFlowEvents(startOfMonth.toISOString(), endOfMonth.toISOString(), fetchOpts);
-  const previousEvents = await getFlowEvents(prevStart.toISOString(), prevEnd.toISOString(), fetchOpts);
+
+  // Fetch events - if spreadsheetId is undefined, getFlowEvents will use database
+  const currentEvents = await getFlowEvents(startOfMonth.toISOString(), endOfMonth.toISOString(), fetchOpts).catch(() => []);
+  const previousEvents = await getFlowEvents(prevStart.toISOString(), prevEnd.toISOString(), fetchOpts).catch(() => []);
 
   const metrics = METRIC_DEFINITIONS.map((definition) =>
     buildMetricData(definition, currentEvents, previousEvents, startOfMonth, endOfMonth, prevStart, prevEnd)
@@ -170,10 +116,7 @@ export default async function ReportsPage() {
       <header className="max-w-4xl space-y-3">
         <p className="text-xs uppercase tracking-[0.4em] text-slate-400">CEO Visual Randomizer</p>
         <h1 className="text-4xl font-black">Randomized Report Lab</h1>
-        <p className="text-sm text-slate-300 leading-relaxed">
-          Every chart here is fueled by your ledger. Rings, bars, pies, swim lanes, lines, and heatmaps shuffle through
-          the deck so you never see the same arrangement twice.
-        </p>
+        <p className="text-2xl font-medium text-slate-100 italic">9 areas. Infinite intersections.</p>
         <ReportControls />
       </header>
 
@@ -315,6 +258,86 @@ function renderChart(chartFamily: string, metric: MetricData, normalizedMax: num
     default:
       return null;
   }
+}
+
+function buildLifeFocusMetrics(): MetricDefinition[] {
+  const insightFor = (label: string) => (trend: { percent: number; label: string }) => {
+    if (trend.percent <= -20) return `${label} is sliding—reinvest this period.`;
+    if (trend.percent < 0) return `${label} softened; tighten routines and goals.`;
+    if (trend.percent >= 20) return `${label} is accelerating—lock in the gains.`;
+    return `${label} is steady; keep the cadence.`;
+  };
+
+  return LIFE_FOCUS_METRICS.map((meta) => ({
+    id: meta.id,
+    label: meta.label,
+    unit: "min",
+    description: meta.description,
+    focus: `LF${meta.lfId} • ${meta.label}`,
+    color: meta.color,
+    filter: (event) => matchesLifeFocus(event, meta.lfId),
+    insight: insightFor(meta.label),
+    lfId: meta.lfId,
+  }));
+}
+
+function matchesLifeFocus(event: FlowEvent, lfId: number) {
+  const lfFromEvent = extractLfId(event);
+  return lfFromEvent === lfId;
+}
+
+function extractLfId(event: FlowEvent): number | null {
+  const direct = normalizeLfId(
+    event.segments?.lf_id ??
+    event.segments?.lf ??
+    event.segments?.life_focus ??
+    event.segments?.lifeFocus ??
+    event.segments?.pillar
+  );
+  if (direct) return direct;
+
+  const goalLf = normalizeLfId(
+    event.segments?.goal?.lf_id ??
+    event.segments?.goal?.lfId ??
+    event.segments?.goal_lf_id ??
+    event.segments?.goal_lf
+  );
+  if (goalLf) return goalLf;
+
+  return null;
+}
+
+function normalizeLfId(value: any): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const n = Math.round(value);
+    return n >= 1 && n <= 9 ? n : null;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const lfTag = raw.toUpperCase();
+  const nameMap: Record<string, number> = {
+    CORE: 1,
+    SELF: 2,
+    CIRCLE: 3,
+    GRIND: 4,
+    LEVEL_UP: 5,
+    IMPACT: 6,
+    PLAY: 7,
+    INSIGHT: 8,
+    CHAOS: 9,
+  };
+  if (nameMap[lfTag]) return nameMap[lfTag];
+
+  if (lfTag.startsWith("LF")) {
+    const parsed = Number(lfTag.slice(2));
+    return Number.isFinite(parsed) && parsed >= 1 && parsed <= 9 ? parsed : null;
+  }
+
+  const numeric = Number(raw.replace(/[^0-9]/g, ""));
+  return Number.isFinite(numeric) && numeric >= 1 && numeric <= 9 ? numeric : null;
 }
 
 function buildMetricData(

@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 
-type DockItem = {
+export type BottomNavItem = {
     id: string;
     label: string;
     href: string;
@@ -11,7 +11,7 @@ type DockItem = {
     available: boolean;
 };
 
-const ITEMS: DockItem[] = [
+export const ITEMS: BottomNavItem[] = [
     { id: "todo", label: "To-do", href: "/todo", available: true, icon: <IconCheckSquare /> },
     { id: "today", label: "Today", href: "/today", available: true, icon: <IconCalendar /> },
     { id: "focus", label: "Focus", href: "/focus", available: true, icon: <IconFocus /> },

@@ -39,7 +39,7 @@ export default function ScrollAwareLayout({ children, className = "" }: ScrollAw
     return (
         <div
             ref={containerRef}
-            className={`h-screen overflow-y-auto scrollbar-hide ${className}`}
+            className={`h-screen overflow-y-auto scrollbar-hide snap-y snap-mandatory overscroll-y-contain touch-pan-y ${className}`}
         >
             {children}
         </div>

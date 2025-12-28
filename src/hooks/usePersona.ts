@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type Persona = "DEVELOPER" | "EXECUTIVE" | "ZEN" | "CURRENT";
+export type Persona = "DEVELOPER" | "EXECUTIVE" | "ZEN" | "CURRENT" | "SIMPLE1" | "SIMPLE2" | "SIMPLE3";
 
 type PersonaState = {
     persona: Persona;
@@ -11,7 +11,7 @@ type PersonaState = {
 export const usePersona = create<PersonaState>()(
     persist(
         (set) => ({
-            persona: "EXECUTIVE", // Default persona
+            persona: "SIMPLE1", // Default persona
             setPersona: (persona) => set({ persona }),
         }),
         {

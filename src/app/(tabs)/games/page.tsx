@@ -323,11 +323,10 @@ function SudokuMini({ badge, onComplete }: { badge: string; onComplete?: (score:
                                 key={`${r}-${c}`}
                                 type="button"
                                 onClick={() => !fixed && setValue(r, c, ((cell % 4) + 1) as number)}
-                                className={`flex aspect-square items-center justify-center rounded-xl border text-lg font-black ${
-                                    fixed
+                                className={`flex aspect-square items-center justify-center rounded-xl border text-lg font-black ${fixed
                                         ? "border-white/30 bg-white/20 text-white"
                                         : "border-white/15 bg-black/30 text-white/80 hover:border-white/40"
-                                }`}
+                                    }`}
                             >
                                 {cell === 0 ? "" : cell}
                             </button>
@@ -1248,447 +1247,448 @@ export default function GamesPage() {
         gamePlaceholders.find((game) => game.id === selectedPlaceholder) ?? gamePlaceholders[0];
 
     return (
-        <div className="min-h-screen bg-black text-white px-6 py-12 transition-colors duration-500">
-            <div className="max-w-6xl mx-auto space-y-12">
-                <header className="space-y-6 text-center">
-                    <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">Nu Games Lab</p>
-                    <h1 className="text-6xl sm:text-7xl font-extrabold tracking-tighter leading-[1.05]">
-                        Modern puzzles for rule-discovery brains
-                    </h1>
-                    <p className="text-lg text-white/70 max-w-3xl mx-auto">
-                        Cleaned up with Apple Style gradients and Hybrid Protocol docks. The new takes lean into hidden
-                        rules, semantic feedback, and social meta-play.
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Rules-first
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Visionary
-                        </span>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Playable today
-                        </span>
-                    </div>
-                </header>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/5 via-white/0 to-white/10 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
-                                Playable prototypes
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Touch it today</h2>
-                            <p className="text-white/70 mt-2">
-                                Three quick demos to feel the vibe. Daily targets hash off today’s date.
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            {prototypeOptions.map((prototype) => (
-                                <button
-                                    key={prototype.id}
-                                    type="button"
-                                    onClick={() => setActivePrototype(prototype.id)}
-                                    className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] border transition ${
-                                        activePrototype === prototype.id
-                                            ? "border-white bg-white text-black shadow-lg"
-                                            : "border-white/10 bg-white/5 text-white/70 hover:border-white/40"
-                                    }`}
-                                >
-                                    {prototype.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="space-y-3">
-                        <p className="text-sm text-white/70 leading-relaxed max-w-3xl">
-                            {activePrototypeConfig.description}
+        <>
+            <div className="fixed inset-0 bg-black -z-10" />
+            <div className="contents">
+                <div className="contents">
+                    <header className="snap-start scroll-m-12 max-w-6xl mx-auto w-full px-6 py-24 space-y-6 text-center text-white">
+                        <p className="text-[14px] font-bold uppercase tracking-[0.6em] text-blue-500">Nu Games Lab</p>
+                        <h1 className="text-6xl sm:text-7xl font-extrabold tracking-tighter leading-[1.05]">
+                            Modern puzzles for rule-discovery brains
+                        </h1>
+                        <p className="text-lg text-white/70 max-w-3xl mx-auto">
+                            Cleaned up with Apple Style gradients and Hybrid Protocol docks. The new takes lean into hidden
+                            rules, semantic feedback, and social meta-play.
                         </p>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
-                                Game date
-                                <input
-                                    type="date"
-                                    value={selectedGameDate}
-                                    onChange={(event) => setSelectedGameDate(event.target.value)}
-                                    className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
-                                />
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">Instance</p>
-                                <select
-                                    value={selectedInstanceIds[activePrototype]}
-                                    onChange={(event) =>
-                                        setSelectedInstanceIds((prev) => ({
-                                            ...prev,
-                                            [activePrototype]: event.target.value,
-                                        }))
-                                    }
-                                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/80 focus:border-white/40 outline-none"
-                                >
-                                    {instanceMap[activePrototype].map((instance) => (
-                                        <option key={instance.id} value={instance.id}>
-                                            {instance.label}
-                                        </option>
-                                    ))}
-                                </select>
+                        <div className="flex flex-wrap justify-center gap-3">
+                            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Rules-first
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Visionary
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Playable today
+                            </span>
+                        </div>
+                    </header>
+
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-24 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/5 via-white/0 to-white/10 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
+                                    Playable prototypes
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Touch it today</h2>
+                                <p className="text-white/70 mt-2">
+                                    Three quick demos to feel the vibe. Daily targets hash off today’s date.
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                {prototypeOptions.map((prototype) => (
+                                    <button
+                                        key={prototype.id}
+                                        type="button"
+                                        onClick={() => setActivePrototype(prototype.id)}
+                                        className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] border transition ${activePrototype === prototype.id
+                                                ? "border-white bg-white text-black shadow-lg"
+                                                : "border-white/10 bg-white/5 text-white/70 hover:border-white/40"
+                                            }`}
+                                    >
+                                        {prototype.label}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    </div>
-                    <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-inner">
-                        {activePrototypeConfig.element}
-                    </div>
-                </section>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
-                                Today&apos;s scores
+                        <div className="space-y-3">
+                            <p className="text-sm text-white/70 leading-relaxed max-w-3xl">
+                                {activePrototypeConfig.description}
                             </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Daily performance</h2>
-                            <p className="text-white/70 mt-2">
-                                Best or averaged per game type; use for streaks and leaderboards.
-                            </p>
-                        </div>
-                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            {todaysResults.length} results
-                        </div>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {(Object.keys(scoreByType) as GameType[]).map((type) => {
-                            const entry = scoreByType[type];
-                            const avg =
-                                entry.scores.length === 0
-                                    ? 0
-                                    : Math.round(entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length);
-                            const best = entry.scores.length === 0 ? 0 : Math.max(...entry.scores);
-                            return (
-                                <div
-                                    key={type}
-                                    className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 space-y-2 shadow-inner"
-                                >
-                                    <div className="flex items-center justify-between gap-3">
-                                        <h3 className="text-xl font-black tracking-tight uppercase">{type}</h3>
-                                        <span className="text-xs text-white/60">
-                                            {entry.scores.length} game{entry.scores.length === 1 ? "" : "s"}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-white/80">Avg: {avg}</p>
-                                    <p className="text-sm text-white/80">Best: {best}</p>
-                                    {entry.labels.length > 0 && (
-                                        <p className="text-[11px] text-white/60">
-                                            Latest: {entry.labels[entry.labels.length - 1]}
-                                        </p>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">
-                                Admin catalog (local demo)
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Seed daily games</h2>
-                            <p className="text-white/70 mt-2">
-                                Super-admin can create multiple games per type per day. Stored locally here; wire to Supabase
-                                for production.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setAdminMode((v) => !v)}
-                            className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] border transition ${
-                                adminMode ? "border-white bg-white text-black" : "border-white/10 bg-white/5 text-white/70"
-                            }`}
-                        >
-                            {adminMode ? "Admin On" : "Admin Off"}
-                        </button>
-                    </div>
-                    {adminMode && (
-                        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 space-y-4 shadow-inner">
-                            <div className="grid gap-4 sm:grid-cols-3">
-                                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
-                                    Date
+                            <div className="flex flex-wrap items-center gap-3">
+                                <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50">
+                                    Game date
                                     <input
                                         type="date"
-                                        value={adminForm.date}
-                                        onChange={(e) => setAdminForm((prev) => ({ ...prev, date: e.target.value }))}
-                                        className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+                                        value={selectedGameDate}
+                                        onChange={(event) => setSelectedGameDate(event.target.value)}
+                                        className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white focus:border-white/40"
                                     />
                                 </label>
-                                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
-                                    Game type
+                                <div className="flex items-center gap-2">
+                                    <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">Instance</p>
                                     <select
-                                        value={adminForm.type}
-                                        onChange={(e) =>
-                                            setAdminForm((prev) => ({ ...prev, type: e.target.value as GameType }))
+                                        value={selectedInstanceIds[activePrototype]}
+                                        onChange={(event) =>
+                                            setSelectedInstanceIds((prev) => ({
+                                                ...prev,
+                                                [activePrototype]: event.target.value,
+                                            }))
                                         }
-                                        className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+                                        className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/80 focus:border-white/40 outline-none"
                                     >
-                                        <option value="wordle">Wordle</option>
-                                        <option value="polygonle">Polygonle</option>
-                                        <option value="crossword">Crossword</option>
-                                        <option value="sudoku">Sudoku</option>
-                                        <option value="mao">Mao</option>
-                                        <option value="hybrid">Hybrid</option>
+                                        {instanceMap[activePrototype].map((instance) => (
+                                            <option key={instance.id} value={instance.id}>
+                                                {instance.label}
+                                            </option>
+                                        ))}
                                     </select>
-                                </label>
-                                <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
-                                    Label
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-inner">
+                            {activePrototypeConfig.element}
+                        </div>
+                    </section>
+
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-24 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
+                                    Today&apos;s scores
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Daily performance</h2>
+                                <p className="text-white/70 mt-2">
+                                    Best or averaged per game type; use for streaks and leaderboards.
+                                </p>
+                            </div>
+                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                {todaysResults.length} results
+                            </div>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {(Object.keys(scoreByType) as GameType[]).map((type) => {
+                                const entry = scoreByType[type];
+                                const avg =
+                                    entry.scores.length === 0
+                                        ? 0
+                                        : Math.round(entry.scores.reduce((a, b) => a + b, 0) / entry.scores.length);
+                                const best = entry.scores.length === 0 ? 0 : Math.max(...entry.scores);
+                                return (
+                                    <div
+                                        key={type}
+                                        className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 space-y-2 shadow-inner"
+                                    >
+                                        <div className="flex items-center justify-between gap-3">
+                                            <h3 className="text-xl font-black tracking-tight uppercase">{type}</h3>
+                                            <span className="text-xs text-white/60">
+                                                {entry.scores.length} game{entry.scores.length === 1 ? "" : "s"}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-white/80">Avg: {avg}</p>
+                                        <p className="text-sm text-white/80">Best: {best}</p>
+                                        {entry.labels.length > 0 && (
+                                            <p className="text-[11px] text-white/60">
+                                                Latest: {entry.labels[entry.labels.length - 1]}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-24 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">
+                                    Admin catalog (local demo)
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Seed daily games</h2>
+                                <p className="text-white/70 mt-2">
+                                    Super-admin can create multiple games per type per day. Stored locally here; wire to Supabase
+                                    for production.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAdminMode((v) => !v)}
+                                className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] border transition ${adminMode ? "border-white bg-white text-black" : "border-white/10 bg-white/5 text-white/70"
+                                    }`}
+                            >
+                                {adminMode ? "Admin On" : "Admin Off"}
+                            </button>
+                        </div>
+                        {adminMode && (
+                            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 space-y-4 shadow-inner">
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                    <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
+                                        Date
+                                        <input
+                                            type="date"
+                                            value={adminForm.date}
+                                            onChange={(e) => setAdminForm((prev) => ({ ...prev, date: e.target.value }))}
+                                            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+                                        />
+                                    </label>
+                                    <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
+                                        Game type
+                                        <select
+                                            value={adminForm.type}
+                                            onChange={(e) =>
+                                                setAdminForm((prev) => ({ ...prev, type: e.target.value as GameType }))
+                                            }
+                                            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+                                        >
+                                            <option value="wordle">Wordle</option>
+                                            <option value="polygonle">Polygonle</option>
+                                            <option value="crossword">Crossword</option>
+                                            <option value="sudoku">Sudoku</option>
+                                            <option value="mao">Mao</option>
+                                            <option value="hybrid">Hybrid</option>
+                                        </select>
+                                    </label>
+                                    <label className="space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
+                                        Label
+                                        <input
+                                            value={adminForm.label}
+                                            onChange={(e) => setAdminForm((prev) => ({ ...prev, label: e.target.value }))}
+                                            placeholder="Daily #1"
+                                            className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40"
+                                        />
+                                    </label>
+                                </div>
+                                <label className="block space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
+                                    Payload (target word, seed, or notes)
                                     <input
-                                        value={adminForm.label}
-                                        onChange={(e) => setAdminForm((prev) => ({ ...prev, label: e.target.value }))}
-                                        placeholder="Daily #1"
+                                        value={adminForm.payload}
+                                        onChange={(e) => setAdminForm((prev) => ({ ...prev, payload: e.target.value }))}
+                                        placeholder="e.g., CRANE / HEXAGON / grid-id"
                                         className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40"
                                     />
                                 </label>
-                            </div>
-                            <label className="block space-y-2 text-xs font-bold uppercase tracking-[0.3em] text-white/60">
-                                Payload (target word, seed, or notes)
-                                <input
-                                    value={adminForm.payload}
-                                    onChange={(e) => setAdminForm((prev) => ({ ...prev, payload: e.target.value }))}
-                                    placeholder="e.g., CRANE / HEXAGON / grid-id"
-                                    className="w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-white/40"
-                                />
-                            </label>
-                            <button
-                                type="button"
-                                onClick={addAdminEntry}
-                                className="rounded-full border border-white/10 bg-white text-black px-5 py-2 text-[11px] font-black uppercase tracking-[0.3em] shadow"
-                            >
-                                Add game
-                            </button>
-                            <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2 text-sm text-white/75">
-                                <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
-                                    Today&apos;s catalog ({todayKey})
-                                </p>
-                                {todaysCatalog.length === 0 ? (
-                                    <p>No admin-seeded games. Using defaults.</p>
-                                ) : (
-                                    todaysCatalog.map((item) => (
-                                        <div key={item.id} className="flex items-center justify-between gap-3">
-                                            <span className="font-semibold uppercase tracking-[0.2em]">{item.type}</span>
-                                            <span className="text-white/70">{item.label || "(untitled)"}</span>
-                                            <span className="text-white/50 text-xs">{item.payload || "no payload"}</span>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </section>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">
-                                State, streaks, and admin controls
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Framework for all games</h2>
-                            <p className="text-white/70 mt-2">
-                                Daily stateful drops + infinite practice; super-admin only can seed, publish, and archive. Streaks,
-                                UH scores, shareability, and leaderboards flow from the same Supabase Postgres schema.
-                            </p>
-                        </div>
-                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Governance-ready
-                        </div>
-                    </div>
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        {gameGovernance.map((game) => (
-                            <div
-                                key={game.id}
-                                className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 space-y-3 shadow-inner"
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <h3 className="text-xl font-black tracking-tight">{game.id.toUpperCase()}</h3>
-                                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
-                                        {game.mode}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-white/80">
-                                    <strong className="font-semibold text-white">Admin:</strong> {game.admin}
-                                </p>
-                                <p className="text-sm text-white/80">
-                                    <strong className="font-semibold text-white">Player:</strong> {game.player}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="rounded-[1.5rem] border border-dashed border-white/20 bg-black/30 p-5 text-sm text-white/75 space-y-2">
-                        <p className="font-semibold">Data spine</p>
-                        <ul className="list-disc list-inside space-y-1">
-                            <li>Supabase Postgres tables: <code>games</code>, <code>game_instances</code>, <code>game_results</code>, <code>leaderboards</code>.</li>
-                            <li>Access control: only <code>role = super_admin</code> can create/publish daily targets.</li>
-                            <li>Stateful streaks: per-user per-game, day-over-day captured in <code>game_results</code>.</li>
-                            <li>Stateless practice: infinite runs recorded as <code>practice</code> with no streak impact.</li>
-                            <li>Shareability: signed share links per result; opt-in leaderboards per game.</li>
-                        </ul>
-                    </div>
-                </section>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
-                                All games scaffold
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Pick any game, drop code</h2>
-                            <p className="text-white/70 mt-2">
-                                Placeholder shells so Polygonle, Wordle, Crosswords, Sudoku, Mao, and more can ship fast.
-                            </p>
-                        </div>
-                        <select
-                            value={selectedPlaceholder}
-                            onChange={(event) => setSelectedPlaceholder(event.target.value)}
-                            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/80 focus:border-white/40 outline-none"
-                        >
-                            {gamePlaceholders.map((game) => (
-                                <option key={game.id} value={game.id}>
-                                    {game.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-inner space-y-4">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
-                                Inspiration
-                            </span>
-                            <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
-                                Placeholder
-                            </span>
-                        </div>
-                        <h3 className="text-3xl font-black tracking-tighter">{activePlaceholderConfig.label}</h3>
-                        <p className="text-white/80">{activePlaceholderConfig.inspiration}</p>
-                        <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-4 text-sm text-white/70">
-                            <p className="font-semibold uppercase tracking-[0.2em] text-[11px] mb-2">
-                                Implementation note
-                            </p>
-                            <p className="leading-relaxed">{activePlaceholderConfig.buildNote}</p>
-                            <p className="mt-3 text-white/60 text-xs">
-                                Placeholder view: drop your component into <code>src/app/(tabs)/games</code> and wire it here.
-                                Keep this section as the inspiration stub per game.
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-6 backdrop-blur-2xl shadow-2xl">
-                    <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">Big trend summary</p>
-                    <div className="grid gap-8 lg:grid-cols-3">
-                        {trendSummary.map((item) => (
-                            <div
-                                key={item}
-                                className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-sm text-white/80 shadow-inner"
-                            >
-                                {item}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="rounded-[2rem] border border-white/10 bg-gradient-to-r from-blue-600/30 via-indigo-700/30 to-purple-700/30 p-6">
-                        <p className="text-[12px] font-black uppercase tracking-[0.5em] text-white/70">Core creative leap</p>
-                        <p className="mt-3 text-lg font-semibold text-white">
-                            Games where the objective is not to solve the puzzle, but to correctly infer what kind of game
-                            you are in — genre detection, delayed feedback, and systems thinking by feel.
-                        </p>
-                    </div>
-                </section>
-
-                <section className="space-y-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
-                                Modern takes
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Game families, refreshed</h2>
-                        </div>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Discovery-first
-                        </span>
-                    </div>
-                    <div className="grid gap-6 lg:grid-cols-2">
-                        {familyCards.map((family) => (
-                            <article
-                                key={family.id}
-                                className={`rounded-[2.5rem] border border-white/10 bg-gradient-to-br ${family.gradient} p-6 sm:p-8 space-y-5 shadow-xl backdrop-blur-2xl`}
-                            >
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
-                                        {family.eyebrow}
-                                    </span>
-                                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
-                                        Original
-                                    </span>
-                                </div>
-                                <h3 className="text-3xl font-black tracking-tighter">{family.title}</h3>
-                                <p className="text-base text-white/80 leading-relaxed">{family.description}</p>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {family.images.map((src) => (
-                                        <img
-                                            key={src}
-                                            src={src}
-                                            alt={family.title}
-                                            className="h-24 w-full rounded-2xl border border-white/10 object-cover"
-                                        />
-                                    ))}
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
-                                        Modern spins
+                                <button
+                                    type="button"
+                                    onClick={addAdminEntry}
+                                    className="rounded-full border border-white/10 bg-white text-black px-5 py-2 text-[11px] font-black uppercase tracking-[0.3em] shadow"
+                                >
+                                    Add game
+                                </button>
+                                <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2 text-sm text-white/75">
+                                    <p className="text-[10px] uppercase tracking-[0.3em] text-white/50">
+                                        Today&apos;s catalog ({todayKey})
                                     </p>
-                                    <ul className="space-y-2 text-sm text-white/80 leading-relaxed">
-                                        {family.spins.map((spin) => (
-                                            <li key={spin} className="flex gap-2">
-                                                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-white/60 flex-shrink-0" />
-                                                <span>{spin}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    {todaysCatalog.length === 0 ? (
+                                        <p>No admin-seeded games. Using defaults.</p>
+                                    ) : (
+                                        todaysCatalog.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between gap-3">
+                                                <span className="font-semibold uppercase tracking-[0.2em]">{item.type}</span>
+                                                <span className="text-white/70">{item.label || "(untitled)"}</span>
+                                                <span className="text-white/50 text-xs">{item.payload || "no payload"}</span>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
-                            </article>
-                        ))}
-                    </div>
-                </section>
+                            </div>
+                        )}
+                    </section>
 
-                <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-6 backdrop-blur-2xl shadow-2xl">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
-                                Cross-genre hybrids
-                            </p>
-                            <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Very \"you\" experiments</h2>
-                            <p className="mt-3 text-white/70">
-                                Designed for Cognitive-OS: ambiguity tolerance, explainability, and community meta-play.
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-24 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">
+                                    State, streaks, and admin controls
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Framework for all games</h2>
+                                <p className="text-white/70 mt-2">
+                                    Daily stateful drops + infinite practice; super-admin only can seed, publish, and archive. Streaks,
+                                    UH scores, shareability, and leaderboards flow from the same Supabase Postgres schema.
+                                </p>
+                            </div>
+                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Governance-ready
+                            </div>
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            {gameGovernance.map((game) => (
+                                <div
+                                    key={game.id}
+                                    className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 space-y-3 shadow-inner"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="text-xl font-black tracking-tight">{game.id.toUpperCase()}</h3>
+                                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
+                                            {game.mode}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-white/80">
+                                        <strong className="font-semibold text-white">Admin:</strong> {game.admin}
+                                    </p>
+                                    <p className="text-sm text-white/80">
+                                        <strong className="font-semibold text-white">Player:</strong> {game.player}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="rounded-[1.5rem] border border-dashed border-white/20 bg-black/30 p-5 text-sm text-white/75 space-y-2">
+                            <p className="font-semibold">Data spine</p>
+                            <ul className="list-disc list-inside space-y-1">
+                                <li>Supabase Postgres tables: <code>games</code>, <code>game_instances</code>, <code>game_results</code>, <code>leaderboards</code>.</li>
+                                <li>Access control: only <code>role = super_admin</code> can create/publish daily targets.</li>
+                                <li>Stateful streaks: per-user per-game, day-over-day captured in <code>game_results</code>.</li>
+                                <li>Stateless practice: infinite runs recorded as <code>practice</code> with no streak impact.</li>
+                                <li>Shareability: signed share links per result; opt-in leaderboards per game.</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-24 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
+                                    All games scaffold
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Pick any game, drop code</h2>
+                                <p className="text-white/70 mt-2">
+                                    Placeholder shells so Polygonle, Wordle, Crosswords, Sudoku, Mao, and more can ship fast.
+                                </p>
+                            </div>
+                            <select
+                                value={selectedPlaceholder}
+                                onChange={(event) => setSelectedPlaceholder(event.target.value)}
+                                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-white/80 focus:border-white/40 outline-none"
+                            >
+                                {gamePlaceholders.map((game) => (
+                                    <option key={game.id} value={game.id}>
+                                        {game.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 shadow-inner space-y-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
+                                    Inspiration
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
+                                    Placeholder
+                                </span>
+                            </div>
+                            <h3 className="text-3xl font-black tracking-tighter">{activePlaceholderConfig.label}</h3>
+                            <p className="text-white/80">{activePlaceholderConfig.inspiration}</p>
+                            <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-4 text-sm text-white/70">
+                                <p className="font-semibold uppercase tracking-[0.2em] text-[11px] mb-2">
+                                    Implementation note
+                                </p>
+                                <p className="leading-relaxed">{activePlaceholderConfig.buildNote}</p>
+                                <p className="mt-3 text-white/60 text-xs">
+                                    Placeholder view: drop your component into <code>src/app/(tabs)/games</code> and wire it here.
+                                    Keep this section as the inspiration stub per game.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="snap-start scroll-m-6 max-w-6xl mx-auto w-full mb-32 rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-6 backdrop-blur-2xl shadow-2xl">
+                        <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/50">Big trend summary</p>
+                        <div className="grid gap-8 lg:grid-cols-3">
+                            {trendSummary.map((item) => (
+                                <div
+                                    key={item}
+                                    className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-sm text-white/80 shadow-inner"
+                                >
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="rounded-[2rem] border border-white/10 bg-gradient-to-r from-blue-600/30 via-indigo-700/30 to-purple-700/30 p-6">
+                            <p className="text-[12px] font-black uppercase tracking-[0.5em] text-white/70">Core creative leap</p>
+                            <p className="mt-3 text-lg font-semibold text-white">
+                                Games where the objective is not to solve the puzzle, but to correctly infer what kind of game
+                                you are in — genre detection, delayed feedback, and systems thinking by feel.
                             </p>
                         </div>
-                        <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
-                            Systems-first
-                        </span>
-                    </div>
-                    <ul className="space-y-3 text-base text-white/80">
-                        {hybridIdeas.map((idea) => (
-                            <li key={idea} className="flex gap-2">
-                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-white/70 flex-shrink-0" />
-                                <span>{idea}</span>
-                            </li>
-                        ))}
-                    </ul>
-                    <div className="rounded-[2rem] border border-white/10 bg-gradient-to-r from-blue-600/40 via-emerald-600/30 to-purple-600/30 p-6 space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Social layer</p>
-                        <p className="text-white font-semibold">
-                            No leaderboards; you get distribution curves and reasoning style clusters — "you reason like
-                            12% of players today."
-                        </p>
-                    </div>
-                </section>
+                    </section>
+
+                    <section className="space-y-6">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
+                                    Modern takes
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Game families, refreshed</h2>
+                            </div>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Discovery-first
+                            </span>
+                        </div>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                            {familyCards.map((family) => (
+                                <article
+                                    key={family.id}
+                                    className={`rounded-[2.5rem] border border-white/10 bg-gradient-to-br ${family.gradient} p-6 sm:p-8 space-y-5 shadow-xl backdrop-blur-2xl`}
+                                >
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
+                                            {family.eyebrow}
+                                        </span>
+                                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/80">
+                                            Original
+                                        </span>
+                                    </div>
+                                    <h3 className="text-3xl font-black tracking-tighter">{family.title}</h3>
+                                    <p className="text-base text-white/80 leading-relaxed">{family.description}</p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {family.images.map((src) => (
+                                            <img
+                                                key={src}
+                                                src={src}
+                                                alt={family.title}
+                                                className="h-24 w-full rounded-2xl border border-white/10 object-cover"
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">
+                                            Modern spins
+                                        </p>
+                                        <ul className="space-y-2 text-sm text-white/80 leading-relaxed">
+                                            {family.spins.map((spin) => (
+                                                <li key={spin} className="flex gap-2">
+                                                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-white/60 flex-shrink-0" />
+                                                    <span>{spin}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </section>
+
+                    <section className="rounded-[3rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/0 to-white/5 p-10 space-y-6 backdrop-blur-2xl shadow-2xl">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/40">
+                                    Cross-genre hybrids
+                                </p>
+                                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">Very \"you\" experiments</h2>
+                                <p className="mt-3 text-white/70">
+                                    Designed for Cognitive-OS: ambiguity tolerance, explainability, and community meta-play.
+                                </p>
+                            </div>
+                            <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                                Systems-first
+                            </span>
+                        </div>
+                        <ul className="space-y-3 text-base text-white/80">
+                            {hybridIdeas.map((idea) => (
+                                <li key={idea} className="flex gap-2">
+                                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-white/70 flex-shrink-0" />
+                                    <span>{idea}</span>
+                                </li>
+                            ))}
+                        </ul>
+                        <div className="rounded-[2rem] border border-white/10 bg-gradient-to-r from-blue-600/40 via-emerald-600/30 to-purple-600/30 p-6 space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Social layer</p>
+                            <p className="text-white font-semibold">
+                                No leaderboards; you get distribution curves and reasoning style clusters — "you reason like
+                                12% of players today."
+                            </p>
+                        </div>
+                    </section>
+                </div>
             </div>
-        </div>
+        </>
     );
 }

@@ -108,6 +108,10 @@ html[data-theme="brown"] {
 html,
 body {
   height: 100%;
+  overflow: hidden;
+  /* Apple-style: Lock viewport */
+  overscroll-behavior: none;
+  /* Prevent bounce/reload */
 }
 
 body {

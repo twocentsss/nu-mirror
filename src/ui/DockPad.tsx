@@ -56,7 +56,7 @@ export type DockActionId =
   | "evidence"
   | "howto";
 
-interface DockItem {
+export interface DockItem {
   id: DockActionId;
   label: string;
   sub?: string;
@@ -64,7 +64,7 @@ interface DockItem {
   available?: boolean;
 }
 
-const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, 'top'>, DockItem[]> => {
+export const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, 'top'>, DockItem[]> => {
   const labels = {
     DEVELOPER: {
       capture: ["Commit", "Entry"],
@@ -175,126 +175,8 @@ export default function DockPad({
 
   const dayName = new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(dateObj);
 
-  if (position === 'top') {
-    return (
-      <div className="p-6 flex flex-col gap-6 max-w-4xl mx-auto items-center">
-        {/* Date Selector Header */}
-        <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handlePrevDay}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 text-[var(--text-secondary)]"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <div className="relative">
-                  <h2 className="text-3xl font-greeting font-bold tracking-tight text-[var(--text-primary)] cursor-pointer hover:opacity-80 transition flex items-center gap-2">
-                    {dayName}, {dateObj.getDate()}
-                    <input
-                      type="date"
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                      value={dateObj.toISOString().slice(0, 10)}
-                      onChange={(e) => {
-                        const d = e.target.valueAsDate;
-                        if (d) setSelectedDate(d);
-                      }}
-                    />
-                  </h2>
-                </div>
-                <button
-                  onClick={handleNextDay}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 text-[var(--text-secondary)]"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-              <p className="text-[var(--text-secondary)] text-xs font-medium uppercase tracking-wider ml-8">
-                {dateObj.toLocaleString('default', { month: 'long', year: 'numeric' })}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowAccomplishments(!showAccomplishments)}
-              className={`rounded-full px-4 py-1.5 flex items-center gap-2 border shadow-sm transition-all hover:shadow-md hover:scale-105 active:scale-95 cursor-pointer ${showAccomplishments
-                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600'
-                : 'bg-black/5 hover:bg-black/10 border-black/5'
-                }`}
-            >
-              <Target size={14} className={showAccomplishments ? 'text-emerald-600' : 'text-[var(--accent-color)]'} />
-              <span className="text-xs font-bold transition-colors">
-                {stats.completed}/{stats.total} {showAccomplishments ? 'Completed' : 'Accomplished'}
-              </span>
-            </button>
-
-            <div className="flex bg-black/5 rounded-full border border-black/5 p-1 gap-1 items-center">
-              {[
-                { id: "protocol", icon: <Fingerprint size={16} />, title: persona === 'DEVELOPER' ? "Auth" : persona === 'ZEN' ? "Vibe" : "ID", color: "hover:text-blue-400" },
-                { id: "search", icon: <Search size={16} />, title: "Search", color: "hover:text-zinc-400" },
-                { id: "settings", icon: <Settings size={16} />, title: "Settings", color: "hover:text-zinc-400" },
-                { id: "graph", icon: <Map size={16} />, title: persona === 'DEVELOPER' ? "Nodes" : persona === 'ZEN' ? "Mandala" : "Map", color: "hover:text-emerald-400" },
-                { id: "waterfall", icon: <Activity size={16} />, title: persona === 'DEVELOPER' ? "Perf" : persona === 'ZEN' ? "Harmony" : "Flow", color: "hover:text-amber-400" },
-                { id: "report", icon: <FileText size={16} />, title: persona === 'DEVELOPER' ? "Stdout" : persona === 'ZEN' ? "Journal" : "Files", color: "hover:text-purple-400" },
-                { id: "howto", icon: <HelpCircle size={16} />, title: "Tips", color: "hover:text-blue-500" },
-                { id: "about", icon: <Info size={16} />, title: "Info", color: "hover:text-zinc-400" },
-              ].map((it: any) => (
-                <button
-                  key={it.id}
-                  onClick={(e) => {
-                    setClickOrigin({ x: e.clientX, y: e.clientY });
-                    onPick?.(it.id as DockActionId);
-                  }}
-                  className={`p-2 rounded-full hover:bg-[var(--glass-border)] text-[var(--text-secondary)] ${it.color} hover:shadow-sm transition-all duration-300`}
-                  title={it.title}
-                >
-                  {it.icon}
-                </button>
-              ))}
-            </div>
-
-            <button
-              className="h-10 w-10 rounded-full bg-black hover:opacity-90 flex items-center justify-center shadow-lg transition-all text-white hover:scale-105 active:scale-95"
-              onClick={(e) => {
-                setClickOrigin({ x: e.clientX, y: e.clientY });
-                onPick?.("capture");
-              }}
-            >
-              <Plus size={22} />
-            </button>
-          </div>
-        </div>
-
-        {/* Circular Date Picker */}
-        <div className="w-full max-w-xl scale-90 -my-4">
-          <CircularDatePicker
-            selectedDate={dateObj}
-            onDateChange={setSelectedDate}
-          />
-        </div>
-
-        {/* View Options Moved to Main Page */}
-        <div className="w-full flex items-center justify-center pb-2">
-          <div className="flex bg-black/5 rounded-full p-1 border border-black/5 shadow-sm">
-            {VIEW_MODES.map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-5 py-2 rounded-full text-[11px] font-bold transition-all ${viewMode === mode
-                  ? "bg-black text-white shadow-md scale-105"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Top position logic moved to TodayPage.tsx
+  if (position === 'top') { return null; }
 
   const items = getItemsBySide(persona)[position as Exclude<DockPosition, 'top'>];
   const isVertical = position === 'left' || position === 'right';

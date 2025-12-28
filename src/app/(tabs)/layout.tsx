@@ -5,6 +5,7 @@ import DockPad from "@/ui/DockPad";
 import BottomNav from "@/ui/BottomNav";
 import ScrollAwareLayout from "@/components/ScrollAwareLayout";
 import ZenModeHome from "@/components/ZenModeHome";
+import SimpleDesignView from "@/components/SimpleDesignView";
 import { usePathname, useRouter } from "next/navigation";
 import { usePlatformStore } from "@/lib/store/platform-store";
 import { computeRange } from "@/lib/utils/date";
@@ -53,6 +54,8 @@ export default function TabsLayout({
   } = useUIStore();
   const { persona } = usePersona();
   const isZen = persona === "ZEN";
+  const isSimple = persona === "SIMPLE1" || persona === "SIMPLE2" || persona === "SIMPLE3";
+  const simpleVariant = persona === "SIMPLE1" ? 1 : persona === "SIMPLE2" ? 2 : persona === "SIMPLE3" ? 3 : 1;
 
 
   const isTopVisible = useDockStore(s => s.visibility.top);
@@ -73,6 +76,15 @@ export default function TabsLayout({
       setTasks([]);
     }
   }, [status, setTasks]);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-[var(--app-bg)] w-full" />;
+  }
 
   // Data is managed by sub-pages (TodayPage etc) to avoid double-fetching
   // but we still subscribe to tasks for the labels
@@ -113,6 +125,10 @@ export default function TabsLayout({
     }
     if (action === "howto") {
       router.push("/how-to");
+      return;
+    }
+    if (action === "chat" || action === "assist") {
+      router.push("/assist");
       return;
     }
   };
@@ -262,7 +278,7 @@ export default function TabsLayout({
   return (
     <div className="min-h-screen bg-[var(--app-bg)] overflow-hidden select-none transition-colors duration-500">
       {/* Top Dock: Period & System */}
-      {!isZen && (
+      {!isZen && !isSimple && (
         <DockBar position="top" label={greetingPart} labelSecondary={datePart}>
           <DockPad
             position="top"
@@ -273,45 +289,64 @@ export default function TabsLayout({
       )}
 
       {/* Left Dock: Quick Access & Tools */}
-      {!isZen && (
+      {!isZen && !isSimple && (
         <DockBar position="left" label={leftLabel}>
           <DockPad position="left" onPick={handleAction} />
         </DockBar>
       )}
 
       {/* Right Dock: Entertainment & Meta */}
-      {!isZen && (
+      {!isZen && !isSimple && (
         <DockBar position="right" label={rightLabel}>
           <DockPad position="right" onPick={handleAction} />
         </DockBar>
       )}
 
-      <ScrollAwareLayout className={isZen ? "" : "pb-24 pt-10"}>
-        {isZen && (
-          <ZenModeHome
-            onMap={() => handleAction("graph")}
-            onFlow={() => handleAction("waterfall")}
-            onFile={() => handleAction("report")}
+      {isSimple && (
+        <>
+          <SimpleDesignView
             greeting={greetingPart}
-            currentTime={currentTime}
-            viewMode={viewMode}
-            onViewChange={setViewMode}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
             activeTab={active}
+            variant={simpleVariant as 1 | 2 | 3}
+            onNavigate={(path) => router.push(path)}
+            onAction={handleAction}
           />
-        )}
-        {children}
-      </ScrollAwareLayout>
+          <div className="ml-[250px] min-h-screen">
+            <ScrollAwareLayout className="pb-24 pt-10">
+              {children}
+            </ScrollAwareLayout>
+          </div>
+        </>
+      )}
+
+      {!isSimple && (
+        <ScrollAwareLayout className={isZen ? "" : "pb-24 pt-10"}>
+          {isZen && (
+            <ZenModeHome
+              onMap={() => handleAction("graph")}
+              onFlow={() => handleAction("waterfall")}
+              onFile={() => handleAction("report")}
+              greeting={greetingPart}
+              currentTime={currentTime}
+              viewMode={viewMode}
+              onViewChange={setViewMode}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              activeTab={active}
+            />
+          )}
+          {!isSimple && children}
+        </ScrollAwareLayout>
+      )}
 
       {/* Bottom Dock: Platform Navigation */}
-      {!isZen && (
+      {!isZen && !isSimple && (
         <DockBar position="bottom" label={bottomLabel}>
           <BottomNav active={active} onNavigate={(to: string) => router.push(to)} />
         </DockBar>
       )}
 
-      {!isZen && <FullPageScroller />}
+      {!isZen && !isSimple && <FullPageScroller />}
 
       <TaskEditorModal
         open={showTaskEditor}

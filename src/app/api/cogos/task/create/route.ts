@@ -38,6 +38,8 @@ export async function POST(req: Request) {
   const goal: string | undefined = body.goal;
   const project: string | undefined = body.project;
   const notes: string | undefined = body.notes;
+  const recurrence: any | undefined = body.recurrence;
+  const isRoutine: boolean | undefined = body.is_routine;
 
   const now = new Date().toISOString();
   const episodeId = id("ep");
@@ -89,6 +91,8 @@ export async function POST(req: Request) {
       start_at: startAt,
       end_at: endAt,
     },
+    recurrence,
+    is_routine: isRoutine,
     created_at: now,
     updated_at: now,
   };
