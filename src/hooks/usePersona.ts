@@ -11,7 +11,7 @@ type PersonaState = {
 export const usePersona = create<PersonaState>()(
     persist(
         (set) => ({
-            persona: "SIMPLE1", // Default persona
+            persona: "EXECUTIVE", // Default persona
             setPersona: (persona) => set({ persona }),
         }),
         {

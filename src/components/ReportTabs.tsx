@@ -25,7 +25,7 @@ type MetricData = {
 };
 
 type OrderedMetric = { metric: MetricData; chart: string };
-type Period = "day" | "week" | "sprint" | "month" | "quarter";
+type Period = "day" | "week" | "sprint" | "month" | "quarter" | "year";
 
 const TAB_DEFS = [
   { id: "random", label: "Randomized Deck" },
@@ -64,7 +64,7 @@ export default function ReportTabs({ ordered }: { ordered: OrderedMetric[] }) {
           const valid = parsed.categories.filter((id: string) => lfOrdered.some((item) => item.metric.id === id));
           setSelectedCategories(valid.length ? valid : lfOrdered.map((item) => item.metric.id));
         }
-        if (parsed.period && ["day", "week", "sprint", "month", "quarter"].includes(parsed.period)) {
+        if (parsed.period && ["day", "week", "sprint", "month", "quarter", "year"].includes(parsed.period)) {
           setPeriod(parsed.period);
         }
       }
@@ -262,6 +262,7 @@ export default function ReportTabs({ ordered }: { ordered: OrderedMetric[] }) {
                 <option value="sprint">Sprint</option>
                 <option value="month">Month</option>
                 <option value="quarter">Quarter</option>
+                <option value="year">Year</option>
               </select>
 
               <button
@@ -371,6 +372,7 @@ export default function ReportTabs({ ordered }: { ordered: OrderedMetric[] }) {
                         <option value="sprint">Last Sprint</option>
                         <option value="month">This Month</option>
                         <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
                       </select>
                     </div>
 

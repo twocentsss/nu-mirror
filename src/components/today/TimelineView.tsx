@@ -61,7 +61,7 @@ export default function TimelineView({ tasks, onTaskClick, onAddTask, baseDate =
     }, [tasks, scale, baseDate]);
 
     return (
-        <div ref={containerRef} className="flex flex-col gap-6 w-full pb-32 lg:ml-48 xl:ml-56">
+        <div ref={containerRef} className="flex flex-col gap-6 w-full pb-32">
             {/* Precision Grid Header */}
             <div className="px-6 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ export default function TimelineView({ tasks, onTaskClick, onAddTask, baseDate =
                         ))}
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 text-white/20 ml-24 lg:ml-32 xl:ml-40">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/5 text-white/20">
                     <Clock size={10} />
                     <span className="text-[9px] font-black uppercase tracking-widest">{format(baseDate, 'MMM d, yyyy')}</span>
                 </div>

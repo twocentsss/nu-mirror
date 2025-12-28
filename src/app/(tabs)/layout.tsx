@@ -56,6 +56,8 @@ export default function TabsLayout({
   const isZen = persona === "ZEN";
   const isSimple = persona === "SIMPLE1" || persona === "SIMPLE2" || persona === "SIMPLE3";
   const simpleVariant = persona === "SIMPLE1" ? 1 : persona === "SIMPLE2" ? 2 : persona === "SIMPLE3" ? 3 : 1;
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(250); // Default 250px
 
 
   const isTopVisible = useDockStore(s => s.visibility.top);
@@ -76,15 +78,6 @@ export default function TabsLayout({
       setTasks([]);
     }
   }, [status, setTasks]);
-
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-[var(--app-bg)] w-full" />;
-  }
 
   // Data is managed by sub-pages (TodayPage etc) to avoid double-fetching
   // but we still subscribe to tasks for the labels
@@ -304,15 +297,44 @@ export default function TabsLayout({
 
       {isSimple && (
         <>
-          <SimpleDesignView
-            greeting={greetingPart}
-            activeTab={active}
-            variant={simpleVariant as 1 | 2 | 3}
-            onNavigate={(path) => router.push(path)}
-            onAction={handleAction}
-          />
-          <div className="ml-[250px] min-h-screen">
-            <ScrollAwareLayout className="pb-24 pt-10">
+          {sidebarVisible && (
+            <>
+              <SimpleDesignView
+                greeting={greetingPart}
+                activeTab={active}
+                variant={simpleVariant as 1 | 2 | 3}
+                onNavigate={(path) => router.push(path)}
+                onAction={handleAction}
+                width={sidebarWidth}
+                onWidthChange={setSidebarWidth}
+              />
+              {/* Toggle Button - positioned at right edge center of sidebar when visible */}
+              <button
+                onClick={() => setSidebarVisible(false)}
+                className="fixed top-1/2 -translate-y-1/2 z-[100] w-10 h-10 rounded-full bg-black/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black transition-all shadow-lg"
+                style={{ left: `${sidebarWidth - 20}px` }}
+                title="Hide Sidebar"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4L8 8L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </>
+          )}
+          <div className={`min-h-screen transition-all duration-300`} style={{ marginLeft: sidebarVisible ? `${sidebarWidth}px` : '0' }}>
+            {/* Sidebar Toggle Button - only show when sidebar is hidden */}
+            {!sidebarVisible && (
+              <button
+                onClick={() => setSidebarVisible(true)}
+                className="fixed top-6 left-6 z-[100] w-10 h-10 rounded-full bg-black/80 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black transition-all shadow-lg"
+                title="Show Sidebar"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 4L8 8L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            <ScrollAwareLayout>
               {children}
             </ScrollAwareLayout>
           </div>
