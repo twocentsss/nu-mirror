@@ -124,6 +124,10 @@ export default function TabsLayout({
       router.push("/assist");
       return;
     }
+    if (action === "decompose") {
+      router.push("/decompose");
+      return;
+    }
   };
 
   const selectedRange = useMemo(() => computeRange(viewMode, new Date(selectedDate)), [viewMode, selectedDate]);

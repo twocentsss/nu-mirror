@@ -1,0 +1,2367 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LifeFocus Workbench — SCQA → 5Ys → MECE → Priority → Execute → Narrative/Report/Story</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #12161c;
+      --panel2: #0f1318;
+      --text: #e9eef5;
+      --muted: #a8b3c3;
+      --line: #1e2631;
+      --good: #54d38a;
+      --warn: #ffd166;
+      --bad: #ff5c7a;
+      --accent: #6ea8ff;
+      --chip: #161d27;
+      --shadow: 0 10px 40px rgba(0, 0, 0, .35);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 10% 0%, #111a29 0%, var(--bg) 60%);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(10px);
+      background: rgba(11, 13, 16, .78);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(110, 168, 255, .95), rgba(84, 211, 138, .8));
+      box-shadow: var(--shadow);
+    }
+
+    .brand h1 {
+      font-size: 14px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .brand .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(22, 29, 39, .7);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .chip b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18, 22, 28, .9), rgba(12, 15, 20, .9));
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .btn:hover {
+      border-color: #2a3546
+    }
+
+    .btn.primary {
+      border-color: rgba(110, 168, 255, .35);
+      background: linear-gradient(180deg, rgba(110, 168, 255, .16), rgba(18, 22, 28, .9));
+    }
+
+    .btn.danger {
+      border-color: rgba(255, 92, 122, .35);
+      background: linear-gradient(180deg, rgba(255, 92, 122, .12), rgba(18, 22, 28, .9));
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px 16px 80px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(18, 22, 28, .85);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card .hd {
+      padding: 14px 14px 10px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(30, 38, 49, .65);
+      background: linear-gradient(180deg, rgba(18, 22, 28, 1), rgba(18, 22, 28, .55));
+    }
+
+    .title {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: .2px;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .body {
+      padding: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 38, 49, .85);
+      background: rgba(15, 19, 24, .65);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tab.active {
+      color: var(--text);
+      border-color: rgba(110, 168, 255, .35);
+      background: rgba(110, 168, 255, .10);
+    }
+
+    .hr {
+      height: 1px;
+      background: rgba(30, 38, 49, .7);
+      margin: 12px 0;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .small {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    textarea,
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      background: rgba(10, 13, 17, .85);
+      border: 1px solid rgba(30, 38, 49, .9);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-family: var(--sans);
+      font-size: 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    @media (max-width: 700px) {
+      .grid2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .kpis {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .kpi {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(15, 19, 24, .7);
+      border: 1px solid rgba(30, 38, 49, .8);
+    }
+
+    .kpi .label {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .kpi .value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .kpi .hint {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(22, 29, 39, .75);
+      border: 1px solid rgba(30, 38, 49, .85);
+      color: var(--muted);
+      font-size: 11px;
+      margin-right: 6px;
+      margin-top: 6px;
+      user-select: none;
+    }
+
+    .pill.good {
+      color: var(--good);
+      border-color: rgba(84, 211, 138, .35);
+      background: rgba(84, 211, 138, .08);
+    }
+
+    .pill.warn {
+      color: var(--warn);
+      border-color: rgba(255, 209, 102, .35);
+      background: rgba(255, 209, 102, .08);
+    }
+
+    .pill.bad {
+      color: var(--bad);
+      border-color: rgba(255, 92, 122, .35);
+      background: rgba(255, 92, 122, .08);
+    }
+
+    .pill.accent {
+      color: var(--accent);
+      border-color: rgba(110, 168, 255, .35);
+      background: rgba(110, 168, 255, .08);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(30, 38, 49, .7);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .table th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .console {
+      background: rgba(10, 13, 17, .85);
+      border: 1px solid rgba(30, 38, 49, .9);
+      border-radius: 12px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.5;
+      height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      color: rgba(233, 238, 245, .92);
+    }
+
+    .tree {
+      border: 1px solid rgba(30, 38, 49, .85);
+      background: rgba(15, 19, 24, .55);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .node {
+      border: 1px solid rgba(30, 38, 49, .85);
+      background: rgba(18, 22, 28, .55);
+      border-radius: 12px;
+      padding: 10px;
+      margin: 8px 0;
+    }
+
+    .node .nodeTop {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .node .nodeTop .left {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .node .nodeTop .right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .node input[type="text"] {
+      min-width: 280px;
+    }
+
+    .indent {
+      margin-left: 18px;
+      padding-left: 10px;
+      border-left: 1px dashed rgba(30, 38, 49, .75);
+    }
+
+    .tag {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(30, 38, 49, .85);
+      background: rgba(22, 29, 39, .65);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .tag select,
+    .tag input {
+      padding: 6px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      width: auto;
+    }
+
+    canvas {
+      width: 100%;
+      height: 220px;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>LifeFocus Workbench</h1>
+          <div class="sub">Language → SCQA → 5 Whys → MECE Tree → MoSCoW/Eisenhower → Execute →
+            Narrative/Report/Story/Comic</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="chip"><span>Mode</span> <b id="modeLabel">Workbench</b></div>
+        <div class="chip"><span>Updated</span> <b id="updatedLabel">—</b></div>
+        <button class="btn" id="btnSeed">Load sample</button>
+        <button class="btn" id="btnExport">Export JSON</button>
+        <button class="btn primary" id="btnRun">Parse → Build → Prioritize</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+
+      <!-- LEFT: WORKBENCH -->
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2 class="title">Reasoning Pipeline</h2>
+            <div class="meta" id="summaryLine">—</div>
+          </div>
+          <div class="tabs" id="tabs"></div>
+        </div>
+
+        <div class="body" id="leftBody">
+          <!-- populated by JS -->
+        </div>
+      </section>
+
+      <!-- RIGHT: MODEL + CONSOLE -->
+      <aside class="card">
+        <div class="hd">
+          <div>
+            <h2 class="title">Model + Console</h2>
+            <div class="meta">Single source of truth + event log tail</div>
+          </div>
+          <div class="meta">
+            <span class="pill accent" id="pillStatus">Ready</span>
+          </div>
+        </div>
+        <div class="body">
+
+          <div class="kpis" id="kpis"></div>
+          <div class="hr"></div>
+
+          <div class="split">
+            <div>
+              <div class="small">Model (JSON)</div>
+              <textarea id="jsonBox" spellcheck="false" style="min-height:320px"></textarea>
+              <div class="small" style="margin-top:8px;color:rgba(168,179,195,.9)">
+                Edits here are authoritative. Click “Parse → Build → Prioritize” to recompute derived fields.
+              </div>
+            </div>
+            <div>
+              <div class="small">Console (tail)</div>
+              <div id="console" class="console"></div>
+              <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+                <button class="btn" id="btnClearLog">Clear log</button>
+                <button class="btn" id="btnValidate">Validate model</button>
+                <button class="btn danger" id="btnHardReset">Hard reset</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    /* ============================================================
+       CORE IDEA
+       - Everything lives in MODEL.
+       - UI edits mutate MODEL.
+       - Derived artifacts are recomputed deterministically.
+       - Console logs every significant step (audit trail).
+       ============================================================ */
+
+    const $ = (id) => document.getElementById(id);
+
+    function nowStr() { return new Date().toLocaleString(); }
+    function uid(prefix = "X") { return prefix + "-" + Math.random().toString(16).slice(2, 8).toUpperCase(); }
+    function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    }
+
+    const LOG = [];
+    function log(msg, tone = "info") {
+      const line = `[${new Date().toLocaleTimeString()}] ${tone.toUpperCase()}: ${msg}`;
+      LOG.push(line);
+      if (LOG.length > 400) LOG.splice(0, LOG.length - 400);
+      $("console").textContent = LOG.slice(-180).join("\n");
+      $("console").scrollTop = $("console").scrollHeight;
+    }
+
+    function setStatus(txt, tone = "accent") {
+      $("pillStatus").textContent = txt;
+      $("pillStatus").className = "pill " + (tone === "good" ? "good" : tone === "warn" ? "warn" : tone === "bad" ? "bad" : "accent");
+    }
+
+    /* =========================
+       Minimal chart primitives
+       ========================= */
+    function DPR() { return Math.max(1, Math.floor(window.devicePixelRatio || 1)); }
+    function setupCanvas(canvas) {
+      const dpr = DPR();
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(10, Math.floor(rect.width));
+      const h = Math.max(10, Math.floor(rect.height));
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      return { ctx, w, h };
+    }
+    function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function text(ctx, s, x, y, opts = {}) {
+      const { size = 12, color = "rgba(233,238,245,.9)", align = "left", baseline = "alphabetic", weight = 600, font = "var(--sans)" } = opts;
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = `${weight} ${size}px ${font}`;
+      ctx.textAlign = align;
+      ctx.textBaseline = baseline;
+      ctx.fillText(String(s), x, y);
+      ctx.restore();
+    }
+    function drawGrid(ctx, w, h, pad, rows = 5) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(30,38,49,.7)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= rows; i++) {
+        const y = pad.t + (h - pad.t - pad.b) * (i / rows);
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(w - pad.r, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      const rr = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, y);
+      ctx.arcTo(x + w, y, x + w, y + h, rr);
+      ctx.arcTo(x + w, y + h, x, y + h, rr);
+      ctx.arcTo(x, y + h, x, y, rr);
+      ctx.arcTo(x, y, x + w, y, rr);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+    function toneColor(tone) {
+      if (tone === "good") return cssVar("--good") || "#54d38a";
+      if (tone === "warn") return cssVar("--warn") || "#ffd166";
+      if (tone === "bad") return cssVar("--bad") || "#ff5c7a";
+      return cssVar("--accent") || "#6ea8ff";
+    }
+    function barChart(canvas, labels, values) {
+      const { ctx, w, h } = setupCanvas(canvas);
+      const pad = { l: 42, r: 16, t: 14, b: 44 };
+      drawGrid(ctx, w, h, pad, 5);
+
+      const max = Math.max(100, ...values);
+      const min = 0;
+
+      const plotW = w - pad.l - pad.r;
+      const plotH = h - pad.t - pad.b;
+      const n = Math.max(1, values.length);
+      const gap = 10;
+      const bw = Math.max(12, (plotW - gap * (n - 1)) / n);
+
+      for (let i = 0; i < n; i++) {
+        const v = values[i];
+        const x = pad.l + i * (bw + gap);
+        const barH = (v - min) / (max - min) * plotH;
+        const y = pad.t + (plotH - barH);
+
+        ctx.fillStyle = "rgba(15,19,24,.85)";
+        ctx.strokeStyle = "rgba(30,38,49,.9)";
+        ctx.lineWidth = 1;
+        roundRect(ctx, x, pad.t, bw, plotH, 10, true, true);
+
+        const g = ctx.createLinearGradient(0, y, 0, y + barH);
+        g.addColorStop(0, "rgba(110,168,255,.85)");
+        g.addColorStop(1, "rgba(84,211,138,.55)");
+        ctx.fillStyle = g;
+        roundRect(ctx, x, y, bw, barH, 10, true, false);
+
+        text(ctx, String(Math.round(v)), x + bw / 2, y - 8, { align: "center", size: 11, color: "rgba(168,179,195,.95)", weight: 700 });
+        const lab = labels[i] || "";
+        text(ctx, lab.length > 9 ? lab.slice(0, 9) + "…" : lab, x + bw / 2, pad.t + plotH + 20, { align: "center", size: 11, color: "rgba(168,179,195,.85)", weight: 600 });
+      }
+
+      for (let i = 0; i <= 5; i++) {
+        const v = Math.round(max * (1 - i / 5));
+        const y = pad.t + plotH * (i / 5);
+        text(ctx, String(v), pad.l - 8, y, { align: "right", baseline: "middle", size: 11, color: "rgba(168,179,195,.85)", weight: 600 });
+      }
+    }
+    function donutChart(canvas, done, total) {
+      const { ctx, w, h } = setupCanvas(canvas);
+      const cx = w / 2, cy = h / 2;
+      const r = Math.min(w, h) * 0.34;
+      const thick = Math.max(16, r * 0.45);
+
+      total = Math.max(1, total);
+      const frac = clamp(done / total, 0, 1);
+
+      ctx.lineWidth = thick;
+      ctx.strokeStyle = "rgba(30,38,49,.7)";
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.strokeStyle = "rgba(84,211,138,.95)";
+      ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); ctx.stroke();
+
+      const pct = Math.round(frac * 100);
+      text(ctx, `${pct}%`, cx, cy - 4, { align: "center", baseline: "middle", size: 26, weight: 800 });
+      text(ctx, `done`, cx, cy + 22, { align: "center", baseline: "middle", size: 12, color: "rgba(168,179,195,.95)", weight: 700 });
+    }
+
+    /* ============================================================
+       MODEL
+       ============================================================ */
+
+    const SAMPLE = {
+      period: { id: "Q1-2026", label: "Q1", start: "2026-01-01", end: "2026-03-31" },
+      rawInput: {
+        contextText:
+          `Context: Progress across LifeFocus → Goals → Tasks feels opaque.
+Trigger: Too many parallel goals; inconsistent scoring; no ritual.
+Conflict: Work happens but narrative & metrics are not captured.
+Constraints: Protect mornings; cap active goals; avoid scope creep.
+Stakeholders: You, Future-you reviewer, Delegates.
+Goal: Build a single-file dashboard + reasoning workbench that converts language into structured execution.`,
+        tasksText:
+          `Ship interactive SCQA editor
+Add 5-Whys builder
+Generate MECE issue tree nodes
+Add MoSCoW + Eisenhower prioritizer
+Create task execution helper: next action, blockers, timebox
+Auto-generate narrative, report, story, comic beats from tasks
+Implement scoring: TW, CP, SM, ESF, QM, SF, BP -> BPS/APS/SPS`
+      },
+      scqa: {
+        situation: "", conflict: "", question: "", answer: "",
+        constraints: { time: "", quality: "", quantity: "", budgetUSD: 200, stakeholders: [] },
+        hypotheses: [],
+        assertions: []
+      },
+      fiveWhys: {
+        chain: ["", "", "", "", ""],
+        rootCause: "",
+        fixIdea: ""
+      },
+      meceTree: {
+        root: {
+          id: "N-ROOT", label: "Problem System", kind: "issue", note: "",
+          children: []
+        }
+      },
+      priorities: {
+        moscow: { must: [], should: [], could: [], wont: [] },
+        eisenhower: { ui: [], un: [], ni: [], nn: [] } // urgent+important, urgent+not, not+important, not+not
+      },
+      tasks: [],
+      scoringDefaults: {
+        SM: 1.1, ESF: 1.0, QM: 1.1, SF: 1.0, BP: 0.0
+      },
+      outputs: {
+        narrative: "",
+        report: "",
+        story: "",
+        comic: ""
+      },
+      lifeFocus: [
+        { code: "F01", focus: "CORE", score: 78 },
+        { code: "F02", focus: "SELF", score: 63 },
+        { code: "F03", focus: "CIRCLE", score: 58 },
+        { code: "F04", focus: "GRIND", score: 71 },
+        { code: "F05", focus: "LEVEL UP", score: 66 },
+        { code: "F06", focus: "IMPACT", score: 44 },
+        { code: "F07", focus: "PLAY", score: 52 },
+        { code: "F08", focus: "INSIGHT", score: 74 },
+        { code: "F09", focus: "CHAOS", score: 35 }
+      ],
+      _meta: { lastRunAt: null, version: "v2-workbench" }
+    };
+
+    let MODEL = deepClone(SAMPLE);
+
+    function deepClone(x) { return JSON.parse(JSON.stringify(x)); }
+
+    /* ============================================================
+       LANGUAGE PARSING (DETERMINISTIC HEURISTICS)
+       - This is not "AI". It's rule-based extraction.
+       - You can extend the dictionaries / patterns over time.
+       ============================================================ */
+
+    /* ============================================================
+       LANGUAGE PARSING (NLP & HEURISTICS)
+       - "Fuzzy" extraction using sentence segmentation + classification.
+       - Robust to unstructured "brain dumps".
+       ============================================================ */
+
+    const NLP = {
+      // Regex patterns for classification
+      patterns: {
+        conflict: /\b(issue|problem|fail|broken|crash|bug|error|slow|latency|leak|stuck|blocked|hard|difficult|annoying|pain|mess|opaque|chaos)\b/i,
+        goal: /\b(goal|objective|target|vision|aim|must|should|want|need to|achieve|enable)\b/i,
+        question: /\?$/,
+        task: /^(?:I need to|We must|Please|Fix|Ship|Build|Create|Add|Update|Remove|Refactor|Optimize|Deploy|Test|Verify|Check)\b/i,
+        constraint: /\b(limit|cap|budget|cost|time|deadline|only|restrict|constraint|boundary)\b/i,
+        stakeholder: /\b(client|user|customer|boss|manager|team|reviewer|exec|stakeholder)\b/i,
+
+        // Entity extraction
+        date: /\b(?:by|due|on|until)?\s*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\d{4}-\d{2}-\d{2}|tomorrow|next week|friday|monday)\b/i,
+        priority: /\b(urgent|critical|high|asp|asap|important|p0|p1)\b/i,
+        money: /\$?\d+(?:,\d{3})*(?:\.\d+)?\s*(?:usd|dollars|k|m)/i
+      },
+
+      segment(text) {
+        text = String(text || "").trim();
+        if (!text) return [];
+
+        // Use Intl.Segmenter if available (modern browsers)
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+          return Array.from(segmenter.segment(text)).map(s => s.segment.trim()).filter(Boolean);
+        }
+
+        // Robust fallback
+        return text.split(/([.?!])\s+(?=[A-Z])/).reduce((acc, part, i, arr) => {
+          if (i % 2 === 0) { // Content
+            const punct = arr[i + 1] || "";
+            if (part) acc.push((part + punct).trim());
+          }
+          return acc;
+        }, []);
+      },
+
+      classify(sentence) {
+        const s = sentence.toLowerCase();
+
+        // 1. Explicit overrides (colon syntax) still win
+        if (s.match(/^(context|situation):/)) return "situation_override";
+        if (s.match(/^(conflict|issue|problem):/)) return "conflict_override";
+        if (s.match(/^(goal|objective):/)) return "goal_override";
+        if (s.match(/^(task|todo):/)) return "task_override";
+
+        // 2. Heuristics
+        let score = { situation: 1, conflict: 0, goal: 0, task: 0, question: 0 };
+
+        if (NLP.patterns.conflict.test(s)) score.conflict += 2;
+        if (NLP.patterns.goal.test(s)) score.goal += 2;
+        if (NLP.patterns.question.test(s)) score.question += 3;
+        if (NLP.patterns.constraint.test(s)) score.situation += 1; // constraints often part of context
+
+        // Imperative verbs often signal tasks
+        if (NLP.patterns.task.test(sentence)) score.task += 2;
+
+        // Sentiment adjustments (crude)
+        if (s.includes("not") || s.includes("no ") || s.includes("fail")) score.conflict += 0.5;
+        if (s.includes("will") || s.includes("can")) score.goal += 0.5;
+
+        // Find winner
+        const max = Math.max(score.situation, score.conflict, score.goal, score.task, score.question);
+        if (max === score.question) return "question";
+        if (max === score.task && score.task > 1) return "task";
+        if (max === score.conflict && score.conflict > 1) return "conflict";
+        if (max === score.goal && score.goal > 1) return "goal";
+
+        return "situation"; // Default to general context
+      },
+
+      extractAttributes(text) {
+        const dateMatch = text.match(NLP.patterns.date);
+        const priMatch = text.match(NLP.patterns.priority);
+        const moneyMatch = text.match(NLP.patterns.money);
+
+        return {
+          due: dateMatch ? dateMatch[1] : "",
+          priority: priMatch ? (priMatch[1].match(/p0|urgent|critical/i) ? 1 : 2) : 3,
+          budget: moneyMatch ? parseFloat(moneyMatch[0].replace(/[^0-9.]/g, '')) : 0
+        };
+      }
+    };
+
+    function parseContextToSCQA(text) {
+      const sentences = NLP.segment(text);
+
+      const out = {
+        situation: [],
+        conflict: [],
+        question: [],
+        answer: [],
+        constraints: { time: "", quality: "", quantity: "", budgetUSD: 200, stakeholders: [] },
+        hypotheses: [],
+        assertions: []
+      };
+
+      const rawConstraints = [];
+      const rawStakeholders = [];
+
+      sentences.forEach(s => {
+        const type = NLP.classify(s);
+
+        // Handle explicit overrides first
+        if (type.includes("_override")) {
+          const content = s.replace(/^[^:]+:\s*/, "");
+          if (type === "conflict_override") out.conflict.push(content);
+          else if (type === "goal_override") out.answer.push(`Goal: ${content}`);
+          else out.situation.push(content);
+          return;
+        }
+
+        // Heuristic routing
+        switch (type) {
+          case "conflict": out.conflict.push(s); break;
+          case "question": out.question.push(s); break;
+          case "goal": out.answer.push(`Obj: ${s}`); break;
+          default: out.situation.push(s); break;
+        }
+
+        // Constraint sniffing (global pass)
+        if (NLP.patterns.constraint.test(s)) rawConstraints.push(s);
+        if (NLP.patterns.stakeholder.test(s)) rawStakeholders.push(s);
+      });
+
+      // Synthesize strings
+      const finalS = out.situation.join(" ");
+      const finalC = out.conflict.join(" ");
+      const finalQ = out.question.length ? out.question.join(" ") : (finalC ? "How do we resolve this conflict?" : "What is the best path forward?");
+      const finalA = out.answer.join(" ");
+
+      // Fill object
+      const result = {
+        situation: finalS || "Context provided.",
+        conflict: finalC || "No explicit conflict detected.",
+        question: finalQ,
+        answer: finalA || "Proposed solution strategy.",
+        constraints: {
+          time: sniffConstraint(rawConstraints.join(" "), ["time", "deadline", "date"]) || "",
+          quality: sniffConstraint(rawConstraints.join(" "), ["quality", "standard"]) || "",
+          quantity: sniffConstraint(rawConstraints.join(" "), ["limit", "cap", "scope"]) || "",
+          budgetUSD: NLP.extractAttributes(text).budget || 200,
+          stakeholders: rawStakeholders.length ? [...new Set(splitList(rawStakeholders.join(", ")))] : []
+        },
+        hypotheses: [
+          { id: uid("H"), h: "If we address the root conflict, metrics will improve.", confidence: 0.6 }
+        ],
+        assertions: []
+      };
+
+      return result;
+    }
+
+    function parseTasks(text) {
+      // 1. Split by newlines for bullet points (explicit)
+      const lines = String(text || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+
+      // 2. Also split prose logic if present (implicit tasks in paragraphs)
+      // Heuristic: If lines look like paragraphs (>80 chars), try segmenting them too.
+      const taskCandidates = [];
+      lines.forEach(line => {
+        if (line.length > 80 && line.includes(".")) {
+          const segs = NLP.segment(line);
+          segs.forEach(s => {
+            if (NLP.classify(s) === "task") taskCandidates.push(s);
+          });
+        } else {
+          taskCandidates.push(line);
+        }
+      });
+
+      const tasks = taskCandidates.map((ln) => {
+        const id = uid("T");
+        const attr = NLP.extractAttributes(ln);
+        const cleanTitle = normalizeTaskTitle(ln);
+
+        const impact = guessImpact(cleanTitle);
+
+        return {
+          id,
+          title: cleanTitle,
+          status: "Not Started",
+          priority: attr.priority,
+          due: attr.due,
+          estimateMin: guessEffort(cleanTitle),
+          impact,
+          confidence: 0.6,
+          owner: "You",
+          blockers: [],
+          nextAction: "",
+          doneDefinition: "",
+          narrative: "",
+          report: "",
+          story: "",
+          score: {
+            TW: clamp(Math.round(impact * 10), 0, 10),
+            CP: 0.0,
+            SM: MODEL.scoringDefaults.SM,
+            ESF: MODEL.scoringDefaults.ESF,
+            QM: MODEL.scoringDefaults.QM,
+            SF: MODEL.scoringDefaults.SF,
+            BP: MODEL.scoringDefaults.BP,
+            BPS: 0,
+            APS: 0,
+            SPS: 0
+          },
+          tags: guessTags(cleanTitle)
+        };
+      });
+
+      return tasks;
+    }
+
+    // Helpers reused by new logic
+    function splitList(s) {
+      s = String(s || "").trim();
+      if (!s) return [];
+      // enhanced splitter
+      return s.split(/[,;]|\s+and\s+/i).map(x => x.trim()).filter(Boolean);
+    }
+
+    function sniffConstraint(s, words) {
+      const t = String(s || "").toLowerCase();
+      for (const w of words) {
+        if (t.includes(w.toLowerCase())) return s.trim(); // Return full sentence context for now
+      }
+      return "";
+    }
+
+    function normalizeTaskTitle(s) {
+      s = String(s || "").trim();
+      s = s.replace(/^[-*•>]\s*/, ""); // Remove bullets
+      s = s.replace(/^\d+\.\s*/, ""); // Remove numbering
+      return s.replace(/\s+/g, " ");
+    }
+
+    function guessEffort(s) {
+      const t = String(s || "").toLowerCase();
+      if (t.includes("score") || t.includes("architect")) return 180;
+      if (t.includes("design") || t.includes("plan")) return 90;
+      if (t.includes("test") || t.includes("fix")) return 45;
+      return 60;
+    }
+
+    function guessImpact(s) {
+      const t = String(s || "").toLowerCase();
+      if (t.includes("critical") || t.includes("core")) return 0.9;
+      if (t.includes("feature") || t.includes("user")) return 0.8;
+      if (t.includes("doc") || t.includes("style")) return 0.4;
+      return 0.6;
+    }
+
+    function guessTags(s) {
+      const t = String(s || "").toLowerCase();
+      const tags = [];
+      if (t.includes("fix") || t.includes("bug")) tags.push("bug");
+      if (t.includes("test")) tags.push("qa");
+      if (t.includes("design")) tags.push("design");
+      if (t.includes("perf") || t.includes("fast")) tags.push("performance");
+      return tags;
+    }
+
+    /* ============================================================
+       5 WHYS + MECE TREE GENERATION
+       ============================================================ */
+
+    function buildFiveWhysFromSCQA(scqa) {
+      const c = (scqa.conflict || "").trim();
+      const s = (scqa.situation || "").trim();
+
+      // deterministic seed: conflict first; fallback to situation
+      const seed = c || s || "Progress is not improving.";
+
+      const chain = [
+        `Why does "${seed}" occur?`,
+        `Why does the above cause exist (process failure)?`,
+        `Why is that process not enforced (governance/ritual)?`,
+        `Why is governance absent (incentives/visibility/tools)?`,
+        `Why are incentives misaligned (no audit trail / no constraints)?`
+      ];
+
+      const rootCause = "No enforced single source of truth + no review ritual + no audit trail.";
+      const fixIdea = "Add model+events, force weekly snapshot, derive narrative/metrics automatically.";
+      return { chain, rootCause, fixIdea };
+    }
+
+    function buildMECETwitter(scqa, fiveWhys, tasks) {
+      // A starter tree tuned to your domain: Model, Measurement, Execution, Presentation, Governance.
+      // Each node can be edited; user can add children.
+      const root = {
+        id: "N-ROOT",
+        label: "Dashboard System Problem",
+        kind: "issue",
+        note: "MECE buckets + testable leaves",
+        children: [
+          node("Model", "issue", "Entities/fields/IDs/relations; lifecycle: active→closed→archived", [
+            node("Entities", "issue", "Focus, Project, Goal, Task, Report, Story, Comic, Account, Score", [
+              node("IDs + relations", "hypothesis", "If IDs are consistent, moving/archiving is safe.", []),
+              node("Lifecycle states", "issue", "Draft/InProgress/Done/Closed/Archived + reason codes", []),
+            ]),
+            node("Event log", "metric", "All changes appended; projections derived", [])
+          ]),
+          node("Measurement", "issue", "Scoring, progress %, trend series, audit trail", [
+            node("Scoring function", "metric", "TW/CP/SM/ESF/QM/SF/BP → SPS", []),
+            node("Anti-gaming", "issue", "Require definition-of-done + evidence link", [])
+          ]),
+          node("Execution", "issue", "Prioritization, capacity, blockers, timeboxes", [
+            node("Prioritizers", "issue", "MoSCoW + Eisenhower + WSJF-like heuristic", []),
+            node("Task next action", "hypothesis", "If next action is explicit, throughput increases.", [])
+          ]),
+          node("Presentation", "issue", "Dashboards, prompts, exports, UX", [
+            node("Workbench panels", "issue", "SCQA/5Ys/Tree/Priority/Execute/Narrate", []),
+            node("Exports", "metric", "JSON snapshots + report artifacts", [])
+          ]),
+          node("Governance", "issue", "Rituals, constraints, review cadence", [
+            node("Weekly snapshot", "hypothesis", "If weekly snapshot exists, drift reduces.", []),
+            node("Scope control", "issue", "Feature gating by decision impact", [])
+          ])
+        ]
+      };
+      return { root };
+
+      function node(label, kind = "issue", note = "", children = []) {
+        return { id: uid("N"), label, kind, note, children };
+      }
+    }
+
+    /* ============================================================
+       PRIORITIZATION (MoSCoW + Eisenhower)
+       ============================================================ */
+
+    function computeTaskScore(task) {
+      // Score per your formula:
+      // BPS = TW * CP
+      // APS = BPS * SM * ESF * QM
+      // SPS = APS * SF * (1 - BP)
+      const TW = clamp(+task.score.TW || 0, 0, 10);
+      const CP = clamp(+task.score.CP || 0, 0, 1);
+      const SM = clamp(+task.score.SM || 1, 0.5, 2.0);
+      const ESF = clamp(+task.score.ESF || 1, 0.5, 2.0);
+      const QM = clamp(+task.score.QM || 1, 0.2, 2.0);
+      const SF = clamp(+task.score.SF || 1, 0.5, 3.0);
+      const BP = clamp(+task.score.BP || 0, 0, 0.8);
+
+      const BPS = TW * CP;
+      const APS = BPS * SM * ESF * QM;
+      const SPS = APS * SF * (1 - BP);
+
+      task.score.BPS = round2(BPS);
+      task.score.APS = round2(APS);
+      task.score.SPS = round2(SPS);
+    }
+    function round2(n) { return Math.round((+n || 0) * 100) / 100; }
+
+    function prioritizeTasks(tasks) {
+      // Deterministic heuristic:
+      // value = impact(TW) * confidence / effortMinutes
+      const ranked = tasks.map(t => {
+        computeTaskScore(t);
+        const tw = clamp(+t.score.TW || 0, 0, 10);
+        const conf = clamp(+t.confidence || 0.6, 0, 1);
+        const eff = Math.max(15, +t.estimateMin || 60);
+        const urgency = dueUrgency(t.due);
+        const value = (tw / 10) * conf / (eff / 120); // normalized
+        const priorityScore = value * (1 + 0.4 * urgency);
+        return { t, value, urgency, priorityScore };
+      }).sort((a, b) => b.priorityScore - a.priorityScore);
+
+      // MoSCoW partition: top 25% must, next 35% should, next 30% could, rest won't
+      const n = ranked.length || 1;
+      const cutMust = Math.max(1, Math.round(n * 0.25));
+      const cutShould = Math.max(cutMust, Math.round(n * 0.60));
+      const cutCould = Math.max(cutShould, Math.round(n * 0.90));
+
+      const moscow = { must: [], should: [], could: [], wont: [] };
+      ranked.forEach((x, i) => {
+        const ref = refTask(x.t, x);
+        if (i < cutMust) moscow.must.push(ref);
+        else if (i < cutShould) moscow.should.push(ref);
+        else if (i < cutCould) moscow.could.push(ref);
+        else moscow.wont.push(ref);
+      });
+
+      // Eisenhower: urgent if due within 7 days; important if priority<=2 or TW>=7
+      const e = { ui: [], un: [], ni: [], nn: [] };
+      tasks.forEach(t => {
+        const urgent = dueUrgency(t.due) >= 1;
+        const important = (t.priority ?? 9) <= 2 || (+t.score.TW || 0) >= 7;
+        const label = `${t.id} — ${t.title}`;
+        if (urgent && important) e.ui.push(label);
+        else if (urgent && !important) e.un.push(label);
+        else if (!urgent && important) e.ni.push(label);
+        else e.nn.push(label);
+      });
+
+      return { moscow, eisenhower: e };
+    }
+    function dueUrgency(dueStr) {
+      if (!dueStr) return 0;
+      const now = Date.now();
+      const due = new Date(dueStr + "T00:00:00").getTime();
+      if (!Number.isFinite(due)) return 0;
+      const days = (due - now) / 864e5;
+      if (days <= 2) return 2;
+      if (days <= 7) return 1;
+      return 0;
+    }
+    function refTask(t, x) {
+      const eff = Math.max(15, +t.estimateMin || 60);
+      const tw = clamp(+t.score.TW || 0, 0, 10);
+      const conf = clamp(+t.confidence || 0.6, 0, 1);
+      const u = x.urgency;
+      return `${t.id} — ${t.title} (TW ${tw}, conf ${Math.round(conf * 100)}%, eff ${eff}m${u ? `, urgent` : ``})`;
+    }
+
+    /* ============================================================
+       NARRATIVE / REPORT / STORY / COMIC GENERATORS
+       - Deterministic templates; not "creative writing" as a black box.
+       ============================================================ */
+
+    function genTaskNarrative(task, scqa) {
+      const blockers = (task.blockers || []).length ? (task.blockers || []).join("; ") : "none declared";
+      const na = task.nextAction || "Define the next action.";
+      const dod = task.doneDefinition || "Define objective acceptance criteria.";
+      return [
+        `Task: ${task.title}`,
+        `Why it matters: ${scqa.question || "Improves the system's ability to change outcomes."}`,
+        `Next action: ${na}`,
+        `Blockers: ${blockers}`,
+        `Definition of done: ${dod}`,
+        `Risk check: metric gaming prevented by requiring DoD + evidence.`
+      ].join("\n");
+    }
+
+    function genTaskReport(task) {
+      const s = task.score || {};
+      return [
+        `REPORT — ${task.id} ${task.title}`,
+        `Status: ${task.status} | Priority: P${task.priority ?? "?"} | Due: ${task.due || "—"} | Owner: ${task.owner || "—"}`,
+        `Effort: ${task.estimateMin || 0} min | Confidence: ${Math.round((task.confidence || 0.6) * 100)}%`,
+        `Scoring: TW=${s.TW} CP=${s.CP} SM=${s.SM} ESF=${s.ESF} QM=${s.QM} SF=${s.SF} BP=${s.BP}`,
+        `Computed: BPS=${s.BPS} APS=${s.APS} SPS=${s.SPS}`,
+        `Blockers: ${(task.blockers || []).join("; ") || "none"}`,
+        `Evidence: (attach link/notes here)`,
+        `Next: ${task.nextAction || "define next action"}`
+      ].join("\n");
+    }
+
+    function genTaskStory(task, scqa) {
+      // SCQA mapped to micro-plot
+      const S = scqa.situation || "A system is being built.";
+      const C = scqa.conflict || "Progress is opaque.";
+      const Q = `Will "${task.title}" resolve the constraint?`;
+      const A = `Yes if DoD is met and evidence is captured.`;
+      return [
+        `SITUATION: ${S}`,
+        `CONFLICT: ${C}`,
+        `QUESTION: ${Q}`,
+        `ANSWER: ${A}`,
+        `BEAT: attempt → constraint → reframe → ship → measure.`
+      ].join("\n");
+    }
+
+    function genTaskComic(task) {
+      const beats = [
+        "Panel 1 (Setup): Developer stares at dashboard: “Why does this feel fake?”",
+        `Panel 2 (Constraint): A sticky note: “DoD missing.”`,
+        `Panel 3 (Action): Types: “Next action: ${task.nextAction || "Define next action"}”`,
+        "Panel 4 (Ship): Green pill: “Done.”",
+        "Panel 5 (Aftermath): Console logs: “SPS updated.”"
+      ];
+      return beats.join("\n");
+    }
+
+    /* ============================================================
+       MECE TREE UI + MUTATIONS
+       ============================================================ */
+
+    function treeToFlat(root, depth = 0, acc = []) {
+      acc.push({ node: root, depth });
+      (root.children || []).forEach(ch => treeToFlat(ch, depth + 1, acc));
+      return acc;
+    }
+    function findNodeById(root, id) {
+      if (root.id === id) return root;
+      for (const ch of (root.children || [])) {
+        const f = findNodeById(ch, id);
+        if (f) return f;
+      }
+      return null;
+    }
+    function findParent(root, id, parent = null) {
+      if (root.id === id) return parent;
+      for (const ch of (root.children || [])) {
+        const f = findParent(ch, id, root);
+        if (f) return f;
+      }
+      return null;
+    }
+    function removeNode(root, id) {
+      const p = findParent(root, id);
+      if (!p) return false;
+      p.children = (p.children || []).filter(x => x.id !== id);
+      return true;
+    }
+    function addChild(root, parentId, label = "New node", kind = "issue") {
+      const p = findNodeById(root, parentId);
+      if (!p) return false;
+      p.children = p.children || [];
+      p.children.push({ id: uid("N"), label, kind, note: "", children: [] });
+      return true;
+    }
+
+    /* ============================================================
+       UI RENDERING
+       ============================================================ */
+
+    const TABS = [
+      { id: "input", label: "Input" },
+      { id: "scqa", label: "SCQA" },
+      { id: "5ys", label: "5 Whys" },
+      { id: "mece", label: "MECE Tree" },
+      { id: "priority", label: "Priority" },
+      { id: "tasks", label: "Tasks + Scoring" },
+      { id: "execute", label: "Execute" },
+      { id: "outputs", label: "Narrative/Report/Story/Comic" }
+    ];
+    let ACTIVE_TAB = "input";
+    let SELECTED_TASK_ID = null;
+
+    function refreshAll(reason = "") {
+      $("updatedLabel").textContent = nowStr();
+      $("modeLabel").textContent = "Workbench";
+      $("summaryLine").textContent = `${MODEL.period.id} • ${MODEL._meta.version} • tasks ${MODEL.tasks.length} • last run ${MODEL._meta.lastRunAt || "—"}${reason ? ` • ${reason}` : ""}`;
+      renderTabs();
+      renderKPIs();
+      renderLeft();
+      syncJSONBox();
+    }
+
+    function renderTabs() {
+      const wrap = $("tabs");
+      wrap.innerHTML = "";
+      TABS.forEach(t => {
+        const b = document.createElement("button");
+        b.className = "tab" + (t.id === ACTIVE_TAB ? " active" : "");
+        b.textContent = t.label;
+        b.onclick = () => { ACTIVE_TAB = t.id; renderLeft(); };
+        wrap.appendChild(b);
+      });
+    }
+
+    function renderKPIs() {
+      const lfAvg = Math.round((MODEL.lifeFocus || []).reduce((a, f) => a + (+f.score || 0), 0) / Math.max(1, (MODEL.lifeFocus || []).length));
+      const done = MODEL.tasks.filter(t => t.status === "Done").length;
+      const total = MODEL.tasks.length || 1;
+      const spsSum = round2(MODEL.tasks.reduce((a, t) => a + (+t.score?.SPS || 0), 0));
+
+      const kpis = [
+        { label: "Focus Avg", value: String(lfAvg), hint: "Mean F01..F09" },
+        { label: "Tasks Done", value: `${done}/${MODEL.tasks.length}`, hint: "Completion count" },
+        { label: "SPS Total", value: String(spsSum), hint: "Σ Sustained Productivity Score" },
+        { label: "Model Version", value: MODEL._meta.version, hint: "Schema + UI pack" }
+      ];
+      const wrap = $("kpis");
+      wrap.innerHTML = "";
+      kpis.forEach(k => {
+        const el = document.createElement("div");
+        el.className = "kpi";
+        el.innerHTML = `<div class="label">${escapeHtml(k.label)}</div>
+                    <div class="value">${escapeHtml(k.value)}</div>
+                    <div class="hint">${escapeHtml(k.hint)}</div>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    function renderLeft() {
+      const wrap = $("leftBody");
+      if (ACTIVE_TAB === "input") wrap.innerHTML = viewInput();
+      else if (ACTIVE_TAB === "scqa") wrap.innerHTML = viewSCQA();
+      else if (ACTIVE_TAB === "5ys") wrap.innerHTML = view5Ys();
+      else if (ACTIVE_TAB === "mece") wrap.innerHTML = viewMECE();
+      else if (ACTIVE_TAB === "priority") wrap.innerHTML = viewPriority();
+      else if (ACTIVE_TAB === "tasks") wrap.innerHTML = viewTasks();
+      else if (ACTIVE_TAB === "execute") wrap.innerHTML = viewExecute();
+      else if (ACTIVE_TAB === "outputs") wrap.innerHTML = viewOutputs();
+      wireViewHandlers();
+      rerenderCanvasesIfAny();
+    }
+
+    function rerenderCanvasesIfAny() {
+      const c1 = document.querySelector("#cFocus");
+      if (c1) {
+        const labels = (MODEL.lifeFocus || []).map(x => x.code);
+        const values = (MODEL.lifeFocus || []).map(x => clamp(+x.score || 0, 0, 100));
+        barChart(c1, labels, values);
+      }
+      const c2 = document.querySelector("#cDonut");
+      if (c2) {
+        const done = MODEL.tasks.filter(t => t.status === "Done").length;
+        donutChart(c2, done, MODEL.tasks.length || 1);
+      }
+    }
+
+    function viewInput() {
+      return `
+    <div class="row">
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Raw Context (language)</h3><div class="meta">Write naturally; parser extracts SCQA + constraints + stakeholders</div></div>
+          <div class="meta"><span class="pill">source</span> free text</div>
+        </div>
+        <div class="body">
+          <textarea id="ctxText">${escapeHtml(MODEL.rawInput.contextText || "")}</textarea>
+          <div class="hr"></div>
+          <div class="small">NLP Mode Active</div>
+          <div class="muted">Paste brain dumps. The system will auto-segment Context, Conflict, and Constraints. <br/>You can still use <span class="pill">Context:</span> <span class="pill">Conflict:</span> if you want to force specific overriding.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Raw Tasks (language)</h3><div class="meta">One line per task candidate</div></div>
+          <div class="meta"><span class="pill">source</span> bullets</div>
+        </div>
+        <div class="body">
+          <textarea id="tasksText" style="min-height:240px">${escapeHtml(MODEL.rawInput.tasksText || "")}</textarea>
+          <div class="hr"></div>
+          <div class="small">What happens on run</div>
+          <ul class="muted" style="margin:8px 0 0 18px">
+            <li>Parsed from bullets OR natural language (e.g., "We must fix the leak by Friday")</li>
+            <li>Priorities & Due Dates inferred from text</li>
+            <li>Narrative/report/story/comic derived from SCQA + tasks</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="row">
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">LifeFocus Snapshot</h3><div class="meta">Scores are independent; can be wired to your real trackers later</div></div>
+          <div class="meta"><span class="pill accent">chart</span></div>
+        </div>
+        <div class="body"><canvas id="cFocus"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Completion Donut</h3><div class="meta">Done count / total tasks</div></div>
+          <div class="meta"><span class="pill good">done</span></div>
+        </div>
+        <div class="body"><canvas id="cDonut"></canvas></div>
+      </div>
+    </div>
+  `;
+    }
+
+    function viewSCQA() {
+      const s = MODEL.scqa || {};
+      return `
+    <div class="grid2">
+      <div>
+        <div class="small">Situation</div>
+        <textarea id="scqaSituation">${escapeHtml(s.situation || "")}</textarea>
+      </div>
+      <div>
+        <div class="small">Conflict</div>
+        <textarea id="scqaConflict">${escapeHtml(s.conflict || "")}</textarea>
+      </div>
+      <div>
+        <div class="small">Question</div>
+        <textarea id="scqaQuestion">${escapeHtml(s.question || "")}</textarea>
+      </div>
+      <div>
+        <div class="small">Answer</div>
+        <textarea id="scqaAnswer">${escapeHtml(s.answer || "")}</textarea>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Constraints</h3><div class="meta">Hard caps. If it’s not capped, it will expand.</div></div>
+          <div class="meta"><span class="pill warn">guardrails</span></div>
+        </div>
+        <div class="body">
+          <div class="grid2">
+            <div><div class="small">Time</div><input id="cTime" type="text" value="${escapeHtml(s.constraints?.time || "")}"/></div>
+            <div><div class="small">Quality</div><input id="cQuality" type="text" value="${escapeHtml(s.constraints?.quality || "")}"/></div>
+            <div><div class="small">Quantity</div><input id="cQuantity" type="text" value="${escapeHtml(s.constraints?.quantity || "")}"/></div>
+            <div><div class="small">Budget USD</div><input id="cBudget" type="number" min="0" step="10" value="${escapeHtml(String(s.constraints?.budgetUSD ?? 200))}"/></div>
+          </div>
+          <div class="hr"></div>
+          <div class="small">Stakeholders (comma-separated)</div>
+          <input id="cStakeholders" type="text" value="${escapeHtml((s.constraints?.stakeholders || []).join(", "))}"/>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Hypotheses / Assertions</h3><div class="meta">Editable; used by outputs + tree notes</div></div>
+          <div class="meta"><button class="btn" id="btnAddHyp">Add hypothesis</button></div>
+        </div>
+        <div class="body">
+          <div class="small">Hypotheses</div>
+          <div id="hypWrap"></div>
+          <div class="hr"></div>
+          <div class="small">Assertions</div>
+          <div id="asrWrap"></div>
+          <button class="btn" id="btnAddAsr" style="margin-top:10px">Add assertion</button>
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function view5Ys() {
+      const fw = MODEL.fiveWhys || {};
+      const chain = fw.chain || ["", "", "", "", ""];
+      return `
+    <div class="card">
+      <div class="hd">
+        <div><h3 class="title">5 Whys</h3><div class="meta">Edit any “why”; root cause and fix idea should be falsifiable</div></div>
+        <div class="meta">
+          <button class="btn" id="btnRegen5">Regenerate from SCQA</button>
+        </div>
+      </div>
+      <div class="body">
+        ${chain.map((x, i) => `
+          <div style="margin-top:${i ? 10 : 0}px">
+            <div class="small">Why #${i + 1}</div>
+            <input id="why${i}" type="text" value="${escapeHtml(x)}"/>
+          </div>
+        `).join("")}
+
+        <div class="hr"></div>
+        <div class="grid2">
+          <div>
+            <div class="small">Root cause (claimed)</div>
+            <textarea id="rootCause" style="min-height:120px">${escapeHtml(fw.rootCause || "")}</textarea>
+          </div>
+          <div>
+            <div class="small">Fix idea (testable)</div>
+            <textarea id="fixIdea" style="min-height:120px">${escapeHtml(fw.fixIdea || "")}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function viewMECE() {
+      return `
+    <div class="card">
+      <div class="hd">
+        <div><h3 class="title">MECE Issue Tree</h3><div class="meta">Edit nodes; add children; tag leaves as hypothesis/metric</div></div>
+        <div class="meta">
+          <button class="btn" id="btnRegenTree">Rebuild starter tree</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="tree" id="treeWrap"></div>
+        <div class="hr"></div>
+        <div class="small">Rules</div>
+        <ul class="muted" style="margin:8px 0 0 18px">
+          <li>MECE buckets at top; leaves must be actionable (test/metric/change)</li>
+          <li>Every hypothesis should have a test; every metric should have an owner and cadence</li>
+          <li>Tree is for diagnosis; tasks are the intervention</li>
+        </ul>
+      </div>
+    </div>
+  `;
+    }
+
+    function viewPriority() {
+      const p = MODEL.priorities || {};
+      const m = p.moscow || { must: [], should: [], could: [], wont: [] };
+      const e = p.eisenhower || { ui: [], un: [], ni: [], nn: [] };
+      return `
+    <div class="row">
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">MoSCoW</h3><div class="meta">Computed from TW/confidence/effort/urgency</div></div>
+          <div class="meta"><button class="btn" id="btnRePrior">Recompute</button></div>
+        </div>
+        <div class="body muted">
+          <div><span class="pill good">Must</span> ${escapeHtml(m.must.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill warn">Should</span> ${escapeHtml(m.should.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill">Could</span> ${escapeHtml(m.could.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill bad">Won’t</span> ${escapeHtml(m.wont.join(" • ") || "—")}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Eisenhower</h3><div class="meta">Urgent: due ≤ 7 days. Important: P≤2 or TW≥7.</div></div>
+          <div class="meta"><span class="pill accent">matrix</span></div>
+        </div>
+        <div class="body muted">
+          <div><span class="pill good">Urgent+Important</span> ${escapeHtml(e.ui.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill warn">Urgent+Not</span> ${escapeHtml(e.un.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill">Not Urgent+Important</span> ${escapeHtml(e.ni.join(" • ") || "—")}</div>
+          <div style="margin-top:10px"><span class="pill bad">Not Urgent+Not</span> ${escapeHtml(e.nn.join(" • ") || "—")}</div>
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function viewTasks() {
+      const rows = (MODEL.tasks || []).map(t => {
+        const tone = t.status === "Done" ? "good" : t.status === "In Progress" ? "warn" : "bad";
+        return `
+      <tr data-task="${escapeHtml(t.id)}" class="taskRow" style="cursor:pointer">
+        <td style="width:78px;color:rgba(168,179,195,.95)">${escapeHtml(t.id)}</td>
+        <td>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <span class="pill ${tone}">${escapeHtml(t.status)}</span>
+            <b>${escapeHtml(t.title)}</b>
+            ${(t.tags || []).slice(0, 4).map(x => `<span class="pill">${escapeHtml(x)}</span>`).join("")}
+          </div>
+          <div class="small" style="margin-top:6px">
+            P${escapeHtml(String(t.priority ?? "?"))} • due ${escapeHtml(t.due || "—")} • eff ${escapeHtml(String(t.estimateMin || 0))}m • conf ${escapeHtml(String(Math.round((t.confidence || 0.6) * 100)))}%
+          </div>
+        </td>
+        <td style="width:220px">
+          <div class="small">TW/CP → SPS</div>
+          <div class="muted">
+            TW ${escapeHtml(String(t.score?.TW ?? 0))} • CP ${escapeHtml(String(t.score?.CP ?? 0))}<br/>
+            SPS <b>${escapeHtml(String(t.score?.SPS ?? 0))}</b>
+          </div>
+        </td>
+      </tr>
+    `;
+      }).join("");
+
+      const selected = selectTask(SELECTED_TASK_ID) || (MODEL.tasks[0] || null);
+      const sid = selected?.id || "";
+      return `
+    <div class="row">
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Task List</h3><div class="meta">Click a row to edit; scoring recomputes deterministically</div></div>
+          <div class="meta">
+            <button class="btn" id="btnAddTask">Add task</button>
+          </div>
+        </div>
+        <div class="body">
+          <table class="table">
+            <thead><tr><th>ID</th><th>Task</th><th>Score</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="3" class="muted">No tasks.</td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <div><h3 class="title">Task Editor</h3><div class="meta">Selected: <span class="pill accent">${escapeHtml(sid || "—")}</span></div></div>
+          <div class="meta">
+            <button class="btn danger" id="btnDelTask" ${sid ? "" : "disabled"}>Delete</button>
+          </div>
+        </div>
+        <div class="body">
+          ${selected ? taskEditorHTML(selected) : `<div class="muted">Select a task.</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function taskEditorHTML(t) {
+      const s = t.score || {};
+      return `
+    <div class="grid2">
+      <div><div class="small">Title</div><input id="tTitle" type="text" value="${escapeHtml(t.title)}"/></div>
+      <div>
+        <div class="small">Status</div>
+        <select id="tStatus">
+          ${["Not Started", "In Progress", "Done", "Closed", "Archived"].map(x => `<option ${t.status === x ? "selected" : ""}>${x}</option>`).join("")}
+        </select>
+      </div>
+
+      <div><div class="small">Priority (1=highest)</div><input id="tPri" type="number" min="1" max="9" step="1" value="${escapeHtml(String(t.priority ?? 3))}"/></div>
+      <div><div class="small">Due (YYYY-MM-DD)</div><input id="tDue" type="text" value="${escapeHtml(t.due || "")}"/></div>
+
+      <div><div class="small">Effort (minutes)</div><input id="tEff" type="number" min="0" step="5" value="${escapeHtml(String(t.estimateMin || 0))}"/></div>
+      <div><div class="small">Confidence (0..1)</div><input id="tConf" type="number" min="0" max="1" step="0.05" value="${escapeHtml(String(t.confidence ?? 0.6))}"/></div>
+
+      <div><div class="small">Tags (comma-separated)</div><input id="tTags" type="text" value="${escapeHtml((t.tags || []).join(", "))}"/></div>
+      <div><div class="small">Owner</div><input id="tOwner" type="text" value="${escapeHtml(t.owner || "You")}"/></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="grid2">
+      <div>
+        <div class="small">Next action (single physical action)</div>
+        <input id="tNext" type="text" value="${escapeHtml(t.nextAction || "")}"/>
+      </div>
+      <div>
+        <div class="small">Definition of done (objective)</div>
+        <input id="tDoD" type="text" value="${escapeHtml(t.doneDefinition || "")}"/>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="small">Blockers (comma-separated)</div>
+    <input id="tBlock" type="text" value="${escapeHtml((t.blockers || []).join(", "))}"/>
+
+    <div class="hr"></div>
+
+    <div class="small">Scoring (per task)</div>
+    <div class="grid2" style="margin-top:8px">
+      <div><div class="small">TW (0..10)</div><input id="sTW" type="number" min="0" max="10" step="1" value="${escapeHtml(String(s.TW ?? 0))}"/></div>
+      <div><div class="small">CP (0..1)</div><input id="sCP" type="number" min="0" max="1" step="0.05" value="${escapeHtml(String(s.CP ?? 0))}"/></div>
+
+      <div><div class="small">SM (1..1.5)</div><input id="sSM" type="number" min="0.5" max="2" step="0.05" value="${escapeHtml(String(s.SM ?? 1))}"/></div>
+      <div><div class="small">ESF (0.8..1.2)</div><input id="sESF" type="number" min="0.5" max="2" step="0.05" value="${escapeHtml(String(s.ESF ?? 1))}"/></div>
+
+      <div><div class="small">QM (0.5..1.5)</div><input id="sQM" type="number" min="0.2" max="2" step="0.05" value="${escapeHtml(String(s.QM ?? 1))}"/></div>
+      <div><div class="small">SF (1..1.5)</div><input id="sSF" type="number" min="0.5" max="3" step="0.05" value="${escapeHtml(String(s.SF ?? 1))}"/></div>
+
+      <div><div class="small">BP (0..0.8)</div><input id="sBP" type="number" min="0" max="0.8" step="0.05" value="${escapeHtml(String(s.BP ?? 0))}"/></div>
+      <div>
+        <div class="small">Computed</div>
+        <div class="muted">
+          BPS <b>${escapeHtml(String(s.BPS ?? 0))}</b> • APS <b>${escapeHtml(String(s.APS ?? 0))}</b> • SPS <b>${escapeHtml(String(s.SPS ?? 0))}</b>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn" id="btnComputeScore">Recompute score</button>
+      <button class="btn" id="btnGenOutputs">Generate outputs</button>
+      <button class="btn primary" id="btnSelectForExec">Select for Execute</button>
+    </div>
+  `;
+    }
+
+    function viewExecute() {
+      const t = selectTask(SELECTED_TASK_ID) || MODEL.tasks[0] || null;
+      const scqa = MODEL.scqa || {};
+      if (!t) return `<div class="muted">No tasks.</div>`;
+      return `
+    <div class="card">
+      <div class="hd">
+        <div><h3 class="title">Task Execution Helper</h3><div class="meta">Force “next physical action” + constraints + timebox</div></div>
+        <div class="meta"><span class="pill accent">${escapeHtml(t.id)}</span></div>
+      </div>
+      <div class="body">
+        <div class="kpi">
+          <div class="label">Selected Task</div>
+          <div class="value">${escapeHtml(t.title)}</div>
+          <div class="hint">Status ${escapeHtml(t.status)} • P${escapeHtml(String(t.priority ?? "?"))} • Eff ${escapeHtml(String(t.estimateMin || 0))}m</div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <div>
+            <div class="small">Constraints in force</div>
+            <div class="muted" style="margin-top:8px">
+              <span class="pill">Time</span> ${escapeHtml(scqa.constraints?.time || "—")}<br/>
+              <span class="pill">Quality</span> ${escapeHtml(scqa.constraints?.quality || "—")}<br/>
+              <span class="pill">Quantity</span> ${escapeHtml(scqa.constraints?.quantity || "—")}<br/>
+              <span class="pill">Budget</span> $${escapeHtml(String(scqa.constraints?.budgetUSD ?? 0))}
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="small">Execution plan</div>
+            <div class="muted" style="margin-top:8px">
+              <div><span class="pill good">Next action</span> ${escapeHtml(t.nextAction || "Define next action.")}</div>
+              <div style="margin-top:8px"><span class="pill warn">Timebox</span> ${escapeHtml(String(suggestTimebox(t)))} minutes</div>
+              <div style="margin-top:8px"><span class="pill bad">Blockers</span> ${escapeHtml((t.blockers || []).join("; ") || "none")}</div>
+              <div style="margin-top:8px"><span class="pill accent">DoD</span> ${escapeHtml(t.doneDefinition || "Define objective acceptance criteria.")}</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="small">Anti-drift checklist</div>
+            <ul class="muted" style="margin:8px 0 0 18px">
+              <li>Does this task change a decision this week? If no: defer.</li>
+              <li>Is DoD objectively verifiable? If no: rewrite.</li>
+              <li>Is evidence capture defined? If no: add link/notes slot.</li>
+              <li>Does scoring reflect reality (CP≠1 when incomplete)?</li>
+            </ul>
+
+            <div class="hr"></div>
+
+            <div class="small">One-line narrative (for logging)</div>
+            <input id="execOneLiner" type="text" value="${escapeHtml(oneLine(t, scqa))}"/>
+            <button class="btn" id="btnLogExec" style="margin-top:10px">Log execution note</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function viewOutputs() {
+      return `
+    <div class="row">
+      <div class="card">
+        <div class="hd"><div><h3 class="title">Narrative</h3><div class="meta">Task-centric, operational</div></div><div class="meta"></div></div>
+        <div class="body"><textarea id="outNarr" style="min-height:220px">${escapeHtml(MODEL.outputs.narrative || "")}</textarea></div>
+      </div>
+      <div class="card">
+        <div class="hd"><div><h3 class="title">Report</h3><div class="meta">Audit-friendly snapshot</div></div><div class="meta"></div></div>
+        <div class="body"><textarea id="outReport" style="min-height:220px">${escapeHtml(MODEL.outputs.report || "")}</textarea></div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <div class="card">
+        <div class="hd"><div><h3 class="title">Story</h3><div class="meta">SCQA mapped to micro-plot</div></div><div class="meta"></div></div>
+        <div class="body"><textarea id="outStory" style="min-height:220px">${escapeHtml(MODEL.outputs.story || "")}</textarea></div>
+      </div>
+      <div class="card">
+        <div class="hd"><div><h3 class="title">Comic Beats</h3><div class="meta">Panel beats (dry, grounded)</div></div><div class="meta"></div></div>
+        <div class="body"><textarea id="outComic" style="min-height:220px">${escapeHtml(MODEL.outputs.comic || "")}</textarea></div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn" id="btnPullOutputs">Pull from editor (selected task)</button>
+      <button class="btn primary" id="btnSaveOutputs">Save to model</button>
+    </div>
+  `;
+    }
+
+    /* ============================================================
+       HANDLERS / WIRING
+       ============================================================ */
+
+    function wireViewHandlers() {
+      if (ACTIVE_TAB === "input") {
+        $("ctxText").oninput = (e) => { MODEL.rawInput.contextText = e.target.value; markDirty("context changed"); };
+        $("tasksText").oninput = (e) => { MODEL.rawInput.tasksText = e.target.value; markDirty("tasks changed"); };
+      }
+
+      if (ACTIVE_TAB === "scqa") {
+        // basic fields
+        $("scqaSituation").oninput = (e) => { MODEL.scqa.situation = e.target.value; markDirty("SCQA situation"); };
+        $("scqaConflict").oninput = (e) => { MODEL.scqa.conflict = e.target.value; markDirty("SCQA conflict"); };
+        $("scqaQuestion").oninput = (e) => { MODEL.scqa.question = e.target.value; markDirty("SCQA question"); };
+        $("scqaAnswer").oninput = (e) => { MODEL.scqa.answer = e.target.value; markDirty("SCQA answer"); };
+
+        $("cTime").oninput = (e) => { MODEL.scqa.constraints.time = e.target.value; markDirty("constraint time"); };
+        $("cQuality").oninput = (e) => { MODEL.scqa.constraints.quality = e.target.value; markDirty("constraint quality"); };
+        $("cQuantity").oninput = (e) => { MODEL.scqa.constraints.quantity = e.target.value; markDirty("constraint quantity"); };
+        $("cBudget").oninput = (e) => { MODEL.scqa.constraints.budgetUSD = +e.target.value || 0; markDirty("constraint budget"); };
+        $("cStakeholders").oninput = (e) => { MODEL.scqa.constraints.stakeholders = splitList(e.target.value); markDirty("stakeholders"); };
+
+        // hypotheses/assertions render + wire
+        renderHypAsr();
+
+        $("btnAddHyp").onclick = () => {
+          MODEL.scqa.hypotheses.push({ id: uid("H"), h: "New hypothesis", confidence: 0.5 });
+          log("Added hypothesis");
+          renderLeft(); // rerender within tab
+        };
+        $("btnAddAsr").onclick = () => {
+          MODEL.scqa.assertions.push("New assertion");
+          log("Added assertion");
+          renderLeft();
+        };
+      }
+
+      if (ACTIVE_TAB === "5ys") {
+        $("btnRegen5").onclick = () => {
+          const fw = buildFiveWhysFromSCQA(MODEL.scqa);
+          MODEL.fiveWhys.chain = fw.chain;
+          MODEL.fiveWhys.rootCause = fw.rootCause;
+          MODEL.fiveWhys.fixIdea = fw.fixIdea;
+          log("Regenerated 5 Whys from SCQA");
+          renderLeft();
+          syncJSONBox();
+        };
+        for (let i = 0; i < 5; i++) {
+          const el = $("why" + i);
+          if (el) el.oninput = (e) => { MODEL.fiveWhys.chain[i] = e.target.value; markDirty(`why${i + 1}`); };
+        }
+        $("rootCause").oninput = (e) => { MODEL.fiveWhys.rootCause = e.target.value; markDirty("root cause"); };
+        $("fixIdea").oninput = (e) => { MODEL.fiveWhys.fixIdea = e.target.value; markDirty("fix idea"); };
+      }
+
+      if (ACTIVE_TAB === "mece") {
+        renderTreeUI();
+        $("btnRegenTree").onclick = () => {
+          MODEL.meceTree = buildMECETwitter(MODEL.scqa, MODEL.fiveWhys, MODEL.tasks);
+          log("Rebuilt MECE starter tree");
+          renderLeft();
+          syncJSONBox();
+        };
+      }
+
+      if (ACTIVE_TAB === "priority") {
+        $("btnRePrior").onclick = () => {
+          MODEL.priorities = prioritizeTasks(MODEL.tasks);
+          log("Recomputed priorities");
+          renderLeft();
+          syncJSONBox();
+        };
+      }
+
+      if (ACTIVE_TAB === "tasks") {
+        document.querySelectorAll(".taskRow").forEach(row => {
+          row.onclick = () => {
+            const id = row.getAttribute("data-task");
+            SELECTED_TASK_ID = id;
+            log(`Selected task ${id}`);
+            renderLeft();
+          };
+        });
+
+        const selected = selectTask(SELECTED_TASK_ID) || (MODEL.tasks[0] || null);
+        if (selected) {
+          // wire editor
+          $("tTitle").oninput = (e) => { selected.title = e.target.value; markDirty("task title"); };
+          $("tStatus").onchange = (e) => { selected.status = e.target.value; markDirty("task status"); };
+          $("tPri").oninput = (e) => { selected.priority = +e.target.value || 3; markDirty("task priority"); };
+          $("tDue").oninput = (e) => { selected.due = e.target.value.trim(); markDirty("task due"); };
+          $("tEff").oninput = (e) => { selected.estimateMin = +e.target.value || 0; markDirty("task effort"); };
+          $("tConf").oninput = (e) => { selected.confidence = clamp(+e.target.value || 0, 0, 1); markDirty("task confidence"); };
+          $("tTags").oninput = (e) => { selected.tags = splitList(e.target.value); markDirty("task tags"); };
+          $("tOwner").oninput = (e) => { selected.owner = e.target.value; markDirty("task owner"); };
+
+          $("tNext").oninput = (e) => { selected.nextAction = e.target.value; markDirty("next action"); };
+          $("tDoD").oninput = (e) => { selected.doneDefinition = e.target.value; markDirty("DoD"); };
+          $("tBlock").oninput = (e) => { selected.blockers = splitList(e.target.value); markDirty("blockers"); };
+
+          $("sTW").oninput = (e) => { selected.score.TW = clamp(+e.target.value || 0, 0, 10); markDirty("TW"); };
+          $("sCP").oninput = (e) => { selected.score.CP = clamp(+e.target.value || 0, 0, 1); markDirty("CP"); };
+          $("sSM").oninput = (e) => { selected.score.SM = +e.target.value || 1; markDirty("SM"); };
+          $("sESF").oninput = (e) => { selected.score.ESF = +e.target.value || 1; markDirty("ESF"); };
+          $("sQM").oninput = (e) => { selected.score.QM = +e.target.value || 1; markDirty("QM"); };
+          $("sSF").oninput = (e) => { selected.score.SF = +e.target.value || 1; markDirty("SF"); };
+          $("sBP").oninput = (e) => { selected.score.BP = +e.target.value || 0; markDirty("BP"); };
+
+          $("btnComputeScore").onclick = () => {
+            computeTaskScore(selected);
+            log(`Recomputed score for ${selected.id} (SPS ${selected.score.SPS})`);
+            renderLeft();
+            syncJSONBox();
+          };
+          $("btnGenOutputs").onclick = () => {
+            computeTaskScore(selected);
+            selected.narrative = genTaskNarrative(selected, MODEL.scqa);
+            selected.report = genTaskReport(selected);
+            selected.story = genTaskStory(selected, MODEL.scqa);
+            selected.comic = genTaskComic(selected);
+            // also set global outputs as current task
+            MODEL.outputs.narrative = selected.narrative;
+            MODEL.outputs.report = selected.report;
+            MODEL.outputs.story = selected.story;
+            MODEL.outputs.comic = selected.comic;
+            log(`Generated outputs for ${selected.id}`);
+            renderLeft();
+            syncJSONBox();
+          };
+          $("btnSelectForExec").onclick = () => {
+            SELECTED_TASK_ID = selected.id;
+            ACTIVE_TAB = "execute";
+            log(`Moved to Execute with task ${selected.id}`);
+            refreshAll("execute");
+          };
+
+          $("btnDelTask").onclick = () => {
+            const id = selected.id;
+            MODEL.tasks = MODEL.tasks.filter(x => x.id !== id);
+            if (SELECTED_TASK_ID === id) SELECTED_TASK_ID = MODEL.tasks[0]?.id || null;
+            log(`Deleted task ${id}`, "warn");
+            renderLeft();
+            syncJSONBox();
+          };
+        }
+
+        $("btnAddTask").onclick = () => {
+          const id = uid("T");
+          MODEL.tasks.unshift({
+            id, title: "New task",
+            status: "Not Started", priority: 3, due: "", estimateMin: 60, impact: 0.6, confidence: 0.6,
+            owner: "You", blockers: [], nextAction: "", doneDefinition: "",
+            narrative: "", report: "", story: "", comic: "",
+            score: { TW: 6, CP: 0, SM: MODEL.scoringDefaults.SM, ESF: MODEL.scoringDefaults.ESF, QM: MODEL.scoringDefaults.QM, SF: MODEL.scoringDefaults.SF, BP: MODEL.scoringDefaults.BP, BPS: 0, APS: 0, SPS: 0 },
+            tags: []
+          });
+          SELECTED_TASK_ID = id;
+          log(`Added task ${id}`);
+          renderLeft();
+          syncJSONBox();
+        };
+      }
+
+      if (ACTIVE_TAB === "execute") {
+        const t = selectTask(SELECTED_TASK_ID) || MODEL.tasks[0] || null;
+        if (t) {
+          $("btnLogExec").onclick = () => {
+            const note = $("execOneLiner").value.trim();
+            log(`EXEC: ${note || oneLine(t, MODEL.scqa)}`, "info");
+          };
+        }
+      }
+
+      if (ACTIVE_TAB === "outputs") {
+        $("btnPullOutputs").onclick = () => {
+          const t = selectTask(SELECTED_TASK_ID) || MODEL.tasks[0] || null;
+          if (!t) { log("No task to pull outputs from", "warn"); return; }
+          // if task outputs exist, pull; else generate
+          if (!t.narrative) {
+            computeTaskScore(t);
+            t.narrative = genTaskNarrative(t, MODEL.scqa);
+            t.report = genTaskReport(t);
+            t.story = genTaskStory(t, MODEL.scqa);
+            t.comic = genTaskComic(t);
+          }
+          $("outNarr").value = t.narrative;
+          $("outReport").value = t.report;
+          $("outStory").value = t.story;
+          $("outComic").value = t.comic;
+          log(`Pulled outputs from ${t.id}`);
+        };
+        $("btnSaveOutputs").onclick = () => {
+          MODEL.outputs.narrative = $("outNarr").value;
+          MODEL.outputs.report = $("outReport").value;
+          MODEL.outputs.story = $("outStory").value;
+          MODEL.outputs.comic = $("outComic").value;
+          log("Saved outputs to model");
+          syncJSONBox();
+        };
+      }
+    }
+
+    function renderHypAsr() {
+      const hWrap = $("hypWrap");
+      const aWrap = $("asrWrap");
+      const hyps = MODEL.scqa.hypotheses || [];
+      const asr = MODEL.scqa.assertions || [];
+
+      hWrap.innerHTML = hyps.map((h, i) => `
+    <div class="node">
+      <div class="nodeTop">
+        <div class="left">
+          <span class="pill accent">H${i + 1}</span>
+          <input data-h="${escapeHtml(h.id)}" class="hypText" type="text" value="${escapeHtml(h.h)}"/>
+          <span class="tag">p <input data-hp="${escapeHtml(h.id)}" class="hypP" type="number" min="0" max="1" step="0.05" value="${escapeHtml(String(h.confidence ?? 0.5))}"/></span>
+        </div>
+        <div class="right">
+          <button class="btn danger hypDel" data-delh="${escapeHtml(h.id)}">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join("") || `<div class="muted">No hypotheses.</div>`;
+
+      aWrap.innerHTML = asr.map((a, i) => `
+    <div class="node">
+      <div class="nodeTop">
+        <div class="left">
+          <span class="pill">A${i + 1}</span>
+          <input data-a="${i}" class="asrText" type="text" value="${escapeHtml(a)}"/>
+        </div>
+        <div class="right">
+          <button class="btn danger asrDel" data-dela="${i}">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join("") || `<div class="muted">No assertions.</div>`;
+
+      // wire
+      document.querySelectorAll(".hypText").forEach(el => {
+        el.oninput = () => {
+          const id = el.getAttribute("data-h");
+          const h = (MODEL.scqa.hypotheses || []).find(x => x.id === id);
+          if (h) h.h = el.value;
+          markDirty("hyp text");
+        };
+      });
+      document.querySelectorAll(".hypP").forEach(el => {
+        el.oninput = () => {
+          const id = el.getAttribute("data-hp");
+          const h = (MODEL.scqa.hypotheses || []).find(x => x.id === id);
+          if (h) h.confidence = clamp(+el.value || 0, 0, 1);
+          markDirty("hyp p");
+        };
+      });
+      document.querySelectorAll(".hypDel").forEach(el => {
+        el.onclick = () => {
+          const id = el.getAttribute("data-delh");
+          MODEL.scqa.hypotheses = (MODEL.scqa.hypotheses || []).filter(x => x.id !== id);
+          log(`Removed hypothesis ${id}`, "warn");
+          renderLeft();
+          syncJSONBox();
+        };
+      });
+
+      document.querySelectorAll(".asrText").forEach(el => {
+        el.oninput = () => {
+          const idx = +el.getAttribute("data-a");
+          if (Number.isFinite(idx)) MODEL.scqa.assertions[idx] = el.value;
+          markDirty("assertion");
+        };
+      });
+      document.querySelectorAll(".asrDel").forEach(el => {
+        el.onclick = () => {
+          const idx = +el.getAttribute("data-dela");
+          MODEL.scqa.assertions.splice(idx, 1);
+          log(`Removed assertion ${idx + 1}`, "warn");
+          renderLeft();
+          syncJSONBox();
+        };
+      });
+    }
+
+    function renderTreeUI() {
+      const root = MODEL.meceTree?.root;
+      const wrap = $("treeWrap");
+      if (!root) { wrap.innerHTML = `<div class="muted">No tree.</div>`; return; }
+
+      const flat = treeToFlat(root);
+      wrap.innerHTML = flat.map(({ node, depth }) => {
+        const indent = depth ? `style="margin-left:${depth * 14}px"` : "";
+        return `
+      <div class="node" ${indent}>
+        <div class="nodeTop">
+          <div class="left">
+            <span class="pill">${escapeHtml(node.kind || "issue")}</span>
+            <input class="nodeLabel" data-n="${escapeHtml(node.id)}" type="text" value="${escapeHtml(node.label)}"/>
+            <span class="tag">
+              kind
+              <select class="nodeKind" data-k="${escapeHtml(node.id)}">
+                ${["issue", "hypothesis", "metric", "risk"].map(k => `<option ${node.kind === k ? "selected" : ""}>${k}</option>`).join("")}
+              </select>
+            </span>
+          </div>
+          <div class="right">
+            <button class="btn nodeAdd" data-add="${escapeHtml(node.id)}">Add child</button>
+            ${node.id !== "N-ROOT" ? `<button class="btn danger nodeDel" data-del="${escapeHtml(node.id)}">Remove</button>` : ``}
+          </div>
+        </div>
+        <div class="small" style="margin-top:8px">note</div>
+        <input class="nodeNote" data-note="${escapeHtml(node.id)}" type="text" value="${escapeHtml(node.note || "")}"/>
+      </div>
+    `;
+      }).join("");
+
+      // wire edits
+      document.querySelectorAll(".nodeLabel").forEach(el => {
+        el.oninput = () => {
+          const id = el.getAttribute("data-n");
+          const n = findNodeById(MODEL.meceTree.root, id);
+          if (n) n.label = el.value;
+          markDirty("tree label");
+        };
+      });
+      document.querySelectorAll(".nodeKind").forEach(el => {
+        el.onchange = () => {
+          const id = el.getAttribute("data-k");
+          const n = findNodeById(MODEL.meceTree.root, id);
+          if (n) n.kind = el.value;
+          markDirty("tree kind");
+        };
+      });
+      document.querySelectorAll(".nodeNote").forEach(el => {
+        el.oninput = () => {
+          const id = el.getAttribute("data-note");
+          const n = findNodeById(MODEL.meceTree.root, id);
+          if (n) n.note = el.value;
+          markDirty("tree note");
+        };
+      });
+      document.querySelectorAll(".nodeAdd").forEach(el => {
+        el.onclick = () => {
+          const pid = el.getAttribute("data-add");
+          addChild(MODEL.meceTree.root, pid, "New leaf", "issue");
+          log(`Added child to ${pid}`);
+          renderLeft();
+          syncJSONBox();
+        };
+      });
+      document.querySelectorAll(".nodeDel").forEach(el => {
+        el.onclick = () => {
+          const id = el.getAttribute("data-del");
+          removeNode(MODEL.meceTree.root, id);
+          log(`Removed node ${id}`, "warn");
+          renderLeft();
+          syncJSONBox();
+        };
+      });
+    }
+
+    /* ============================================================
+       JSON BOX SYNC + VALIDATION
+       ============================================================ */
+
+    function syncJSONBox() {
+      $("jsonBox").value = JSON.stringify(MODEL, null, 2);
+    }
+
+    function loadFromJSONBox() {
+      try {
+        const parsed = JSON.parse($("jsonBox").value);
+        MODEL = parsed;
+        log("Loaded model from JSON box");
+        setStatus("Loaded", "good");
+        refreshAll("json loaded");
+      } catch (e) {
+        setStatus("JSON error", "bad");
+        log("JSON parse error: " + (e?.message || String(e)), "bad");
+      }
+    }
+
+    function validateModel() {
+      const errs = [];
+      if (!MODEL.period?.id) errs.push("period.id missing");
+      if (!MODEL.scqa) errs.push("scqa missing");
+      if (!MODEL.meceTree?.root) errs.push("meceTree.root missing");
+      if (!Array.isArray(MODEL.tasks)) errs.push("tasks is not an array");
+      (MODEL.tasks || []).forEach((t, i) => {
+        if (!t.id) errs.push(`tasks[${i}] missing id`);
+        if (!t.title) errs.push(`tasks[${i}] missing title`);
+        if (!t.score) errs.push(`tasks[${i}] missing score`);
+      });
+      if (errs.length) {
+        setStatus("Invalid", "bad");
+        log("Validation failed:\n- " + errs.join("\n- "), "bad");
+      } else {
+        setStatus("Valid", "good");
+        log("Validation OK", "good");
+      }
+    }
+
+    /* ============================================================
+       PIPELINE RUN (Parse → Build → Prioritize)
+       ============================================================ */
+
+    function runPipeline() {
+      setStatus("Running", "warn");
+
+      // Parse SCQA from raw
+      const scqa = parseContextToSCQA(MODEL.rawInput.contextText || "");
+      MODEL.scqa = scqa;
+      log("Parsed SCQA from context");
+
+      // Build 5 whys
+      const fw = buildFiveWhysFromSCQA(MODEL.scqa);
+      MODEL.fiveWhys.chain = fw.chain;
+      MODEL.fiveWhys.rootCause = fw.rootCause;
+      MODEL.fiveWhys.fixIdea = fw.fixIdea;
+      log("Built 5 Whys from SCQA");
+
+      // Parse tasks (merge strategy: replace all for now; later you can diff-by-title)
+      MODEL.tasks = parseTasks(MODEL.rawInput.tasksText || "");
+      MODEL.tasks.forEach(t => computeTaskScore(t));
+      SELECTED_TASK_ID = MODEL.tasks[0]?.id || null;
+      log(`Parsed tasks: ${MODEL.tasks.length}`);
+
+      // Build tree
+      MODEL.meceTree = buildMECETwitter(MODEL.scqa, MODEL.fiveWhys, MODEL.tasks);
+      log("Built MECE starter tree");
+
+      // Prioritize
+      MODEL.priorities = prioritizeTasks(MODEL.tasks);
+      log("Computed MoSCoW + Eisenhower");
+
+      // Generate outputs for first task as default
+      const t0 = MODEL.tasks[0];
+      if (t0) {
+        t0.narrative = genTaskNarrative(t0, MODEL.scqa);
+        t0.report = genTaskReport(t0);
+        t0.story = genTaskStory(t0, MODEL.scqa);
+        t0.comic = genTaskComic(t0);
+        MODEL.outputs.narrative = t0.narrative;
+        MODEL.outputs.report = t0.report;
+        MODEL.outputs.story = t0.story;
+        MODEL.outputs.comic = t0.comic;
+        log(`Generated outputs for ${t0.id}`);
+      }
+
+      MODEL._meta.lastRunAt = nowStr();
+      setStatus("Ready", "good");
+      refreshAll("pipeline run");
+    }
+
+    /* ============================================================
+       EXECUTION UTILITIES
+       ============================================================ */
+
+    function selectTask(id) {
+      if (!id) return null;
+      return (MODEL.tasks || []).find(x => x.id === id) || null;
+    }
+    function suggestTimebox(task) {
+      const e = Math.max(10, +task.estimateMin || 60);
+      if (e <= 25) return 25;
+      if (e <= 45) return 45;
+      if (e <= 90) return 90;
+      return 120;
+    }
+    function oneLine(task, scqa) {
+      const why = (scqa.question || "").slice(0, 90);
+      return `${task.id} ${task.title} — next: ${task.nextAction || "define next action"} — why: ${why || "improve the system"}`;
+    }
+
+    /* ============================================================
+       GLOBAL BUTTONS
+       ============================================================ */
+
+    function markDirty(what) {
+      // lightweight: don't spam log; only status
+      $("updatedLabel").textContent = nowStr();
+      setStatus("Dirty", "warn");
+    }
+
+    $("btnRun").onclick = () => {
+      // before run: bring JSON edits into model if user edited JSON box
+      // rule: JSON box is authoritative if it was modified manually. We can't detect reliably; so we don't auto-load.
+      // Instead: run from current MODEL state.
+      runPipeline();
+    };
+
+    $("btnSeed").onclick = () => {
+      MODEL = deepClone(SAMPLE);
+      LOG.length = 0;
+      log("Loaded sample model");
+      setStatus("Ready", "good");
+      refreshAll("sample loaded");
+    };
+
+    $("btnExport").onclick = () => {
+      // export without external libs: copy to clipboard if possible
+      const txt = JSON.stringify(MODEL, null, 2);
+      navigator.clipboard?.writeText(txt).then(() => {
+        log("Exported JSON to clipboard", "good");
+      }).catch(() => {
+        log("Clipboard unavailable; JSON remains in the box.", "warn");
+      });
+    };
+
+    $("btnClearLog").onclick = () => {
+      LOG.length = 0;
+      $("console").textContent = "";
+      log("Log cleared");
+    };
+
+    $("btnValidate").onclick = () => validateModel();
+
+    $("btnHardReset").onclick = () => {
+      MODEL = deepClone(SAMPLE);
+      syncJSONBox();
+      LOG.length = 0;
+      $("console").textContent = "";
+      log("Hard reset to sample", "warn");
+      setStatus("Ready", "good");
+      refreshAll("hard reset");
+    };
+
+    $("jsonBox").addEventListener("change", () => {
+      // explicit apply: change event is a decent proxy for "user finished editing"
+      loadFromJSONBox();
+    });
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    (function init() {
+      $("updatedLabel").textContent = nowStr();
+      log("Initialized workbench");
+      // Seed SCQA, 5ys, tasks, tree, priorities immediately
+      runPipeline();
+    })();
+
+    let resizeT = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => { renderLeft(); }, 120);
+    });
+  </script>
+</body>
+
+</html>

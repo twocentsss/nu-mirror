@@ -34,7 +34,7 @@ import { usePersona, Persona } from "@/hooks/usePersona";
 
 export type DockActionId =
   | "chat"
-  | "solve"
+  | "decompose"
   | "capture"
   | "rant"
   | "calendar"
@@ -140,6 +140,7 @@ export const getItemsBySide = (persona: Persona): Record<Exclude<DockPosition, '
       { id: "capture", label: labels.capture[0], sub: labels.capture[1], icon: <Plus size={18} /> },
       { id: "rant", label: labels.rant[0], sub: labels.rant[1], icon: <Zap size={18} /> },
       { id: "chat", label: labels.chat[0], sub: labels.chat[1], icon: <MessageCircle size={18} /> },
+      { id: "decompose", label: "Decompose", sub: "Problem", icon: <Fingerprint size={18} /> },
       { id: "howto", label: "Tips", sub: "Guide", icon: <HelpCircle size={18} /> },
     ],
     right: [

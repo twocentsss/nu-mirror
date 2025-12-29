@@ -1,0 +1,73 @@
+<div style="display:flex; gap:10px; margin-bottom:14px;">
+    <button class="btn primary" onclick="showSubTab('tree')">MECE Tree</button>
+    <button class="btn" onclick="showSubTab('5ys')">5 Whys</button>
+    <button class="btn" onclick="showSubTab('fishbone')">Fishbone</button>
+</div>
+
+<div id="tab-tree">
+    <div class="card">
+        <div class="hd">
+            <div>
+                <h3 class="title">MECE Issue Tree</h3>
+                <div class="meta">Edit nodes; add children; tag leaves as hypothesis/metric</div>
+            </div>
+            <div class="meta">
+                <button class="btn" id="btnRegenTree">Rebuild starter tree</button>
+            </div>
+        </div>
+        <div class="body">
+            <div class="tree" id="treeWrap"></div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-5ys" style="display:none">
+    <div class="card">
+        <div class="hd">
+            <div>
+                <h3 class="title">5 Whys</h3>
+                <div class="meta">Edit any “why”; root cause and fix idea should be falsifiable</div>
+            </div>
+            <div class="meta">
+                <button class="btn" id="btnRegen5">Regenerate from SCQA</button>
+            </div>
+        </div>
+        <div class="body">
+            <div id="fiveWhysContainer"></div>
+            <div class="hr"></div>
+            <div class="grid2">
+                <div>
+                    <div class="small">Root cause (claimed)</div>
+                    <textarea id="rootCause" style="min-height:120px"></textarea>
+                </div>
+                <div>
+                    <div class="small">Fix idea (testable)</div>
+                    <textarea id="fixIdea" style="min-height:120px"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-fishbone" style="display:none">
+    <div class="card">
+        <div class="hd">
+            <div>
+                <h3 class="title">Fishbone Diagram (Ishikawa)</h3>
+                <div class="meta">Root cause analysis by category</div>
+            </div>
+        </div>
+        <div class="body" id="fishboneWrap">
+            <!-- Fishbone rendered here -->
+            <div class="muted">Fishbone visualization placeholder</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showSubTab(id) {
+        document.getElementById('tab-tree').style.display = id === 'tree' ? 'block' : 'none';
+        document.getElementById('tab-5ys').style.display = id === '5ys' ? 'block' : 'none';
+        document.getElementById('tab-fishbone').style.display = id === 'fishbone' ? 'block' : 'none';
+    }
+</script>

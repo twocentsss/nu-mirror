@@ -157,7 +157,7 @@ export default function SimpleDesignView({ greeting = "Good day", activeTab = "t
         } else {
             const actionIds = [
                 'about', 'waterfall', 'graph', 'report', 'tips', 'personalization', 'rant',
-                'capture', 'chat', 'howto', 'solve', 'calendar', 'story', 'agents',
+                'capture', 'chat', 'howto', 'decompose', 'calendar', 'story', 'agents',
                 'settings', 'evidence'
             ];
 

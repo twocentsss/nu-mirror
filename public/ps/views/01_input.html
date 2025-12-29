@@ -1,0 +1,39 @@
+<div class="row">
+    <div class="card">
+        <div class="hd">
+            <div>
+                <h3 class="title">Raw Context (language)</h3>
+                <div class="meta">Write naturally; parser extracts SCQA + constraints + stakeholders</div>
+            </div>
+            <div class="meta"><span class="pill">source</span> free text</div>
+        </div>
+        <div class="body">
+            <textarea id="ctxText"></textarea>
+            <div class="hr"></div>
+            <div class="small">NLP Mode Active</div>
+            <div class="muted">Paste brain dumps. The system will auto-segment Context, Conflict, and Constraints.
+                <br />You can still use <span class="pill">Context:</span> <span class="pill">Conflict:</span> if you
+                want to force specific overriding.</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="hd">
+            <div>
+                <h3 class="title">Raw Tasks (language)</h3>
+                <div class="meta">One line per task candidate</div>
+            </div>
+            <div class="meta"><span class="pill">source</span> bullets</div>
+        </div>
+        <div class="body">
+            <textarea id="tasksText" style="min-height:240px"></textarea>
+            <div class="hr"></div>
+            <div class="small">What happens on run</div>
+            <ul class="muted" style="margin:8px 0 0 18px">
+                <li>Parsed from bullets OR natural language (e.g., "We must fix the leak by Friday")</li>
+                <li>Priorities & Due Dates inferred from text</li>
+                <li>Narrative/report/story/comic derived from SCQA + tasks</li>
+            </ul>
+        </div>
+    </div>
+</div>

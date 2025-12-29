@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LifeFocus Workbench — Modular</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>LifeFocus Workbench</h1>
+          <div class="sub">Structured Problem Solving Pipeline</div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="chip"><span>Mode</span> <b id="modeLabel">Input</b></div>
+        <button class="btn primary" id="btnRun">Parse → Build → Prioritize</button>
+      </div>
+    </div>
+    <!-- New Navigation Bar -->
+    <div class="topbar" style="padding-top:0; padding-bottom:10px; gap:6px; overflow-x:auto;" id="nav-steps">
+      <!-- Populated by app.js -->
+    </div>
+    <div class="topbar" style="padding-top:0; padding-bottom:10px; gap:6px; overflow-x:auto;">
+      <div class="tabs" id="subtabs">
+        <!-- Populated by app.js -->
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="detailsSection">
+      <div id="view-container">
+        <!-- Dynamic View Loaded Here -->
+        <div class="card">
+          <div class="body muted">Loading...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="graphSection" class="hidden">
+      <!-- Persistent Global Graph -->
+      <div class="card" style="margin-top:20px; border-top:1px solid var(--line);">
+        <div class="hd">
+          <div>
+            <h3 class="title">Live Structural Map</h3>
+            <div class="meta">Visualizing your problem space (Updates dynamically)</div>
+          </div>
+          <div class="meta"><span class="pill">Mermaid.js</span></div>
+        </div>
+        <div class="body">
+          <div class="tree" id="treeWrap" style="min-height:200px; overflow:auto;"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="caseSection" class="hidden">
+      <div class="card" style="margin-top:20px; border-top:1px solid var(--line);">
+        <div class="hd">
+          <div>
+            <h3 class="title">Case Report</h3>
+            <div class="meta">Generated from current details and structure</div>
+          </div>
+          <div class="right">
+            <button class="btn" id="btnCopyCase">Copy</button>
+          </div>
+        </div>
+        <div class="body">
+          <textarea id="caseReportText" readonly></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/model.js"></script>
+  <script src="js/views_data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  </script>
+</body>
+
+</html>

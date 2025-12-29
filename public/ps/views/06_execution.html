@@ -1,0 +1,50 @@
+<div class="card">
+    <div class="hd">
+        <div>
+            <h3 class="title">Task Execution Helper</h3>
+            <div class="meta">Force “next physical action” + constraints + timebox</div>
+        </div>
+        <div class="meta"><span class="pill accent" id="execTaskId">—</span></div>
+    </div>
+    <div class="body">
+        <div class="kpi">
+            <div class="label">Selected Task</div>
+            <div class="value" id="execTaskTitle">Select a task first</div>
+            <div class="hint" id="execTaskMeta">—</div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+            <div>
+                <div class="small">Constraints in force</div>
+                <div class="muted" style="margin-top:8px" id="execConstraints">
+                    <!-- Populated by JS -->
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="small">Execution plan</div>
+                <div class="muted" style="margin-top:8px" id="execPlan">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div>
+                <div class="small">Anti-drift checklist</div>
+                <ul class="muted" style="margin:8px 0 0 18px">
+                    <li>Does this task change a decision this week? If no: defer.</li>
+                    <li>Is DoD objectively verifiable? If no: rewrite.</li>
+                    <li>Is evidence capture defined? If no: add link/notes slot.</li>
+                    <li>Does scoring reflect reality (CP≠1 when incomplete)?</li>
+                </ul>
+
+                <div class="hr"></div>
+
+                <div class="small">One-line narrative (for logging)</div>
+                <input id="execOneLiner" type="text" />
+                <button class="btn" id="btnLogExec" style="margin-top:10px">Log execution note</button>
+            </div>
+        </div>
+    </div>
+</div>
